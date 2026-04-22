@@ -1,0 +1,27 @@
+{
+  "name": "g-heal-claw",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Self-healing production monitoring system",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\""
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "prettier": "^3.5.3",
+    "turbo": "^2.9.6",
+    "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
