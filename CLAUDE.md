@@ -2,9 +2,9 @@
 
 ## 项目定位
 
-面向前端团队的自愈式生产监控系统。通过轻量 SDK 捕获错误，Sourcemap 还原堆栈，AI 诊断根因并自动生成修复 PR。
+面向前端团队的自愈式生产监控系统。通过轻量 SDK 捕获错误，Sourcemap 还原堆栈，AI Agent 诊断根因并自动生成修复 PR。
 
-> 需求文档见 `docs/requirements.md` | 技术规格见 `docs/SPEC.md` | 系统架构见 `docs/ARCHITECTURE.md` | 技术设计见 `docs/DESIGN.md`
+> 技术规格见 `docs/SPEC.md` | 系统架构见 `docs/ARCHITECTURE.md` | 技术设计见 `docs/DESIGN.md`
 
 ## 技术栈
 
@@ -12,13 +12,12 @@
 |---|---|
 | 语言 | TypeScript (strict) + Zod |
 | Monorepo | pnpm workspaces + Turborepo |
-| 构建工具 | Vite（应用 + 库均使用 Vite） |
-| 后端框架 | Fastify v5 |
+| 后端框架 | NestJS（Fastify adapter） |
 | 消息队列 | Redis + BullMQ |
 | 数据库 | PostgreSQL 17 + Drizzle ORM |
 | 对象存储 | MinIO (开发) / S3 (生产) |
-| 前端 | React 19 + Shadcn/ui + TailwindCSS v4 |
-| AI | Anthropic Claude / OpenAI GPT（Provider 抽象层） |
+| 前端 | Next.js (App Router) + Shadcn/ui + TailwindCSS v4 |
+| AI | LangChain Agent + Claude/GPT（ReAct 模式） |
 | 图表 | ECharts |
 
 ## 项目结构
@@ -35,7 +34,6 @@
 │       ├── solution-design/  #     /solution-design — 方案设计
 │       └── code-review/      #     /code-review — 代码审查
 ├── docs/                     # 项目文档
-│   ├── requirements.md       #   需求文档
 │   ├── SPEC.md               #   技术规格
 │   ├── ARCHITECTURE.md       #   系统架构
 │   ├── DESIGN.md             #   技术设计
@@ -44,17 +42,11 @@
 │   ├── sdk/                  #   @g-heal-claw/sdk — 浏览器 SDK
 │   ├── cli/                  #   @g-heal-claw/cli — Sourcemap 上传 CLI
 │   ├── shared/               #   @g-heal-claw/shared — 共享类型/Schema/工具
-│   ├── vite-plugin/          #   @g-heal-claw/vite-plugin
-│   └── webpack-plugin/       #   @g-heal-claw/webpack-plugin
-├── apps/                     # 后端服务 & 前端
-│   ├── gateway/              #   数据采集网关（Fastify）
-│   ├── error-processor/      #   错误处理 Worker（BullMQ）
-│   ├── sourcemap-service/    #   Sourcemap 存储 & 解析
-│   ├── ai-engine/            #   AI 诊断 & 修复生成
-│   ├── notification-service/ #   通知分发
-│   ├── auto-fix-worker/      #   自动修复管线
-│   ├── dashboard-api/        #   后台管理 REST API
-│   └── dashboard-web/        #   后台管理前端（React SPA）
+│   └── vite-plugin/          #   @g-heal-claw/vite-plugin
+├── apps/                     # 应用
+│   ├── server/               #   NestJS 后端（模块化单体）
+│   ├── web/                  #   Next.js 管理面板（SSR）
+│   └── ai-agent/             #   LangChain AI Agent（诊断 + 修复）
 ├── package.json
 ├── pnpm-workspace.yaml
 ├── turbo.json
@@ -76,11 +68,11 @@
 
 ### 架构约束
 
-> 详见 `.claude/rules/architecture.md`（服务边界、通信规则、扩展检查清单）
+> 详见 `.claude/rules/architecture.md`（模块边界、通信规则、扩展检查清单）
 
 ### 代码规范
 
-> 详见 `.claude/rules/coding.md`（TypeScript、Zod、命名、模块结构、错误处理）
+> 详见 `.claude/rules/coding.md`（TypeScript、Zod、NestJS、命名、模块结构、错误处理）
 
 ### 审查规则
 

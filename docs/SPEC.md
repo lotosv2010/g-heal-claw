@@ -121,9 +121,10 @@ interface ErrorEventPayload {
 |---|---|---|
 | ESM | 现代打包工具 | 8 KB |
 | CJS | 传统 Node/打包工具 | 8 KB |
-| IIFE/UMD | `<script>` 标签 | 10 KB |
+| IIFE | `<script>` 标签 | 10 KB |
 
 - 零运行时依赖。
+- 构建工具：Vite Library Mode（输出 ESM + CJS + IIFE）。
 - 支持 Tree-shaking：手动捕获和面包屑模块在未使用时可被摇掉。
 
 ---
@@ -132,7 +133,7 @@ interface ErrorEventPayload {
 
 ### 3.1 数据采集网关（Ingestion Gateway）
 
-**基础 URL**: `<gateway-host>/api/v1`
+**基础 URL**: `<server-host>/api/v1`
 
 #### POST /events
 
@@ -158,7 +159,7 @@ interface ErrorEventPayload {
 
 ### 3.2 Sourcemap 服务
 
-**基础 URL**: `<sourcemap-host>/api/v1`
+**基础 URL**: `<server-host>/api/v1`
 
 #### POST /sourcemaps
 
@@ -200,7 +201,7 @@ interface ResolvedFrame {
 
 ### 3.3 后台管理 API（Dashboard API）
 
-**基础 URL**: `<dashboard-api>/api/v1`
+**基础 URL**: `<server-host>/api/v1`
 
 除特别说明外，所有接口需要 `Authorization: Bearer <jwt>`。
 
@@ -284,6 +285,7 @@ NotificationTrigger: new_issue | regression | severity_change | auto_fix_ready
 AutoFixStatus:       pending | pr_created | approved | deployed | failed
 DeployStatus:        triggered | running | success | failed
 FeedbackRating:      helpful | not_helpful | partial
+MemberRole:          owner | admin | member | viewer
 ```
 
 ### 4.2 实体定义
@@ -321,12 +323,12 @@ FeedbackRating:      helpful | not_helpful | partial
 |---|---|---|
 | id | uuid | PK |
 | project_id | uuid | FK -> Project.id, NOT NULL |
-| release_version | varchar(128) | NOT NULL |
+| release_id | uuid | FK -> Release.id, NOT NULL |
 | file_path | varchar(1024) | NOT NULL |
 | storage_key | varchar(1024) | NOT NULL |
 | uploaded_at | timestamptz | NOT NULL, 默认 now() |
 
-**唯一约束**: `(project_id, release_version, file_path)`
+**唯一约束**: `(release_id, file_path)`
 
 #### ErrorEvent（错误事件）
 
@@ -334,7 +336,8 @@ FeedbackRating:      helpful | not_helpful | partial
 |---|---|---|
 | id | uuid | PK |
 | project_id | uuid | FK -> Project.id, NOT NULL, 已索引 |
-| release_version | varchar(128) | 可空 |
+| release_id | uuid | FK -> Release.id, 可空 |
+| environment_id | uuid | FK -> Environment.id, 可空 |
 | timestamp | timestamptz | NOT NULL, 已索引 |
 | error_type | varchar(255) | NOT NULL |
 | message | text | NOT NULL |
@@ -420,6 +423,49 @@ FeedbackRating:      helpful | not_helpful | partial
 | pipeline_url | varchar(1024) | 可空 |
 | status | DeployStatus | NOT NULL, 默认 `triggered` |
 | triggered_at | timestamptz | NOT NULL, 默认 now() |
+
+#### Release（发布版本）
+
+| 字段 | 类型 | 约束 |
+|---|---|---|
+| id | uuid | PK |
+| project_id | uuid | FK -> Project.id, NOT NULL |
+| version | varchar(128) | NOT NULL |
+| commit_sha | varchar(40) | 可空 |
+| deploy_url | varchar(1024) | 可空 |
+| created_at | timestamptz | NOT NULL, 默认 now() |
+
+**唯一约束**: `(project_id, version)`
+
+> 将 release 从散落在 ErrorEvent/SourcemapUpload 中的字符串字段提升为一等实体，支持版本对比、回归检测、Sourcemap 关联。
+
+#### Environment（运行环境）
+
+| 字段 | 类型 | 约束 |
+|---|---|---|
+| id | uuid | PK |
+| project_id | uuid | FK -> Project.id, NOT NULL |
+| name | varchar(64) | NOT NULL |
+| is_production | boolean | NOT NULL, 默认 false |
+| created_at | timestamptz | NOT NULL, 默认 now() |
+
+**唯一约束**: `(project_id, name)`
+
+> 支持按环境（production / staging / development）过滤错误，避免测试环境噪音。
+
+#### ProjectMember（项目成员关联）
+
+| 字段 | 类型 | 约束 |
+|---|---|---|
+| id | uuid | PK |
+| project_id | uuid | FK -> Project.id, NOT NULL |
+| user_id | uuid | FK -> User.id, NOT NULL |
+| role | MemberRole | NOT NULL, 默认 `member` |
+| joined_at | timestamptz | NOT NULL, 默认 now() |
+
+**唯一约束**: `(project_id, user_id)`
+
+> 支持多项目多角色的团队协作模型，独立于全局 User.role。
 
 ---
 

@@ -17,21 +17,22 @@
 - [ ] import 路径符合包依赖规则（见 `architecture.md`）
 - [ ] 无循环依赖
 - [ ] apps 之间不直接引用，通过 shared 共享类型，通过队列通信
+- [ ] NestJS 模块间通过 DI 注入 Service，禁止直接导入 Controller
 - [ ] SDK 代码无 Node.js API 调用（浏览器兼容）
 - [ ] 环境变量通过 Zod Schema 校验，不直接访问 `process.env`
 
 ### 3. 错误处理
 
 - [ ] 无空 catch 块
-- [ ] 业务错误使用 `AppError` 类
-- [ ] Worker 任务有合理的重试策略
+- [ ] 业务错误使用 `AppException` 类
+- [ ] BullMQ Worker 有合理的重试策略
 - [ ] 异步函数的错误有合理传播路径
 
 ### 4. 安全
 
 - [ ] 无硬编码密钥 / Token / API Key
 - [ ] `.env` 相关文件不会被提交（已在 `.gitignore`）
-- [ ] 用户输入有校验（Zod Schema）
+- [ ] 用户输入有校验（Zod Schema / NestJS Pipe）
 - [ ] DSN 的 publicKey 不包含 secret 信息
 
 ### 5. 代码质量
@@ -44,9 +45,10 @@
 ### 6. 文档与注释
 
 - [ ] 公开 API 有 JSDoc
+- [ ] NestJS Controller 有 `@nestjs/swagger` 装饰器
 - [ ] 注释使用中文
 - [ ] 注释说明"为什么"，而非"做什么"
-- [ ] 新增服务/包已更新 `docs/ARCHITECTURE.md`
+- [ ] 新增模块/包已更新 `docs/ARCHITECTURE.md`
 
 ### 7. 包规范
 
@@ -63,5 +65,6 @@
 | SDK 中使用了 Node.js API | 替换为浏览器兼容的 Web API |
 | 队列名硬编码在 Worker 中 | 移至 `packages/shared` 统一定义常量 |
 | Zod Schema 和手写 type 并存 | 删除手写 type，改用 `z.infer<typeof XxxSchema>` |
-| 环境变量直接 `process.env.XXX` | 通过 `src/env.ts` 的 Zod Schema 校验后使用 |
-| 新服务未注册健康检查 | 添加 `GET /health` 端点 |
+| 环境变量直接 `process.env.XXX` | 通过 Zod Schema 校验后使用（NestJS: `@nestjs/config`） |
+| NestJS Controller 缺少 Swagger | 添加 `@ApiTags` + `@ApiOperation` + `@ApiResponse` 装饰器 |
+| 模块间直接导入 Controller | 改为导入 Service，通过 Module exports 暴露 |
