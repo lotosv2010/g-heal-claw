@@ -87,7 +87,8 @@ describe("Gateway e2e", () => {
       .post("/ingest/v1/events")
       .send({ sentAt: Date.now(), events: [buildCustomLogEvent()] })
       .expect(200);
-    expect(res.body).toEqual({ accepted: 1 });
+    // NODE_ENV=test 下 DatabaseService 不建连接，persisted 恒为 0
+    expect(res.body).toEqual({ accepted: 1, persisted: 0 });
   });
 
   it("POST /ingest/v1/events — 非法 payload（events 空）返回 400", async () => {

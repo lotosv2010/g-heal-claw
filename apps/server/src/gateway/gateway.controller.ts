@@ -24,7 +24,9 @@ export class GatewayController {
       required: ["sentAt", "events"],
     },
   })
-  public ingest(@Body() body: IngestRequest): { accepted: number } {
+  public ingest(
+    @Body() body: IngestRequest,
+  ): Promise<{ accepted: number; persisted: number }> {
     return this.gateway.ingest(body);
   }
 }

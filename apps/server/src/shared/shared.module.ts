@@ -1,14 +1,15 @@
 import { Global, Logger, Module } from "@nestjs/common";
+import { DatabaseModule } from "./database/database.module.js";
 
 /**
- * 全局基础设施模块（骨架版）
+ * 全局基础设施模块
  *
- * 目前仅 re-export Nest 自带 Logger，作为所有模块注入 Logger 的统一出口。
- * T1.1.5 会补充 `DatabaseProvider`；T1.3.2 会补充 `BullMQProvider`。
+ * 聚合 Logger + DatabaseModule（ADR-0013）；T1.3.2 会补充 `BullMQProvider`。
  */
 @Global()
 @Module({
+  imports: [DatabaseModule],
   providers: [Logger],
-  exports: [Logger],
+  exports: [Logger, DatabaseModule],
 })
 export class SharedModule {}
