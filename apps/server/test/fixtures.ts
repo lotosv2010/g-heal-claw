@@ -1,4 +1,4 @@
-import type { CustomLog } from "@g-heal-claw/shared";
+import type { CustomLog, ErrorEvent } from "@g-heal-claw/shared";
 
 /**
  * 测试夹具：生成一条最小可通过 Zod 校验的 custom_log 事件
@@ -35,6 +35,41 @@ export function buildCustomLogEvent(
     level: "info",
     message: "hello",
     breadcrumbs: [],
+    ...overrides,
+  };
+}
+
+/**
+ * 测试夹具：生成一条最小可通过 Zod 校验的 error 事件（subType=js）
+ */
+export function buildErrorEvent(
+  overrides: Partial<ErrorEvent> = {},
+): ErrorEvent {
+  return {
+    eventId: "11111111-2222-4333-8444-666666666666",
+    projectId: "demo",
+    publicKey: "pk",
+    timestamp: Date.now(),
+    type: "error",
+    environment: "test",
+    sessionId: "s-demo",
+    tags: {},
+    context: {},
+    device: {
+      ua: "vitest",
+      os: "Linux",
+      browser: "Node",
+      deviceType: "desktop",
+      screen: { width: 1920, height: 1080, dpr: 1 },
+      language: "en-US",
+      timezone: "UTC",
+    },
+    page: {
+      url: "http://localhost/",
+      path: "/",
+    },
+    subType: "js",
+    message: "Boom",
     ...overrides,
   };
 }

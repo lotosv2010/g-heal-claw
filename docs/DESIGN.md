@@ -172,6 +172,22 @@ DO UPDATE SET
 
 **整体指标与串行阶段分离**：`firstScreen` / `lcp` 从 0 起是整体指标（代表用户观感）；`dns → tcp → ssl → request → response → domParse → resourceLoad` 是串行累积（代表网络/渲染物理过程）。混画到同一瀑布图时需视觉区分（前者从 0 起、后者 cursor 串接）。
 
+#### 5.2.3 异常事件切片：`error_events_raw` + 字面分组（ADR-0016）
+
+**为什么单表不入队、不指纹聚合**：
+- 切片阶段（T1.2.2 / T1.4.0 / T1.6.2.0）的目标是"SDK → 落库 → 大盘"端到端先跑通，指纹算法依赖 Sourcemap 还原（T1.5），二者必须串行。
+- 与 `perf_events_raw` 完全对偶：Gateway 直调 `ErrorsService.saveBatch()`，事件独立行，`event_id UNIQUE` 幂等，保留未来接入 BullMQ `events-error` 的切换口（T1.3.2）。
+
+**为什么 UI 分组键选 `(sub_type, message_head)`**：
+- `message_head = message.slice(0, 128)` 入库时物化为独立列并加 `idx_err_project_group_ts` 索引（`(project_id, sub_type, message_head, ts_ms DESC)`），查询零计算开销。
+- 字面分组对"带数字/ID"的错误粒度偏粗（如 `Request failed 429 /api/x/123`），MVP 可接受；T1.4.2 指纹落地后查询键切到 `fingerprint`，API 契约不变（Controller 字段命名保持 `messageHead` 即可复用）。
+
+**为什么 Top 分组直查而非预聚合**：
+- demo 事件量级下，`GROUP BY (sub_type, message_head)` + `ORDER BY count DESC LIMIT N` 在 `idx_err_project_group_ts` 上单查询 < 20ms。
+- 预聚合需额外的 `error_issues` 表 + Processor Worker，属于 T1.4.1 范围，不阻塞切片交付。
+
+**环比语义反转（对偶性能大盘）**：异常 `deltaDirection=up` 表示恶化（UI 红色 `destructive`），`down` 表示改善（UI 绿色 `good`）；性能 `up` 表示指标变大（LCP 延迟恶化）同为 destructive，math 完全一致。
+
 ### 5.3 去重与幂等
 
 - SDK 生成 `eventId` (UUID v7)，Gateway 写入 Redis `SETNX eventId EX 3600`，命中即丢弃。
@@ -411,5 +427,6 @@ Action: createPr(...)
 | ADR-0013 | 性能事件持久化切片：Gateway 直调 PerformanceService → `perf_events_raw` 单表（暂不入队） | 采纳 |
 | ADR-0014 | SDK PerformancePlugin 引入 `web-vitals@^4` + 自采 Navigation 瀑布 | 采纳 |
 | ADR-0015 | Dashboard 性能大盘 API 首版：`/dashboard/v1/performance/overview` 直查 + p75 聚合 | 采纳 |
+| ADR-0016 | 异常监控闭环切片：SDK `errorPlugin` + `error_events_raw` 单表 + `/dashboard/v1/errors/overview` 字面分组聚合 | 采纳 |
 
 详细决策文档按需在 `docs/decisions/` 下新增，模板与完整索引见 `docs/decisions/README.md`。

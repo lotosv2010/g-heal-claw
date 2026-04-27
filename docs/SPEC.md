@@ -362,7 +362,8 @@ interface NavigationTiming {
 | Release | `/api/v1/projects/:id/releases` | CRUD |
 | 异常 Issue | `/api/v1/projects/:id/issues`、`/issues/:id`、`/issues/:id/events` | GET/PATCH |
 | 原始事件 | `/api/v1/projects/:id/events?type=...` | GET |
-| **性能大盘（首版）** | **`/dashboard/v1/performance/overview`**（ADR-0015，见 §5.5） | GET |
+| **性能大盘（首版）** | **`/dashboard/v1/performance/overview`**（ADR-0015，见 §5.4.0） | GET |
+| **异常大盘（首版）** | **`/dashboard/v1/errors/overview`**（ADR-0016，见 §5.4.0.1） | GET |
 | 性能大盘（长期） | `/api/v1/projects/:id/performance/overview`、`/performance/web-vitals`、`/performance/apdex` | GET |
 | API 分析 | `/api/v1/projects/:id/api/overview`、`/api/slow`、`/api/errors` | GET |
 | 资源分析 | `/api/v1/projects/:id/resources/overview` | GET |
@@ -454,6 +455,76 @@ GET /dashboard/v1/performance/overview
 **空数据降级**：`vitals` 始终返回 5 项占位（`sampleCount=0` / `value=0` / `tone="good"` / `deltaDirection="flat"`）；`stages` / `trend` / `slowPages` 为空数组。前端据此渲染"暂无数据"，不抛错。
 
 **索引命中**：`idx_perf_project_metric_ts`（Vitals / Trend / Waterfall）+ `idx_perf_project_path_ts`（SlowPages），现有索引覆盖全部查询路径。
+
+**响应错误码**：
+- `400 Bad Request` — query 参数 Zod 校验失败。
+- `500 Internal Server Error` — DB 查询异常（不降级为空数据，避免掩盖后端故障）。
+
+### 5.4.0.1 Dashboard 异常大盘首版契约（ADR-0016）
+
+**端点**：
+
+```
+GET /dashboard/v1/errors/overview
+  ?projectId=<string>              必填
+  &windowHours=<int>               可选，默认 24，范围 [1, 168]
+  &limitGroups=<int>               可选，默认 10，范围 [1, 50]
+```
+
+**响应体**（`ErrorOverviewDto`）：
+
+```jsonc
+{
+  "data": {
+    "summary": {
+      "totalEvents": 128,
+      "impactedSessions": 53,
+      "deltaPercent": 12.4,
+      "deltaDirection": "up"            // "up"（恶化） | "down"（改善） | "flat"
+    },
+    "bySubType": [
+      { "subType": "js",           "count": 87, "ratio": 0.68 },
+      { "subType": "promise",      "count": 24, "ratio": 0.19 },
+      { "subType": "resource",     "count": 17, "ratio": 0.13 },
+      { "subType": "framework",    "count":  0, "ratio": 0    },
+      { "subType": "white_screen", "count":  0, "ratio": 0    }
+    ],
+    "trend": [
+      {
+        "hour": "2026-04-27T00:00:00.000Z",
+        "total": 12, "js": 10, "promise": 2, "resource": 0,
+        "framework": 0, "whiteScreen": 0
+      }
+    ],
+    "topGroups": [
+      {
+        "subType": "js",
+        "messageHead": "Cannot read properties of undefined (reading 'nickname')",
+        "count": 54,
+        "impactedSessions": 21,
+        "firstSeen": "2026-04-27T03:10:12.000Z",
+        "lastSeen": "2026-04-27T09:41:32.000Z",
+        "sampleUrl": "/profile"
+      }
+    ]
+  }
+}
+```
+
+**计算规则**：
+
+| 字段 | 来源 | 公式 |
+|---|---|---|
+| `summary.totalEvents` | `error_events_raw` | `COUNT(*)` |
+| `summary.impactedSessions` | 同表 | `COUNT(DISTINCT session_id)` |
+| `summary.deltaPercent` / `deltaDirection` | 当前窗口 vs 前一窗口 | `(current - previous) / previous × 100`；`abs(pct) < 0.1%` 或任一端为 0 时 `"flat"`；**up = 异常增加 = 恶化**（UI 红色） |
+| `bySubType[*]` | `GROUP BY sub_type` | 缺失的 enum 值补零占位，始终返回 5 枚（`js` / `promise` / `resource` / `framework` / `white_screen`）；`ratio = count / totalEvents`，总和为 0 时 `ratio = 0` |
+| `trend[*]` | `date_trunc('hour', to_timestamp(ts_ms/1000.0))` × `sub_type` | 宽表化为 `total` + 5 枚 subType 列；返回 UTC ISO，**前端用 dayjs 本地化**；空窗口返回 `[]` |
+| `topGroups[*]` | `GROUP BY (sub_type, message_head)` 按 count DESC 限 `limitGroups` | `firstSeen` / `lastSeen` = `min/max ts_ms` → ISO；`sampleUrl` 从 `path` 聚合取任意一条 |
+
+**空数据降级**：`summary.totalEvents = 0` 时 `bySubType` 补齐 5 枚占位；`trend` / `topGroups` 为空数组；前端 `SourceBadge` 展示 `empty` 态（"暂无异常"），不抛错。
+
+**索引命中**：Summary 走 `idx_err_project_ts`；bySubType / trend 走 `idx_err_project_sub_ts`；topGroups 走 `idx_err_project_group_ts`，覆盖全部查询路径。
 
 **响应错误码**：
 - `400 Bad Request` — query 参数 Zod 校验失败。

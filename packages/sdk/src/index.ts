@@ -23,6 +23,10 @@ export {
   performancePlugin,
   type PerformancePluginOptions,
 } from "./plugins/performance.js";
+export {
+  errorPlugin,
+  type ErrorPluginOptions,
+} from "./plugins/error.js";
 
 // 便于 UMD 脚本接入：提供一个扁平 namespace 对象
 import { init as _init } from "./init.js";
@@ -33,6 +37,7 @@ import {
   addBreadcrumb as _addBreadcrumb,
 } from "./client.js";
 import { performancePlugin as _performancePlugin } from "./plugins/performance.js";
+import { errorPlugin as _errorPlugin } from "./plugins/error.js";
 import type { Breadcrumb } from "@g-heal-claw/shared";
 import type { GHealClawOptions } from "./options.js";
 
@@ -56,6 +61,7 @@ export const GHealClaw = {
     if (hub) _addBreadcrumb(hub, breadcrumb);
   },
   performancePlugin: _performancePlugin,
+  errorPlugin: _errorPlugin,
 };
 
 export default GHealClaw;

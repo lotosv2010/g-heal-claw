@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-04-27（文档审查：性能指标阈值、NavigationTiming 计算公式、Dashboard 性能 API 契约同步到 SPEC/ARCHITECTURE/DESIGN/web README）
+> 最后更新: 2026-04-27（异常监控闭环切片 T1.2.2 / T1.4.0.1~3 / T1.6.2.0.1~6 全部 [x]；T2.1.1.7 解冻并与 T1.4.0.4 合并为浏览器端到端冒烟）
 
 ## 状态说明
 
@@ -146,7 +146,90 @@
   - [x] **T1.2.1.9** SDK 单测（Hub / Plugin / createEvent / FetchTransport mock — 19 用例全绿）
   - [x] **T1.2.1.10** examples/nextjs-demo 脚手架（Next.js 15 App Router + Tailwind v4 + GhcProvider + 3 个测试按钮）
   - [x] **T1.2.1.11** 端到端验证：`pnpm build/typecheck/test` 全绿；SDK 体积 2.73KB gzip（预算 15KB）；Next.js 生产构建成功。浏览器运行时观测需本地 `pnpm -F nextjs-demo dev` 后打开 <http://localhost:3100> 手动验证
-- [ ] **T1.2.2** ErrorPlugin（`window.onerror` + `unhandledrejection` + 静态资源错误）— 3d
+- [ ] **T1.2.2** ErrorPlugin（`window.onerror` + `unhandledrejection` + 静态资源错误）— 1.5d（依据 ADR-0016，MVP 范围：不含 Breadcrumb 自动采集 / Sourcemap / 指纹）
+  - [x] **T1.2.2.1** 堆栈解析器（完成 2026-04-27，9/9 单测绿） `src/plugins/stack-parser.ts`：纯函数 `parseStack(stack: string): StackFrame[]`，正则覆盖 V8 `at fn (file:line:col)` + Firefox `fn@file:line:col`，≤ 20 帧，解析失败返回 `[]`；≥ 8 单测 case — 0.3d
+    - 输入：ADR-0016 §1
+    - 输出：`stack-parser.ts` + `stack-parser.test.ts`
+    - 验收：V8/FF/Safari/匿名函数/eval 各 1 case 通过；无副作用
+    - 依赖：无
+  - [x] **T1.2.2.2** `src/plugins/error.ts` 核心实现：`errorPlugin(opts)` 工厂 + 三路订阅（error 冒泡 / error 捕获 / unhandledrejection）+ `WeakSet<Event>` 去重 + `ignoreErrors` 过滤 + 映射到 `ErrorEventSchema` — 0.5d（完成 2026-04-27）
+    - 输入：T1.2.2.1，`createBaseEvent(hub, "error")` 已就绪
+    - 输出：`error.ts` 主文件
+    - 验收：SSR 环境静默降级；订阅级 try/catch 隔离；类型通过 `ErrorEventSchema.safeParse`
+    - 依赖：T1.2.2.1
+  - [x] **T1.2.2.3** 单测 `error.test.ts`：11 case 全绿（JS 冒泡 / `ignoreErrors` 字符串 / 正则 / Promise Error 带栈 / 非 Error rejection JSON 序列化 / img 404 / script 404 / link 404 / `captureResource=false` 跳过捕获阶段监听 / WeakSet 冒泡+捕获去重 / SSR 降级）— 0.3d（完成 2026-04-27，SDK 合计 55/55 绿）
+    - 输入：T1.2.2.2
+    - 输出：`error.test.ts`
+    - 验收：全部绿；覆盖率 ≥ 85%
+    - 依赖：T1.2.2.2
+  - [x] **T1.2.2.4** 公开 API + UMD：`src/index.ts` 追加 `errorPlugin` 具名导出 + UMD 命名空间挂载（对齐 `performancePlugin`） — 0.1d（完成 2026-04-27）
+    - 输入：T1.2.2.2
+    - 输出：`dist/index.d.ts` 含 `errorPlugin`
+    - 验收：`pnpm -F @g-heal-claw/sdk typecheck && build` 全绿
+    - 依赖：T1.2.2.2
+  - [x] **T1.2.2.5** 体积预算验证 + examples/nextjs-demo 接入：`ghc-provider.tsx` 注册 `errorPlugin()`；ESM 体积 6.38 → 7.50 KB gzip（+1.12 KB），仍在 8.5 KB 预算内 — 0.3d（完成 2026-04-27；浏览器手动冒烟合并到 T1.4.0.4 / T2.1.1.7 一起执行）
+    - 输入：T1.2.2.4
+    - 输出：demo 注册生效；体积数字记录到本任务
+    - 验收：ESM gzip ≤ 8.5KB；浏览器手动点击 4 个 `/errors/*` demo 路由，DevTools Network 能看到 `/ingest/v1/events` 四次不同 `subType` 的上报
+    - 依赖：T1.2.2.4
+
+### M1.4 异常持久化切片（ADR-0016）
+
+- [ ] **T1.4.0** 异常事件持久化切片（`error_events_raw` 单表，不入队、不指纹聚合）— 1.2d（依据 ADR-0016 §2；完整 ErrorProcessor 留给 T1.4.1/T1.4.2）
+  - [x] **T1.4.0.1** `shared/database/schema.ts` 扩展（完成 2026-04-27，`errorEventsRaw` + 3 索引 + `ALL_DDL` 组合，server typecheck 绿） `errorEventsRaw` 表定义 + 3 个索引；`ddl.ts` 追加 `CREATE TABLE IF NOT EXISTS` — 0.3d
+    - 输入：ADR-0016 §2 DDL
+    - 输出：`schema.ts` 新增导出 + `ddl.ts` 常量
+    - 验收：`DatabaseService.onModuleInit` 启动时幂等建表；再次启动不报错
+    - 依赖：无
+  - [x] **T1.4.0.2** `apps/server/src/errors/errors.module.ts` + `errors.service.ts`：`saveBatch(events: ErrorEvent[])` + `message_head = message.slice(0,128)` + `event_id UNIQUE` 幂等；`NODE_ENV=test` 短路返回 0 — 0.4d（完成 2026-04-27；ErrorsModule 已在 AppModule 注册）
+    - 输入：T1.4.0.1
+    - 输出：ErrorsModule 可注入
+    - 验收：`AppModule` 注册；单元测试注入 DatabaseService mock 验证行映射
+    - 依赖：T1.4.0.1
+  - [x] **T1.4.0.3** GatewayService 扩展：过滤 `type='error'` 并调用 `errorsService.saveBatch`；日志补 `errors=N`；更新单测 `gateway.service.spec.ts` — 0.3d（完成 2026-04-27；`gateway.service.spec.ts` 3 用例重写：非持久化日志、纯 error、perf+error+custom 混合）
+    - 输入：T1.4.0.2
+    - 输出：`gateway.service.ts` + 单测
+    - 验收：混合批次（perf+error+其他）正确分流；GatewayService 不引入新依赖外的模块
+    - 依赖：T1.4.0.2
+  - [ ] **T1.4.0.4** 端到端自测：本地 PG 已启动 → 启动 server → demo 触发 `/errors/sync` → `psql -c "SELECT sub_type, message_head FROM error_events_raw ORDER BY ts_ms DESC LIMIT 5"` 查到对应行 — 0.2d
+    - 输入：T1.4.0.3
+    - 输出：验证截图或 SQL 输出
+    - 验收：4 个 demo 异常路由各至少 1 行入库；幂等校验（重放相同 payload 不新增行）
+    - 依赖：T1.4.0.3
+
+### M1.6 Dashboard 异常首版 API（ADR-0016）
+
+- [ ] **T1.6.2.0** Dashboard 异常大盘 API 首版 + Web `/errors` 改造（直查 `error_events_raw`，`(sub_type, message_head)` 字面分组；完整 Issues CRUD 留给 T1.6.2 ~ T1.6.6）— 2.8d
+  - [x] **T1.6.2.0.1** ErrorsService 聚合查询：`aggregateSummary` / `aggregateBySubType` / `aggregateTrend` / `aggregateTopGroups`（Drizzle + `sql` + `date_trunc` + `GROUP BY`）— 0.6d（完成 2026-04-27）
+    - 输入：T1.4.0 已就绪
+    - 输出：`errors.service.ts` 新增 4 个 aggregate 方法
+    - 验收：返回类型对齐 ADR-0016 §3 DTO；全部走 `idx_err_*` 索引（`EXPLAIN` 确认）
+    - 依赖：T1.4.0
+  - [x] **T1.6.2.0.2** `apps/server/src/dashboard/errors.controller.ts` + `errors.service.ts`（装配层）+ `dto/errors-overview.dto.ts`（Zod query + response Schema + Swagger）— 0.5d（完成 2026-04-27）
+    - 输入：T1.6.2.0.1
+    - 输出：`GET /dashboard/v1/errors/overview` 端点可用
+    - 验收：Swagger `/docs` 显示端点；query Zod 校验失败返回 400；空数据返回 5 subType 占位
+    - 依赖：T1.6.2.0.1
+  - [x] **T1.6.2.0.3** 服务端聚合单元测试：`errors.service.spec.ts` 5 case（空窗口 / 单 subType / 环比 up 25% / 环比 down 20% / topGroups ISO 转换 + 趋势宽表）— 0.3d（完成 2026-04-27，server 单元 8/8 + e2e 4/4 全绿）
+    - 输入：T1.6.2.0.2
+    - 输出：Vitest 单测
+    - 验收：`pnpm -F @g-heal-claw/server test` 全绿
+    - 依赖：T1.6.2.0.2
+  - [x] **T1.6.2.0.4** `apps/web/lib/api/errors.ts`：`getErrorOverview()` + `emptyErrorOverview()` + 三态 `source: "live" | "empty" | "error"`（对齐 `performance.ts`）— 0.3d（完成 2026-04-27）
+    - 输入：T1.6.2.0.2
+    - 输出：Web 端 API 客户端 + 类型
+    - 验收：`typecheck` 通过；5xx / 网络失败降级为 `error` 态
+    - 依赖：T1.6.2.0.2
+  - [x] **T1.6.2.0.5** 4 个 UI 组件：`summary-cards.tsx`（总事件/影响会话/环比 Badge）/ `sub-type-donut.tsx`（纯 CSS `conic-gradient` + 图例，不引图表库）/ `trend-chart.tsx`（复用 `@ant-design/plots` Line）/ `top-groups-table.tsx`（shadcn Table + subType Badge）— 0.7d（完成 2026-04-27）
+    - 输入：T1.6.2.0.4
+    - 输出：4 个客户端组件
+    - 验收：每个组件对空数据 graceful 渲染（不 crash）
+    - 依赖：T1.6.2.0.4
+  - [x] **T1.6.2.0.6** `app/(dashboard)/errors/page.tsx` 装配 + `export const dynamic = "force-dynamic"` + 三态 Badge + `typecheck && build` 全绿（`/errors` 标记 ƒ Dynamic）— 0.4d（完成 2026-04-27；live/empty/error 浏览器冒烟合并到 T1.4.0.4 / T2.1.1.7 一起执行）
+    - 输入：T1.6.2.0.5
+    - 输出：`/errors` 完整 live 页面
+    - 验收：触发 demo 异常后刷新 `/errors` 能看到样本；server 未运行时显示 `error` 态 Badge
+    - 依赖：T1.6.2.0.5
 - [ ] **T1.2.3** Breadcrumb 收集（路由切换、点击、console、fetch/xhr 轨迹）— 2d
 - [ ] **T1.2.4** 设备与页面上下文采集（ua-parser / viewport / network / page info）— 1d
 - [ ] **T1.2.5** 上报传输层（beacon / fetch / image 自动协商 + 批量队列 + flushInterval）— 3d
@@ -228,7 +311,7 @@
     - 输出：体积数字记录
     - 验收：gzip ≤ 6KB；超预算则打开 `web-vitals` tree-shake 开关或降级为 B 备选（自研）
     - 依赖：T2.1.1.5
-  - [-] **T2.1.1.7** examples/nextjs-demo 接入（**跳过**：用户确认本次不做 demo 浏览器冒烟，留给 T1.2.5/T2.1.7 真实数据对接时统一接入）— 0.3d
+  - [ ] **T2.1.1.7** examples/nextjs-demo 接入（2026-04-27 解冻：与 T1.4.0.4 端到端冒烟合并执行；`ghc-provider.tsx` 已注册 `performancePlugin()` + `errorPlugin()`，仅剩浏览器真实上报观测）— 0.3d
     - 输入：T2.1.1.5
     - 输出：demo 可观测 Web Vitals 上报
     - 验收：浏览器 DevTools 看到至少 TTFB + FCP + Navigation 瀑布事件
@@ -412,8 +495,9 @@
 
 > 每周同步更新本节。
 
-- 进行中：无
-- 下一步：T1.1.5 Drizzle Schema 首版、T1.2.2 ErrorPlugin、T1.3.2 Gateway 接入 BullMQ
+- 进行中：T1.4.0.4 + T2.1.1.7（端到端冒烟合并执行）—— 本地 PG → server → demo 4 条异常 + 3 条性能上报 → `SELECT ... FROM error_events_raw`、`SELECT ... FROM perf_events_raw` 校验；`/errors` 与 `/performance` 刷新看到 live 数据
+- 下一步：完成端到端冒烟后启动 T1.1.5 Drizzle Schema 首版；之后接入 T1.3.2 Gateway BullMQ 解耦 + T1.3.3 限流
+- 最近完成（2026-04-27）：异常监控闭环切片 T1.2.2 / T1.4.0.1~3 / T1.6.2.0.1~6（ADR-0016）：SDK `errorPlugin` 三路订阅 + 资源加载过滤（55/55 单测绿，ESM 7.50KB gzip）；`error_events_raw` 幂等入库；GatewayService 分流 perf/error/其他；`/dashboard/v1/errors/overview` 五类 subType 占位 + 环比 + Top 分组；Web `/errors` 三态 Badge + CSS conic-gradient 环形图 + AntV Line 趋势；web build 11 页全绿（`/errors` 标记 ƒ Dynamic）
 - 最近完成（2026-04-27）：T2.1.6 Dashboard 性能大盘 API 首版（ADR-0015，DashboardModule 直查 `perf_events_raw` + p75 聚合；Web `/performance` 改为 live 数据，三态 Badge 区分 live/empty/error；fixture 移除；server test 5/5 全绿）
 - 最近完成（2026-04-27）：T2.1.1 SDK PerformancePlugin（ADR-0014，web-vitals@^4 + 自采 Navigation 瀑布，35/35 单测全绿，SDK 体积 ESM 6.38KB / UMD 5.58KB gzip，demo 冒烟 T2.1.1.7 按用户决定推迟）
 - 最近完成（2026-04-27）：T1.1.6 `apps/web` 初始化（ADR-0012，Next 16 + shadcn/ui new-york + Tailwind v4 OKLCH 主题 + 10 页路由骨架 + 页面性能页完整落地）

@@ -5,6 +5,7 @@ import { SharedModule } from "./shared/shared.module.js";
 import { HealthModule } from "./health/health.module.js";
 import { GatewayModule } from "./gateway/gateway.module.js";
 import { DashboardModule } from "./dashboard/dashboard.module.js";
+import { ErrorsModule } from "./errors/errors.module.js";
 
 @Module({})
 export class AppModule {
@@ -16,6 +17,7 @@ export class AppModule {
         SharedModule,
         HealthModule,
         GatewayModule,
+        ErrorsModule,
         DashboardModule,
       ],
     };

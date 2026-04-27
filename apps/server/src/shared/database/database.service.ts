@@ -8,7 +8,7 @@ import {
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres, { type Sql } from "postgres";
 import { SERVER_ENV, type ServerEnv } from "../../config/env.js";
-import { PERFORMANCE_DDL } from "./ddl.js";
+import { ALL_DDL } from "./ddl.js";
 import * as schema from "./schema.js";
 
 export type Database = PostgresJsDatabase<typeof schema>;
@@ -108,10 +108,10 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   private async applyDdl(): Promise<void> {
     if (!this.sql) return;
-    for (const stmt of PERFORMANCE_DDL) {
+    for (const stmt of ALL_DDL) {
       await this.sql.unsafe(stmt);
     }
-    this.logger.log(`DDL 执行完成（${PERFORMANCE_DDL.length} 条语句）`);
+    this.logger.log(`DDL 执行完成（${ALL_DDL.length} 条语句）`);
   }
 
   /** 屏蔽密码，仅用于启动日志 */

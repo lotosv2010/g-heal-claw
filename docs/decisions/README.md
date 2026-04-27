@@ -53,5 +53,6 @@
 | [ADR-0013](./0013-performance-persistence.md) | 性能数据持久化切片：Drizzle + postgres.js + `perf_events_raw` 单表，Gateway 直调 PerformanceService（暂不入队） | 采纳 |
 | [ADR-0014](./0014-sdk-performance-plugin.md) | SDK PerformancePlugin：引入 `web-vitals@^4` 采集 LCP/FCP/CLS/INP/TTFB + SDK 自采 Navigation 瀑布，映射到 `PerformanceEventSchema` | 采纳 |
 | [ADR-0015](./0015-dashboard-performance-api.md) | Dashboard 性能大盘 API 首版：DashboardModule 直查 `perf_events_raw` 做 p75 聚合，Web 端走 `NEXT_PUBLIC_DEFAULT_PROJECT_ID` + `NEXT_PUBLIC_API_BASE_URL` | 采纳 |
+| [ADR-0016](./0016-error-monitoring-slice.md) | 异常监控闭环切片：SDK ErrorPlugin（window.error + unhandledrejection + 资源 capture）+ `error_events_raw` 单表 + Dashboard `(subType, message_head)` 字面分组直查聚合 | 采纳 |
 
 > 当你需要为某条决策补充详细背景或推翻旧决策时，请新增 `0001-xxx.md`（而非修改旧文件），并在此索引更新状态。

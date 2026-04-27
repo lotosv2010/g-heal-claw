@@ -94,7 +94,9 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `AlertModule` | 告警规则评估、触发 | BullMQ `alert-evaluator` | DB、Notification |
 | `NotificationModule` | 通知渠道分发（邮件/钉钉/企微/Slack/Webhook/**短信**） | BullMQ `notifications` | 外部 HTTP / SMS Provider |
 | `RealtimeModule` | 将聚合事件通过 Redis Pub/Sub 扇出，向前端推送 SSE | HTTP `/api/v1/stream/*` · `/open/v1/events/stream` | Redis Pub/Sub |
-| `DashboardModule` | 面向 Web 的只读聚合 API（首版 ADR-0015：性能大盘直查 `perf_events_raw` + p75；T1.1.7 后并入 JWT + ProjectGuard） | HTTP `/dashboard/v1/*` → Phase 6 迁移至 `/api/v1/*` | DB、PerformanceService |
+| `DashboardModule` | 面向 Web 的只读聚合 API（首版 ADR-0015 性能大盘直查 `perf_events_raw` + p75；首版 ADR-0016 异常大盘直查 `error_events_raw` 按 `(sub_type, message_head)` 字面分组；T1.1.7 后并入 JWT + ProjectGuard） | HTTP `/dashboard/v1/*` → Phase 6 迁移至 `/api/v1/*` | DB、PerformanceService、ErrorsService |
+| `ErrorsModule` | 异常事件切片存储与聚合（ADR-0016）：`error_events_raw` 幂等落库 + 4 个 aggregate 方法（summary / bySubType / trend / topGroups），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
+| `PerformanceModule` | 性能事件切片存储与聚合（ADR-0013）：`perf_events_raw` 落库 + p75 / 趋势 / 瀑布 / 慢页面 Top N 聚合 | 进程内 Service | DB |
 | `OpenApiModule` | 面向外部系统的 API Token 开放接口 | HTTP `/open/v1/*` | DB |
 | `HealModule` | 触发自愈流程，产出/回写 heal_job | HTTP + BullMQ `heal-jobs` | DB → ai-agent |
 | `ProjectModule` | 项目/成员/环境/Release/Key 管理 | 被 Dashboard/Open 调用 | DB |
@@ -148,14 +150,41 @@ apps/server/src/gateway/
 
 ### 4.1 错误事件 → Issue
 
+#### 4.1.1 当前实现（ADR-0016 切片）
+
 ```
-SDK ──POST /ingest/v1/events──▶ Gateway
-    · DSN 鉴权 · Zod 校验 · 项目限流 · 服务端采样
-    └── BullMQ: events-error ──▶ ErrorProcessor
-                                  · Sourcemap 还原堆栈（SourcemapService）
-                                  · 计算指纹
-                                  · UPSERT issues + INSERT events_raw
-                                  · 触发 alert-evaluator（实时告警场景）
+SDK (errorPlugin, window.error 冒泡/捕获 + unhandledrejection)
+  ├─ subType ∈ {js, promise, resource, framework, white_screen}
+  ├─ WeakSet<Event> 去重（同一事件冒泡与捕获阶段不重复）
+  └─ stack-parser.ts 纯函数解析 ≤ 20 帧
+
+  ──POST /ingest/v1/events──▶ Gateway
+      · Zod 校验 · DSN → projectId · 批量幂等（eventId UNIQUE）
+      · 直调 ErrorsService.saveBatch() → error_events_raw（ADR-0016）
+      · 暂不入 BullMQ events-error（过渡设计）
+      · 与 PerformanceService 并列分流，日志 `perf=N errors=M persisted=K`
+
+DashboardModule (ADR-0016)
+  └─ GET /dashboard/v1/errors/overview
+      · 并发 5 次查询：summary 当前 / summary 环比 / bySubType / trend / topGroups
+      · 直查 error_events_raw，走 idx_err_project_ts / idx_err_project_sub_ts / idx_err_project_group_ts
+      · 空数据返回 5 枚 subType 占位（count=0, ratio=0）
+
+Web /errors
+  · SSR force-dynamic + 三态 Badge（live / empty / error）
+  · SubTypeDonut 用纯 CSS conic-gradient（不引图表库）
+  · TrendChart 复用 @ant-design/plots Line（与 /performance 同风格）
+```
+
+#### 4.1.2 目标实现（T1.4.1 / T1.4.2 / T1.5 之后）
+
+```
+SDK ──batch──▶ Gateway ──▶ BullMQ: events-error ──▶ ErrorProcessor
+   · Sourcemap 还原堆栈（SourcemapService）
+   · 计算指纹 sha1(subType + normalizedMessage + topFrame)
+   · UPSERT issues（error_issues）+ INSERT events_raw
+   · 触发 alert-evaluator（实时告警场景）
+   · DashboardModule topGroups 查询源切换至 error_issues（Controller 契约不变）
 ```
 
 ### 4.2 性能事件 → 聚合指标
