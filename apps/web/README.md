@@ -5,7 +5,7 @@ g-heal-claw 管理后台（Next.js 16 App Router）。
 ## 本期范围（T1.1.6 / ADR-0012）
 
 - 10 页路由骨架全部铺齐：数据总览 / 页面性能 / 日志查询 / 异常分析 / 页面访问 / API 监控 / 静态资源 / 自定义上报 / 通信监控 / 应用管理
-- **仅"页面性能"** 实现完整 UI（Web Vitals 卡 + 加载阶段条 + 24h 趋势 + Top 10 慢页面），数据来自 `lib/fixtures/performance.ts` 的静态 mock
+- **仅"页面性能"** 实现完整 UI（Web Vitals 卡 + 加载阶段条 + 24h 趋势 + Top 10 慢页面），数据来自 `apps/server` 的 `/dashboard/v1/performance/overview`（ADR-0015）
 - 其余 9 页为 `PlaceholderPage` 占位，标注后续 Phase
 
 ## 非目标
@@ -13,7 +13,8 @@ g-heal-claw 管理后台（Next.js 16 App Router）。
 - 不引入 JWT 登录（T1.1.7）
 - 不引入 ECharts（延后至 T2.1.7）
 - 不引入 shadcn CLI / Radix UI（YAGNI，手写 6 个 UI 原语）
-- 不对接真实后端 API（后端 Dashboard API 在 T1.6.x / T2.1.6 落地）
+- ECharts / 环比切换留给 T2.1.7
+- 认证 / 项目切换器留给 T1.1.7
 
 ## 本地开发
 
@@ -39,6 +40,5 @@ components/
 lib/
   nav.ts               # 10 条菜单单一事实源
   cn.ts                # classname 合并
-  api/                 # fetch 包装 + 性能页 API
-  fixtures/            # mock 数据
+  api/                 # 后端 Dashboard API fetch 包装
 ```

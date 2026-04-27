@@ -4,6 +4,7 @@ import type { ServerEnv } from "./config/env.js";
 import { SharedModule } from "./shared/shared.module.js";
 import { HealthModule } from "./health/health.module.js";
 import { GatewayModule } from "./gateway/gateway.module.js";
+import { DashboardModule } from "./dashboard/dashboard.module.js";
 
 @Module({})
 export class AppModule {
@@ -15,6 +16,7 @@ export class AppModule {
         SharedModule,
         HealthModule,
         GatewayModule,
+        DashboardModule,
       ],
     };
   }

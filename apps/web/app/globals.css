@@ -6,81 +6,91 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Ant Design 默认圆角 6px */
+  --radius: 0.375rem;
+  /* Ant Design colorBgLayout = #f5f5f5；主内容区仍用 #fff（由 Card 承载） */
+  --background: #ffffff;
+  /* AntD colorText = rgba(0,0,0,0.88) */
+  --foreground: rgba(0, 0, 0, 0.88);
+  --card: #ffffff;
+  --card-foreground: rgba(0, 0, 0, 0.88);
+  --popover: #ffffff;
+  --popover-foreground: rgba(0, 0, 0, 0.88);
+  /* primary 对齐 AntD colorPrimary = #1677ff（Daybreak Blue-6） */
+  --primary: #1677ff;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: rgba(0, 0, 0, 0.88);
+  --muted: #fafafa;
+  /* colorTextSecondary = rgba(0,0,0,0.65) */
+  --muted-foreground: rgba(0, 0, 0, 0.65);
+  --accent: #e6f4ff; /* AntD colorPrimaryBg */
+  --accent-foreground: #1677ff;
+  /* AntD colorError = #ff4d4f */
+  --destructive: #ff4d4f;
+  --destructive-foreground: #ffffff;
+  /* AntD colorBorder = #d9d9d9；colorBorderSecondary = #f0f0f0 */
+  --border: #d9d9d9;
+  --input: #d9d9d9;
+  --ring: #1677ff;
 
-  /* 扩展：Web Vitals 阈值语义色（对齐 PRD §2.1 良好 / 需改进 / 差） */
-  --good: oklch(0.72 0.18 152);
-  --good-foreground: oklch(0.2 0.05 152);
-  --warn: oklch(0.82 0.17 82);
-  --warn-foreground: oklch(0.3 0.09 82);
-  --brand: oklch(0.55 0.2 277);
-  --brand-foreground: oklch(0.985 0 0);
+  /* Web Vitals 阈值语义色 ← AntD success / warning / primary */
+  --good: #52c41a;
+  --good-foreground: #ffffff;
+  --warn: #faad14;
+  --warn-foreground: #ffffff;
+  --brand: #1677ff;
+  --brand-foreground: #ffffff;
 
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Sidebar：AntD Pro 深色侧边默认 #001529；此处保持浅色壳匹配当前菜单实现 */
+  --sidebar: #ffffff;
+  --sidebar-foreground: rgba(0, 0, 0, 0.88);
+  --sidebar-primary: #1677ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e6f4ff;
+  --sidebar-accent-foreground: #1677ff;
+  --sidebar-border: #f0f0f0;
+  --sidebar-ring: #1677ff;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 0.1);
-  --input: oklch(1 0 0 / 0.15);
-  --ring: oklch(0.556 0 0);
+  /* AntD DarkAlgorithm：colorBgLayout = #000，颜色分层偏移 */
+  --background: #141414;
+  --foreground: rgba(255, 255, 255, 0.85);
+  --card: #1f1f1f;
+  --card-foreground: rgba(255, 255, 255, 0.85);
+  --popover: #1f1f1f;
+  --popover-foreground: rgba(255, 255, 255, 0.85);
+  /* 深色下 primary 微亮 = Daybreak Blue-5 */
+  --primary: #4096ff;
+  --primary-foreground: #ffffff;
+  --secondary: #262626;
+  --secondary-foreground: rgba(255, 255, 255, 0.85);
+  --muted: #262626;
+  --muted-foreground: rgba(255, 255, 255, 0.65);
+  --accent: #111a2c; /* AntD DarkAlgorithm colorPrimaryBg */
+  --accent-foreground: #4096ff;
+  --destructive: #ff4d4f;
+  --destructive-foreground: #ffffff;
+  --border: #303030;
+  --input: #303030;
+  --ring: #4096ff;
 
-  --good: oklch(0.68 0.17 152);
-  --good-foreground: oklch(0.98 0.03 152);
-  --warn: oklch(0.78 0.16 82);
-  --warn-foreground: oklch(0.15 0.05 82);
-  --brand: oklch(0.62 0.2 277);
-  --brand-foreground: oklch(0.985 0 0);
+  --good: #52c41a;
+  --good-foreground: #ffffff;
+  --warn: #faad14;
+  --warn-foreground: rgba(0, 0, 0, 0.88);
+  --brand: #4096ff;
+  --brand-foreground: #ffffff;
 
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 0.1);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: #001529; /* AntD Pro 经典深色 Sider */
+  --sidebar-foreground: rgba(255, 255, 255, 0.85);
+  --sidebar-primary: #1677ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1677ff;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1d1d1d;
+  --sidebar-ring: #4096ff;
 }
 
 @theme inline {

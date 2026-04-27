@@ -1,55 +1,93 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { useMemo } from "react";
+import dayjs from "dayjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TrendBucket } from "@/lib/api/performance";
-import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// 24 小时 LCP p75 趋势图：CSS flex 柱状（ECharts 推迟至 T2.1.7）
-// 视觉目标：让观测者一眼看出峰谷位置，不追求像素级精确
+// AntV @ant-design/plots 依赖浏览器 DOM，使用 next/dynamic + ssr:false 规避 SSR 报错
+// 同时也让图表库按需分包，不进入初次 HTML 负载
+const Line = dynamic(
+  () => import("@ant-design/plots").then((m) => m.Line),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-60 w-full" />,
+  },
+);
+
+type SeriesKey = "LCP" | "FCP" | "INP" | "TTFB";
+interface TrendDatum {
+  readonly hour: string;
+  readonly metric: SeriesKey;
+  readonly value: number;
+}
+
+// AntV G2 官方 Category-10 色板（与 Ant Design Charts 默认一致）
+const SERIES_COLORS: Record<SeriesKey, string> = {
+  LCP: "#1677ff", // AntD Blue-6
+  FCP: "#52c41a", // AntD Green-6
+  INP: "#faad14", // AntD Gold-6
+  TTFB: "#722ed1", // AntD Purple-6
+};
+
+// 24 小时多系列 Web Vitals p75 趋势图
 export function TrendChart({ buckets }: { buckets: readonly TrendBucket[] }) {
+  const data = useMemo<TrendDatum[]>(() => {
+    const rows: TrendDatum[] = [];
+    for (const b of buckets) {
+      // 后端返回 UTC ISO；dayjs 默认使用浏览器本地时区格式化
+      const hh = dayjs(b.hour).format("HH:00");
+      rows.push({ hour: hh, metric: "LCP", value: b.lcpP75 });
+      rows.push({ hour: hh, metric: "FCP", value: b.fcpP75 });
+      rows.push({ hour: hh, metric: "INP", value: b.inpP75 });
+      rows.push({ hour: hh, metric: "TTFB", value: b.ttfbP75 });
+    }
+    return rows;
+  }, [buckets]);
+
+  const config = useMemo(
+    () => ({
+      data,
+      xField: "hour",
+      yField: "value",
+      colorField: "metric",
+      shapeField: "smooth",
+      scale: {
+        color: {
+          domain: ["LCP", "FCP", "INP", "TTFB"] as SeriesKey[],
+          range: [
+            SERIES_COLORS.LCP,
+            SERIES_COLORS.FCP,
+            SERIES_COLORS.INP,
+            SERIES_COLORS.TTFB,
+          ],
+        },
+      },
+      axis: {
+        x: { title: null, labelFontSize: 10 },
+        y: { title: "ms", labelFontSize: 10 },
+      },
+      legend: { color: { position: "top" as const } },
+      height: 240,
+      tooltip: {
+        items: [{ field: "value", name: "p75", valueFormatter: (v: number) => `${v} ms` }],
+      },
+      interaction: { tooltip: { shared: true } },
+    }),
+    [data],
+  );
+
   if (buckets.length === 0) return null;
-  const values = buckets.map((b) => b.lcpP75);
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values);
   return (
     <Card>
       <CardHeader>
-        <CardTitle>LCP p75 · 过去 24 小时</CardTitle>
-        <div className="text-muted-foreground flex items-center gap-4 text-xs">
-          <span>
-            峰值 <span className="text-foreground tabular-nums">{max}</span> ms
-          </span>
-          <span>
-            谷值 <span className="text-foreground tabular-nums">{min}</span> ms
-          </span>
-        </div>
+        <CardTitle>Web Vitals p75 · 过去 24 小时</CardTitle>
+        <div className="text-muted-foreground text-xs">LCP / FCP / INP / TTFB 分钟粒度聚合</div>
       </CardHeader>
       <CardContent>
-        <div className="flex h-40 items-end gap-1">
-          {buckets.map((b) => {
-            const h = Math.max(6, Math.round((b.lcpP75 / max) * 100));
-            // 柱体着色：LCP p75 > 2500ms 时使用 warn 色，否则 brand 色
-            const tone =
-              b.lcpP75 > 2500 ? "bg-warn" : "bg-brand";
-            return (
-              <div
-                key={b.hour}
-                className="flex flex-1 flex-col items-center justify-end"
-                title={`${new Date(b.hour).toUTCString()} · LCP p75 ${b.lcpP75}ms`}
-              >
-                <div
-                  className={cn("w-full rounded-t", tone)}
-                  style={{ height: `${h}%` }}
-                />
-              </div>
-            );
-          })}
-        </div>
-        <div className="text-muted-foreground mt-2 flex justify-between text-[10px] tabular-nums">
-          <span>00:00</span>
-          <span>06:00</span>
-          <span>12:00</span>
-          <span>18:00</span>
-          <span>24:00</span>
-        </div>
+        <Line {...config} />
       </CardContent>
     </Card>
   );

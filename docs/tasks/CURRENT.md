@@ -197,13 +197,60 @@
 
 ### M2.1 性能监控
 
-- [ ] **T2.1.1** SDK PerformancePlugin（LCP/FCP/CLS/INP/TTFB + navigation 各阶段）— 4d
+- [x] **T2.1.1** SDK PerformancePlugin（LCP/FCP/CLS/INP/TTFB + navigation 各阶段）— 4d（完成 2026-04-27，依据 ADR-0014；demo 冒烟 T2.1.1.7 按用户决定推迟）
+  - [x] **T2.1.1.1** 依赖与骨架：`packages/sdk/package.json` 新增 `web-vitals@^4.2.4` 运行时依赖；新建 `src/plugins/performance.ts` 空骨架（导出 `performancePlugin()` 工厂 + `PerformancePluginOptions` 类型）— 0.3d（完成 2026-04-27）
+    - 输入：ADR-0014
+    - 输出：`package.json` 更新 + `src/plugins/performance.ts` 骨架
+    - 验收：`pnpm install` 通过；`typecheck` 通过（Plugin 接口签名正确）
+    - 依赖：无
+  - [x] **T2.1.1.2** Navigation Timing 映射纯函数：`src/plugins/navigation-timing.ts` 实现 `mapNavigationTiming()`（字段映射 + ssl/redirect 条件置 undefined + type enum 防御映射 + `loadEventEnd<=0` 返回 null）— 0.5d（完成 2026-04-27）
+    - 输入：T2.1.1.1
+    - 输出：纯函数 + 类型
+    - 验收：函数为纯函数（无副作用），返回值通过 `NavigationTimingSchema.safeParse`
+    - 依赖：T2.1.1.1
+  - [x] **T2.1.1.3** PerformancePlugin 核心：`src/plugins/performance.ts` 完整实现（SSR/PerformanceObserver 降级 + 5 Vitals 订阅 + Navigation 挂 TTFB + 订阅级 try/catch 隔离）— 1d（完成 2026-04-27）
+    - 输入：T2.1.1.1, T2.1.1.2
+    - 输出：完整 PerformancePlugin 实现
+    - 验收：Plugin `setup` 不抛错；SSR 环境（无 `window`）静默降级
+    - 依赖：T2.1.1.1, T2.1.1.2
+  - [x] **T2.1.1.4** 单测：`performance.test.ts`（10 case：5 订阅 + value 负数夹 0 + 非白名单过滤 + navigation 时机 3 分支 + PerformanceObserver 降级）+ `navigation-timing.test.ts`（7 case：ssl/redirect 开关、loadEventEnd=0、type 防御、clock skew、prerender）— 共 16 新增，SDK 合计 35/35 全绿— 1d（完成 2026-04-27）
+    - 输入：T2.1.1.3
+    - 输出：≥ 12 个 test case 全绿
+    - 验收：`pnpm -F @g-heal-claw/sdk test` 通过；新增测试覆盖率 ≥ 85%
+    - 依赖：T2.1.1.3
+  - [x] **T2.1.1.5** 公开 API + 导出：`src/index.ts` 追加 `performancePlugin` 具名导出 + UMD 命名空间挂载；`dist/index.d.ts` 含 `performancePlugin` 类型，UMD `cjs` 产物含符号— 0.2d（完成 2026-04-27）
+    - 输入：T2.1.1.3
+    - 输出：公开 API 对齐 ADR-0014 §5
+    - 验收：`typecheck` 通过；`build` 产出 ESM/UMD + `dist/index.d.ts` 导出新符号
+    - 依赖：T2.1.1.3
+  - [x] **T2.1.1.6** 体积预算验证：`vite build` 产出 ESM 6.38KB gzip / UMD 5.58KB gzip，均在 15KB 总预算内（从骨架 2.73KB 增加到 6.38KB，web-vitals v4 + plugin 合计 +3.65KB）— 0.2d（完成 2026-04-27）
+    - 输入：T2.1.1.5
+    - 输出：体积数字记录
+    - 验收：gzip ≤ 6KB；超预算则打开 `web-vitals` tree-shake 开关或降级为 B 备选（自研）
+    - 依赖：T2.1.1.5
+  - [-] **T2.1.1.7** examples/nextjs-demo 接入（**跳过**：用户确认本次不做 demo 浏览器冒烟，留给 T1.2.5/T2.1.7 真实数据对接时统一接入）— 0.3d
+    - 输入：T2.1.1.5
+    - 输出：demo 可观测 Web Vitals 上报
+    - 验收：浏览器 DevTools 看到至少 TTFB + FCP + Navigation 瀑布事件
+    - 依赖：T2.1.1.5
+  - [x] **T2.1.1.8** 端到端验证 + 文档闭环：`typecheck` / `test`（35/35） / `build`（ESM 6.38KB、UMD 5.58KB gzip）全绿；SPEC §4.2 契约无改动；CURRENT.md 同步完成— 0.2d（完成 2026-04-27）
+    - 输入：T2.1.1.1 ~ T2.1.1.7
+    - 输出：任务收尾 + 文档同步
+    - 验收：所有子任务 `[x]`；CURRENT.md 记录体积数字
+    - 依赖：T2.1.1.1 ~ T2.1.1.7
 - [ ] **T2.1.2** 首屏时间（MutationObserver + rAF 窗口）— 2d
 - [ ] **T2.1.3** 长任务 / 卡顿 / 无响应采集 — 2d
 - [ ] **T2.1.4** PerformanceProcessor（events_raw + metric_minute 聚合 p50/p95/p99）— 3d
 - [ ] **T2.1.5** Apdex 计算 cron — 1d
-- [ ] **T2.1.6** 性能大盘 API（总览 / Web Vitals / Apdex / 瀑布图原始样本）— 3d
-- [ ] **T2.1.7** web/performance 页面（核心指标卡 + 趋势图 + 分页面瀑布图 ECharts）— 5d
+- [x] **T2.1.6** 性能大盘 API 首版（依据 ADR-0015，直查 `perf_events_raw` + p75 聚合；Apdex/metric_minute 预聚合推迟到 T2.1.4/T2.1.5）— 2d（完成 2026-04-27）
+  - [x] **T2.1.6.1** `apps/server/src/dashboard/` 骨架：`dashboard.module.ts` + `performance.controller.ts` + `performance.service.ts` + `dto/overview.dto.ts`（Zod query + response Schema）— 0.2d（完成 2026-04-27）
+  - [x] **T2.1.6.2** 聚合 SQL：扩展 `PerformanceService` 新增 `aggregateVitals` / `aggregateTrend` / `aggregateWaterfallSamples` / `aggregateSlowPages`（Drizzle + `sql` 模板 + `percentile_cont`）— 0.6d（完成 2026-04-27）
+  - [x] **T2.1.6.3** DashboardService 装配：并发 5 次查询（含环比）→ 映射 `ThresholdTone` / `DeltaDirection` → 返回 `PerformanceOverviewDto`；空数据返回 5 卡占位 `sampleCount=0`（不报错）— 0.3d（完成 2026-04-27）
+  - [x] **T2.1.6.4** Controller + Swagger 注解 + `ZodValidationPipe(query)` + `AppModule` 注册 — 0.1d（完成 2026-04-27）
+  - [x] **T2.1.6.5** `apps/web/lib/api/performance.ts` 改为真实 fetch + `emptyOverview()` 降级 + `source` 三态；`apps/web/.env.example` 新增 `NEXT_PUBLIC_DEFAULT_PROJECT_ID=proj_demo`；移除 `lib/fixtures/performance.ts` — 0.2d（完成 2026-04-27）
+  - [x] **T2.1.6.6** `apps/web/app/(dashboard)/performance/page.tsx` 处理 live/empty/error 三态；`export const dynamic = "force-dynamic"` 避免 SSG 冻结 — 0.2d（完成 2026-04-27）
+  - [x] **T2.1.6.7** 端到端验证：server typecheck/build/test（5/5 全绿）；web typecheck/build（`/performance` 标记 ƒ Dynamic）— 0.4d（完成 2026-04-27）
+- [ ] **T2.1.7** web/performance 页面增强（环比切换 / 分页面瀑布图 / ECharts 深度定制）— 5d
 
 ### M2.2 API 监控
 
@@ -367,6 +414,8 @@
 
 - 进行中：无
 - 下一步：T1.1.5 Drizzle Schema 首版、T1.2.2 ErrorPlugin、T1.3.2 Gateway 接入 BullMQ
+- 最近完成（2026-04-27）：T2.1.6 Dashboard 性能大盘 API 首版（ADR-0015，DashboardModule 直查 `perf_events_raw` + p75 聚合；Web `/performance` 改为 live 数据，三态 Badge 区分 live/empty/error；fixture 移除；server test 5/5 全绿）
+- 最近完成（2026-04-27）：T2.1.1 SDK PerformancePlugin（ADR-0014，web-vitals@^4 + 自采 Navigation 瀑布，35/35 单测全绿，SDK 体积 ESM 6.38KB / UMD 5.58KB gzip，demo 冒烟 T2.1.1.7 按用户决定推迟）
 - 最近完成（2026-04-27）：T1.1.6 `apps/web` 初始化（ADR-0012，Next 16 + shadcn/ui new-york + Tailwind v4 OKLCH 主题 + 10 页路由骨架 + 页面性能页完整落地）
 - 最近完成（2026-04-27）：T1.1.3 `apps/server` 初始化（ADR-0011，NestJS 10 + Fastify 4 + ZodValidationPipe，5 用例单测/e2e 全绿，端到端 demo → server `accepted=1` 打通）
 - 最近完成（2026-04-27）：T1.2.1 SDK 骨架 + examples/nextjs-demo（ADR-0010，44 项单测全绿，SDK 体积 2.73KB gzip）

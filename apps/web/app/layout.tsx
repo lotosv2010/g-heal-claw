@@ -10,8 +10,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="zh-CN">
-      <body className="min-h-screen antialiased">{children}</body>
+    <html lang="zh-CN" suppressHydrationWarning>
+      {/* 浏览器扩展（如 ColorZilla / Grammarly）会在客户端向 <body> 注入属性，
+          导致 hydration 报文本结构一致但属性不匹配。这里仅关闭此警告，不影响实际行为。 */}
+      <body className="min-h-screen antialiased" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
