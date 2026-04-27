@@ -1,0 +1,44 @@
+{
+  "name": "@g-heal-claw/sdk",
+  "version": "0.0.1",
+  "description": "g-heal-claw 浏览器端 SDK：前端监控数据采集与上报",
+  "private": true,
+  "type": "module",
+  "main": "./dist/sdk.umd.cjs",
+  "module": "./dist/sdk.esm.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/sdk.umd.cjs",
+  "jsdelivr": "./dist/sdk.umd.cjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/sdk.esm.js",
+      "require": "./dist/sdk.umd.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "vite build",
+    "clean": "rimraf dist .turbo",
+    "dev": "vite build --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@g-heal-claw/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "jsdom": "^29.1.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.10",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.1.5"
+  }
+}
