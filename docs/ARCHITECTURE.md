@@ -94,7 +94,7 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `AlertModule` | 告警规则评估、触发 | BullMQ `alert-evaluator` | DB、Notification |
 | `NotificationModule` | 通知渠道分发（邮件/钉钉/企微/Slack/Webhook/**短信**） | BullMQ `notifications` | 外部 HTTP / SMS Provider |
 | `RealtimeModule` | 将聚合事件通过 Redis Pub/Sub 扇出，向前端推送 SSE | HTTP `/api/v1/stream/*` · `/open/v1/events/stream` | Redis Pub/Sub |
-| `DashboardModule` | 面向 Web 的 REST + JWT 认证 | HTTP `/api/v1/*` | DB |
+| `DashboardModule` | 面向 Web 的只读聚合 API（首版 ADR-0015：性能大盘直查 `perf_events_raw` + p75；T1.1.7 后并入 JWT + ProjectGuard） | HTTP `/dashboard/v1/*` → Phase 6 迁移至 `/api/v1/*` | DB、PerformanceService |
 | `OpenApiModule` | 面向外部系统的 API Token 开放接口 | HTTP `/open/v1/*` | DB |
 | `HealModule` | 触发自愈流程，产出/回写 heal_job | HTTP + BullMQ `heal-jobs` | DB → ai-agent |
 | `ProjectModule` | 项目/成员/环境/Release/Key 管理 | 被 Dashboard/Open 调用 | DB |
@@ -160,10 +160,36 @@ SDK ──POST /ingest/v1/events──▶ Gateway
 
 ### 4.2 性能事件 → 聚合指标
 
+#### 4.2.1 当前实现（ADR-0013 / 0014 / 0015）
+
+```
+SDK (PerformancePlugin, web-vitals + Navigation)
+  ├─ metric ∈ {LCP, FCP, CLS, INP, TTFB} 单事件单指标
+  └─ Navigation 瀑布挂载在 TTFB 事件的 navigation 字段上
+
+  ──POST /ingest/v1/events──▶ Gateway
+      · Zod 校验 · DSN → projectId · 批量幂等（eventId UNIQUE）
+      · 直调 PerformanceService.saveBatch() → perf_events_raw（ADR-0013）
+      · 暂不入 BullMQ events-performance（过渡设计）
+
+DashboardModule (ADR-0015)
+  └─ GET /dashboard/v1/performance/overview
+      · 并发 5 次查询：Vitals p75 当前 / 环比 / 24h 趋势 / 瀑布样本中位数 / 慢页面 Top N
+      · 直查 perf_events_raw，走 idx_perf_project_metric_ts / idx_perf_project_path_ts
+      · 空数据返回 5 张 Vitals 占位卡（sampleCount=0），不报错
+
+Web /performance
+  · SSR force-dynamic + 三态 Badge（live / empty / error）
+  · 趋势图用 dayjs 本地时区格式化 UTC ISO
+```
+
+#### 4.2.2 目标实现（T2.1.4 之后）
+
 ```
 SDK ──batch──▶ Gateway ──▶ BullMQ: events-performance ──▶ PerformanceProcessor
-   · 落库 events_raw · 增量聚合 metric_minute（p50/p95/p99/count/sum）
+   · 落库 perf_events_raw · 增量聚合 metric_minute（p50/p75/p90/p95/p99/count/sum）
    · 触发 Apdex 计算（每分钟一次 cron）
+   · DashboardModule 查询源切换至 metric_minute（Controller 契约不变）
 ```
 
 ### 4.3 实时推送链路
@@ -230,7 +256,8 @@ apps/web/app/
 ### 5.3 UI 体系
 
 - Shadcn/ui + TailwindCSS v4（零配置主题）。
-- 图表 ECharts，通过 `@g-heal-claw/charts`（内部子包，随项目需要新增）。
+- 图表：**`@ant-design/plots`**（AntV G2）先落地性能大盘趋势图（T2.1.6）；ECharts 作为重度定制保留选项（T2.1.7 评估）。
+- 时间格式化：**dayjs**（UTC ISO → 浏览器本地时区），所有图表 x 轴统一使用 `dayjs(iso).format('HH:00')`。
 - 深色 / 浅色主题跟随系统。
 
 ---

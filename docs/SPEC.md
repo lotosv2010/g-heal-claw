@@ -104,17 +104,33 @@ GHealClaw.init(options: GHealClawOptions): void;
 
 #### 3.3.2 性能监控
 
-| 指标 | 采集方式 |
-|---|---|
-| FCP / LCP | `PerformanceObserver('paint' / 'largest-contentful-paint')` |
-| CLS | `PerformanceObserver('layout-shift')` 累计 |
-| INP | `PerformanceObserver('event')` + `interactionId` |
-| TTFB | `navigation.responseStart - navigation.requestStart` |
-| 页面加载阶段 | `PerformanceNavigationTiming`（DNS/TCP/SSL/请求/响应/DOM/资源） |
-| 首屏时间 | `MutationObserver` 监听 DOM 变化，`requestAnimationFrame` 窗口内最后一次计入 |
-| 长任务 | `PerformanceObserver('longtask')`，≥50ms 记录；2-5s 记卡顿，≥5s 记无响应 |
+**采集实现（ADR-0014）**：
 
-- 性能指标在 `visibilitychange=hidden` 或 `pagehide` 触发上报，`LCP/INP/CLS` 使用最终值。
+| 指标 | 采集方式 | 上报时机 |
+|---|---|---|
+| LCP | `web-vitals@^4` `onLCP(cb)` — 底层 `PerformanceObserver('largest-contentful-paint')` | `pagehide` / `visibilitychange=hidden` 最终值 |
+| FCP | `web-vitals@^4` `onFCP(cb)` — 底层 `PerformanceObserver('paint')` 取 `first-contentful-paint` | 首次可用即上报 |
+| CLS | `web-vitals@^4` `onCLS(cb)` — 底层 `PerformanceObserver('layout-shift')` 会话级最大窗口累计 | `pagehide` / `visibilitychange=hidden` 最终值 |
+| INP | `web-vitals@^4` `onINP(cb)` — 底层 `PerformanceObserver('event')` + `interactionId` 聚合 | `pagehide` / `visibilitychange=hidden` 最终值 |
+| TTFB | `web-vitals@^4` `onTTFB(cb)` ≡ `navigation.responseStart - navigation.activationStart` | 首次可用即上报 |
+| 页面加载瀑布 | SDK 自采 `performance.getEntriesByType('navigation')[0]` → 见 §4.2.1 计算公式；**挂载到 TTFB 事件的 `navigation` 字段**，不新增事件类型 | `load` 事件后立即采集，随 TTFB 事件一并上报 |
+| 首屏时间（FSP） | `MutationObserver` 监听 DOM 变化，`requestAnimationFrame` 窗口内最后一次计入（T2.1.2 落地） | 首次满足判定即上报 |
+| 长任务 | `PerformanceObserver('longtask')`，≥50ms 记录；2-5s 记卡顿，≥5s 记无响应（T2.1.3 落地） | 触发即入队 |
+
+**Rating 阈值（由 `web-vitals` 透传；与 Google 官方 Core Web Vitals 标准一致，`PerformanceEventSchema.rating` 直接保存）**：
+
+| 指标 | `good` ≤ | `needs-improvement` ≤ | `poor` > |
+|---|---|---|---|
+| LCP | 2500 ms | 4000 ms | 4000 ms |
+| FCP | 1800 ms | 3000 ms | 3000 ms |
+| CLS | 0.1 | 0.25 | 0.25 |
+| INP | 200 ms | 500 ms | 500 ms |
+| TTFB | 800 ms | 1800 ms | 1800 ms |
+
+> PRD §2.1 标注的"INP ≤ 100ms / TTFB ≤ 200ms"为**仪表盘默认告警阈值**（可配置），与采集侧 rating 阈值解耦，两者互不替代。
+
+- SDK 单事件单指标上报（`metric ∈ {LCP, FCP, CLS, INP, TTFB, FSP}`），避免 LCP/INP/CLS 最终值时机与 FCP/TTFB 即时上报时机冲突。
+- 非浏览器环境（SSR / Web Worker）或浏览器无 `PerformanceObserver` 时插件静默降级为 no-op，不抛错。
 
 #### 3.3.3 API 监控
 
@@ -264,23 +280,36 @@ interface Breadcrumb {
 
 ### 4.2.1 NavigationTiming（页面加载瀑布图数据）
 
+**来源**：`performance.getEntriesByType('navigation')[0]` → `PerformanceNavigationTiming`（W3C Level 2）。
+**附着**：SDK 仅在 `metric=TTFB` 事件的 `navigation` 字段上报一次（TTFB 本身即为 `responseStart - requestStart`，与瀑布强相关；选择单一载体避免重复传输）。
+**采集时机**：`document.readyState === 'complete'` 时立即读，否则 `window.addEventListener('load', ..., { once: true })`。若 `loadEventEnd <= 0` 视为不完整瀑布，**返回 null 不上报**。
+
 ```typescript
 interface NavigationTiming {
   dns: number;            // domainLookupEnd - domainLookupStart
   tcp: number;            // connectEnd - connectStart
-  ssl?: number;           // connectEnd - secureConnectionStart（仅 https）
-  request: number;        // responseStart - requestStart
-  response: number;       // responseEnd - responseStart
-  domParse: number;       // domInteractive - responseEnd
-  domReady: number;       // domContentLoadedEventEnd - navigationStart
-  resourceLoad: number;   // loadEventStart - domContentLoadedEventEnd
-  total: number;          // loadEventEnd - navigationStart
-  redirect?: number;      // redirectEnd - redirectStart
-  type: 'navigate' | 'reload' | 'back_forward' | 'prerender';
+  ssl?: number;           // connectEnd - secureConnectionStart；仅 secureConnectionStart > 0 时填充（https）
+  request: number;        // responseStart - requestStart         （Time-to-First-Byte 核心分量）
+  response: number;       // responseEnd - responseStart           （HTML 内容传输）
+  domParse: number;       // domInteractive - responseEnd          （HTML 解析到可交互）
+  domReady: number;       // domContentLoadedEventEnd - domContentLoadedEventStart  （DCL 事件自身耗时）
+  resourceLoad: number;   // loadEventStart - domContentLoadedEventEnd              （子资源并行下载）
+  total: number;          // loadEventEnd - startTime              （整体加载耗时）
+  redirect?: number;      // redirectEnd - redirectStart；仅 redirectEnd > 0 时填充
+  type: 'navigate' | 'reload' | 'back_forward' | 'prerender';  // 未知值防御映射为 'navigate'
 }
 ```
 
-前端可据此绘制瀑布图，后端 `metric_minute` 按每个子阶段独立聚合（dim_key=`stage`, dim_value=`dns|tcp|ssl|request|response|domParse|domReady|resourceLoad`）。
+**字段约束**：
+- 所有阶段差值使用 `Math.max(0, a - b)` 防御浏览器 clock skew（避免负值破坏聚合）。
+- `ssl` / `redirect` 在无 HTTPS / 无重定向时为 `undefined`（Zod `.optional()`），**不要写 0**——以便后端按 `IS NOT NULL` 筛除。
+- `type` 遵循 W3C L2 的 `"navigate" | "reload" | "back_forward" | "prerender"`（注意 `back_forward` 是下划线，非旧浏览器的 `back-forward`）。
+
+**前端展示（`LoadStageDto`）**：Dashboard 服务端对样本取各字段中位数后串接为 9 阶段瀑布（见 §5.5）：
+- 串行阶段 7 个：`dns → tcp → ssl → request → response → domParse → resourceLoad`（cursor 累积 `startMs` / `endMs`）
+- 整体指标 2 个（从 0 起）：`firstScreen`（当前用 FCP p75 近似，T2.1.2 FSP 落地后替换）/ `lcp`（LCP p75）
+
+**后端聚合**：当前 T2.1.6 取样本中位数串接（见 §6.2）；T2.1.4 `metric_minute` 落地后按 `dim_key='stage'` × `dim_value ∈ {dns|tcp|ssl|request|response|domParse|domReady|resourceLoad}` 独立聚合。
 
 ---
 
@@ -321,27 +350,28 @@ interface NavigationTiming {
 | `/sourcemap/v1/releases/:release/artifacts` | GET | JWT | 列表 |
 | `/sourcemap/v1/releases/:release` | DELETE | API Token | 删除 release |
 
-### 5.3 Dashboard API（`/api/v1`）
+### 5.3 Dashboard API（`/api/v1` + `/dashboard/v1`）
 
-所有路径前缀 `/api/v1`，使用 JWT Bearer，响应统一封装。
+`/api/v1` 为长期契约（JWT Bearer，T1.1.7 落地）；`/dashboard/v1` 为过渡期只读聚合（ADR-0015，鉴权待 T1.1.7 接入 `ProjectGuard`）。响应统一封装。
 
 | 资源 | 路径 | 方法 |
 |---|---|---|
-| 认证 | `/auth/login`、`/auth/refresh`、`/auth/me` | POST/POST/GET |
-| 项目 | `/projects`、`/projects/:id`、`/projects/:id/members` | CRUD |
-| 环境 | `/projects/:id/environments` | CRUD |
-| Release | `/projects/:id/releases` | CRUD |
-| 异常 Issue | `/projects/:id/issues`、`/issues/:id`、`/issues/:id/events` | GET/PATCH |
-| 原始事件 | `/projects/:id/events?type=...` | GET |
-| 性能大盘 | `/projects/:id/performance/overview`、`/performance/web-vitals`、`/performance/apdex` | GET |
-| API 分析 | `/projects/:id/api/overview`、`/api/slow`、`/api/errors` | GET |
-| 资源分析 | `/projects/:id/resources/overview` | GET |
-| 访问分析 | `/projects/:id/visits/overview`、`/visits/top-pages`、`/visits/sessions/:id` | GET |
-| 自定义事件 | `/projects/:id/custom/events`、`/custom/metrics`、`/custom/logs` | GET |
-| 告警规则 | `/projects/:id/alert-rules`、`/alert-rules/:id` | CRUD |
-| 告警历史 | `/projects/:id/alert-history` | GET |
-| 通知渠道 | `/projects/:id/channels`、`/channels/:id` | CRUD |
-| 自愈 | `/issues/:id/heal`、`/heal/:jobId`、`/heal/:jobId/pr` | POST/GET/POST |
+| 认证 | `/api/v1/auth/login`、`/auth/refresh`、`/auth/me` | POST/POST/GET |
+| 项目 | `/api/v1/projects`、`/projects/:id`、`/projects/:id/members` | CRUD |
+| 环境 | `/api/v1/projects/:id/environments` | CRUD |
+| Release | `/api/v1/projects/:id/releases` | CRUD |
+| 异常 Issue | `/api/v1/projects/:id/issues`、`/issues/:id`、`/issues/:id/events` | GET/PATCH |
+| 原始事件 | `/api/v1/projects/:id/events?type=...` | GET |
+| **性能大盘（首版）** | **`/dashboard/v1/performance/overview`**（ADR-0015，见 §5.5） | GET |
+| 性能大盘（长期） | `/api/v1/projects/:id/performance/overview`、`/performance/web-vitals`、`/performance/apdex` | GET |
+| API 分析 | `/api/v1/projects/:id/api/overview`、`/api/slow`、`/api/errors` | GET |
+| 资源分析 | `/api/v1/projects/:id/resources/overview` | GET |
+| 访问分析 | `/api/v1/projects/:id/visits/overview`、`/visits/top-pages`、`/visits/sessions/:id` | GET |
+| 自定义事件 | `/api/v1/projects/:id/custom/events`、`/custom/metrics`、`/custom/logs` | GET |
+| 告警规则 | `/api/v1/projects/:id/alert-rules`、`/alert-rules/:id` | CRUD |
+| 告警历史 | `/api/v1/projects/:id/alert-history` | GET |
+| 通知渠道 | `/api/v1/projects/:id/channels`、`/channels/:id` | CRUD |
+| 自愈 | `/api/v1/issues/:id/heal`、`/heal/:jobId`、`/heal/:jobId/pr` | POST/GET/POST |
 
 **响应格式**：
 
@@ -355,6 +385,79 @@ interface NavigationTiming {
 // 错误
 { "error": string, "message": string, "details"?: unknown, "requestId": string }
 ```
+
+### 5.4.0 Dashboard 性能大盘首版契约（ADR-0015）
+
+**端点**：
+
+```
+GET /dashboard/v1/performance/overview
+  ?projectId=<string>              必填
+  &windowHours=<int>               可选，默认 24，范围 [1, 168]
+  &limitSlowPages=<int>            可选，默认 10，范围 [1, 50]
+```
+
+**响应体**（`PerformanceOverviewDto`）：
+
+```jsonc
+{
+  "data": {
+    "vitals": [
+      {
+        "key": "LCP",                   // "LCP" | "FCP" | "CLS" | "INP" | "TTFB"
+        "value": 2180,                  // CLS 保留 2 位小数，其余取整 ms
+        "unit": "ms",                   // CLS 为 ""，其余为 "ms"
+        "tone": "good",                 // "good" | "warn" | "destructive"（映射 §3.3.2 rating）
+        "deltaPercent": 4.3,            // 与上一周期相比的绝对百分比，<0.1% 记 0
+        "deltaDirection": "down",       // "up" | "down" | "flat"
+        "sampleCount": 12843
+      }
+      // …始终返回 5 项：LCP / FCP / CLS / INP / TTFB
+    ],
+    "stages": [
+      { "key": "dns",          "label": "DNS 查询",  "ms": 38,  "startMs": 0,    "endMs": 38 },
+      { "key": "tcp",          "label": "TCP 连接",  "ms": 42,  "startMs": 38,   "endMs": 80 },
+      { "key": "ssl",          "label": "SSL 建连",  "ms": 60,  "startMs": 80,   "endMs": 140 },
+      { "key": "request",      "label": "请求响应",  "ms": 180, "startMs": 140,  "endMs": 320 },
+      { "key": "response",     "label": "内容传输",  "ms": 96,  "startMs": 320,  "endMs": 416 },
+      { "key": "domParse",     "label": "内容解析",  "ms": 240, "startMs": 416,  "endMs": 656 },
+      { "key": "resourceLoad", "label": "资源加载",  "ms": 820, "startMs": 656,  "endMs": 1476 },
+      { "key": "firstScreen",  "label": "首屏耗时",  "ms": 1380,"startMs": 0,    "endMs": 1380 },
+      { "key": "lcp",          "label": "LCP",       "ms": 2180,"startMs": 0,    "endMs": 2180 }
+    ],
+    "trend": [
+      { "hour": "2026-04-27T00:00:00.000Z", "lcpP75": 2100, "fcpP75": 1380, "inpP75": 170, "ttfbP75": 590 }
+    ],
+    "slowPages": [
+      { "url": "/checkout/review", "sampleCount": 842, "lcpP75Ms": 3820, "ttfbP75Ms": 1120, "bounceRate": 0 }
+    ]
+  }
+}
+```
+
+**计算规则**：
+
+| 字段 | 来源 | 公式 |
+|---|---|---|
+| `vitals[*].value` | `perf_events_raw` | `percentile_cont(0.75) WITHIN GROUP (ORDER BY value)`；按 `project_id + metric` 分组 |
+| `vitals[*].sampleCount` | `perf_events_raw` | `COUNT(*)`；同窗口同 metric |
+| `vitals[*].tone` | 服务端映射 | 阈值表同 §3.3.2；`≤ good → "good"` / `≤ needs-improvement → "warn"` / 其他 `"destructive"` |
+| `vitals[*].deltaPercent` / `deltaDirection` | 当前窗口 vs 前一窗口 | `(current - previous) / previous × 100`；`abs(pct) < 0.1%` 或任一端为 0 时 `"flat"` |
+| `stages[*].ms`（前 7 阶段） | Navigation 样本 | 取最近 N=200 条 `metric='TTFB' AND navigation IS NOT NULL` 的样本各字段**中位数**；`startMs/endMs` 串行 cursor 累积 |
+| `stages.firstScreen.ms` | 当前用 FCP p75 近似 | T2.1.2 FSP 落地后切换为 FSP p75；从 0 起整体指标 |
+| `stages.lcp.ms` | LCP p75 | 从 0 起整体指标 |
+| `trend[*]` | `perf_events_raw` | `date_trunc('hour', to_timestamp(ts_ms/1000.0))` × `metric IN ('LCP','FCP','INP','TTFB')` 的 p75 宽表化；返回 UTC ISO，**前端用 dayjs 本地化** |
+| `slowPages[*].lcpP75Ms` | `perf_events_raw` | `GROUP BY path` 后按 LCP p75 DESC 取 Top N |
+| `slowPages[*].ttfbP75Ms` | 二次查询 | 对 Top N 的 `path` 集合聚合 TTFB p75 |
+| `slowPages[*].bounceRate` | — | **本期恒为 0**；依赖 Phase 2.3 `VisitProcessor` |
+
+**空数据降级**：`vitals` 始终返回 5 项占位（`sampleCount=0` / `value=0` / `tone="good"` / `deltaDirection="flat"`）；`stages` / `trend` / `slowPages` 为空数组。前端据此渲染"暂无数据"，不抛错。
+
+**索引命中**：`idx_perf_project_metric_ts`（Vitals / Trend / Waterfall）+ `idx_perf_project_path_ts`（SlowPages），现有索引覆盖全部查询路径。
+
+**响应错误码**：
+- `400 Bad Request` — query 参数 Zod 校验失败。
+- `500 Internal Server Error` — DB 查询异常（不降级为空数据，避免掩盖后端故障）。
 
 ### 5.4 开放 API
 
@@ -390,12 +493,26 @@ GET /open/v1/export/:jobId
 
 ### 6.2 性能指标聚合
 
+#### 6.2.1 长期方案：`metric_minute` 预聚合（T2.1.4 落地）
+
 - 所有原始性能事件按 `project_id + metric + minute` 聚合至 `metric_minute` 表（p50/p75/p90/p95/p99、count、sum）。
 - Apdex：每个项目独立配置 `apdexConfig = { metric: 'LCP' | 'FCP' | 'FSP' | 'customMetric', threshold: number }`。
   - 默认 `{ metric: 'LCP', threshold: 2500 }`（毫秒）。
   - 计算：满意 = `value ≤ T`、容忍 = `T < value ≤ 4T`、不满意 = `value > 4T`。
   - 每分钟计算一次，写入 `metric_minute`（metric=`apdex`）。
 - 支持时间维度查询：`5m / 1h / 1d / 7d`，服务端选择合适的聚合粒度。
+
+#### 6.2.2 过渡方案：`perf_events_raw` 直查 p75（T2.1.6 / ADR-0015）
+
+未建 `metric_minute` 前，Dashboard 首版直查 `perf_events_raw`：
+
+- **Vitals p75**：`percentile_cont(0.75) WITHIN GROUP (ORDER BY value)` × `GROUP BY metric`（LCP/FCP/CLS/INP/TTFB 全覆盖）。
+- **环比 p75**：同查询在 `[now - 2w, now - w]` 再跑一次，得到 `deltaPercent`。
+- **24h 趋势**：`date_trunc('hour', to_timestamp(ts_ms/1000.0))` × `metric IN ('LCP','FCP','INP','TTFB')` 的 p75，Node 层拼装为宽表（前端按本地时区格式化）。
+- **瀑布样本**：取 `metric='TTFB' AND navigation IS NOT NULL` 最近 N=200 条 navigation JSONB，Node 层对每个字段取中位数。
+- **慢页面 Top N**：两次查询（LCP p75 DESC 取 Top N `path` → 对 Top N `path` 查 TTFB p75），最终 `SlowPageDto`。
+
+迁移锚点：T2.1.4 `metric_minute` 上线后，Controller 契约（§5.4.0）保持不变，Service 内部查询源切换为预聚合表。
 
 ### 6.3 地域 / 设备 / 网络 维度
 

@@ -24,7 +24,8 @@
 | 队列 | BullMQ | Kafka、RabbitMQ、NATS | Redis 已在栈内；MVP 不需要 Kafka 级吞吐；轻量、类型友好 |
 | 校验 | Zod | Yup、io-ts、Valibot | 一次定义 Schema，DTO / env / API 响应复用；`z.infer` 推导类型 |
 | UI 体系 | Shadcn/ui + TailwindCSS v4 | Ant Design、MUI | 代码可拥有、定制自由、与 RSC 友好；Tailwind v4 零配置 |
-| 图表 | ECharts | Chart.js、Recharts、D3 | 国产化背景 + 大数据量下表现好 + 文档齐全 |
+| 图表 | `@ant-design/plots` (AntV G2) 首版 / ECharts 保留 | Chart.js、Recharts、D3 | AntV G2 React 适配零样板、SSR 友好；重度定制场景保留 ECharts（T2.1.7 评估） |
+| 时间库 | dayjs | date-fns、Moment | 体积 2KB、链式 API 与 Moment 一致、本地时区自动识别，统一所有 UTC→本地格式化 |
 | 对象存储 | MinIO / S3 | Cloudflare R2、阿里 OSS | S3 协议通用，本地 MinIO 无依赖；后续切云厂家零代码变更 |
 | 鉴权 | JWT + Refresh | Session + Cookie | 支持开放 API 与无状态横向扩缩；Refresh Token 规避长 JWT |
 
@@ -148,12 +149,28 @@ DO UPDATE SET
 
 ### 5.2 指标聚合
 
+#### 5.2.1 长期目标（T2.1.4 之后）
+
 - `metric_minute` 按 `bucket_ts` 月分区。
 - 查询路径：
   - < 1h：`metric_minute`（分钟粒度）
   - 1h-7d：物化视图 `metric_hour`（小时聚合）
   - 7d+：物化视图 `metric_day`（天聚合）
 - 物化视图通过 pg_cron 每 5 分钟刷新增量。
+
+#### 5.2.2 过渡期：直查 `perf_events_raw` + `percentile_cont`（ADR-0015）
+
+**为什么先直查**：
+- demo 阶段事件量 < M 级，`percentile_cont` 单次查询 < 50ms，对 QPS 低的 Dashboard 页面完全够用。
+- 零新表、零运维面（无物化视图刷新 cron）、与既有索引 `idx_perf_project_metric_ts` / `idx_perf_project_path_ts` 完全对齐。
+- Controller 契约（见 SPEC §5.4.0）与未来预聚合完全解耦，切换时前端零感知。
+
+**为什么选 p75 而非 p95**：
+- Google Core Web Vitals 官方阈值以 p75 为基线（75% 真实用户体验 `good` 视为达标）。
+- 与 `rating` 字段语义一致：`value ≤ good-threshold` 时 rating=good，p75 做聚合后落到 `good` 区间即全站达标。
+- 瀑布图取样本**中位数（p50）**而非 p75：瀑布展示"一般情况"而非尾部压线，中位数采样 200 条即稳定。
+
+**整体指标与串行阶段分离**：`firstScreen` / `lcp` 从 0 起是整体指标（代表用户观感）；`dns → tcp → ssl → request → response → domParse → resourceLoad` 是串行累积（代表网络/渲染物理过程）。混画到同一瀑布图时需视觉区分（前者从 0 起、后者 cursor 串接）。
 
 ### 5.3 去重与幂等
 
@@ -391,5 +408,8 @@ Action: createPr(...)
 | ADR-0006 | Pull 式告警引擎 | 采纳 |
 | ADR-0007 | 实时推送走 Redis Pub/Sub + SSE（非 WebSocket） | 采纳 |
 | ADR-0008 | 跨标签页 Session 同步走 BroadcastChannel + storage | 采纳 |
+| ADR-0013 | 性能事件持久化切片：Gateway 直调 PerformanceService → `perf_events_raw` 单表（暂不入队） | 采纳 |
+| ADR-0014 | SDK PerformancePlugin 引入 `web-vitals@^4` + 自采 Navigation 瀑布 | 采纳 |
+| ADR-0015 | Dashboard 性能大盘 API 首版：`/dashboard/v1/performance/overview` 直查 + p75 聚合 | 采纳 |
 
 详细决策文档按需在 `docs/decisions/` 下新增，模板与完整索引见 `docs/decisions/README.md`。

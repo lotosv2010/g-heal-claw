@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-04-27
+> 最后更新: 2026-04-27（文档审查：性能指标阈值、NavigationTiming 计算公式、Dashboard 性能 API 契约同步到 SPEC/ARCHITECTURE/DESIGN/web README）
 
 ## 状态说明
 
@@ -422,3 +422,11 @@
 - 最近完成（2026-04-27）：T1.1.4 落地 ADR-0009，`packages/shared` 产出 Env/Queues/Events 三部分，25 项单测全绿
 - 阻塞：无
 - 最近文档审查（2026-04-27）：完成 SPEC/ARCHITECTURE/DESIGN/CURRENT 对 `docs/PRD.md` v2 的对齐；补全 Breadcrumb Schema、navigation 阶段、UTM、p90、Apdex T 可配置、预置告警规则、批量导出、短信渠道与可视化埋点范围决策
+- 最近文档审查（2026-04-27 · 性能指标与页面加载计算方式）：
+  - SPEC §3.3.2 补齐 Web Vitals 官方阈值表 + `web-vitals@^4` 采集路径 + Rating good/NI/poor 阈值（LCP/FCP/CLS/INP/TTFB）
+  - SPEC §4.2.1 补齐 `NavigationTiming` 9 字段计算公式（含 `Math.max(0, ...)` 防御、ssl/redirect 可选语义、`back_forward` 下划线规范）
+  - SPEC §5.4.0 新增 Dashboard 性能大盘首版 API 契约（`/dashboard/v1/performance/overview`：query / response / 空数据 / 索引命中 / 错误码 / 9 阶段瀑布 DTO）
+  - SPEC §6.2 拆分"长期 metric_minute 预聚合"与"过渡期直查 p75"两节，明确迁移锚点
+  - ARCHITECTURE §3.1 DashboardModule 描述更新；§4.2 拆分为"当前实现（ADR-0013/0014/0015）"与"目标实现（T2.1.4+）"两段；§5.3 图表库首版更正为 `@ant-design/plots`、时间统一 dayjs
+  - DESIGN §2 图表选型行更新为 `@ant-design/plots` + ECharts 保留；新增 dayjs 行；§5.2 新增 5.2.2 过渡期直查 `perf_events_raw` + `percentile_cont` 的理由（p75 对齐 Google 标准、瀑布取中位数、整体指标与串行阶段分离）；§15 ADR 索引追加 0013/0014/0015
+  - apps/web/README.md 新增"已落地"节，反映真实图表库、时间库、数据源与三态

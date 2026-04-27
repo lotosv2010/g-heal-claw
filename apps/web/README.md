@@ -8,12 +8,18 @@ g-heal-claw 管理后台（Next.js 16 App Router）。
 - **仅"页面性能"** 实现完整 UI（Web Vitals 卡 + 加载阶段条 + 24h 趋势 + Top 10 慢页面），数据来自 `apps/server` 的 `/dashboard/v1/performance/overview`（ADR-0015）
 - 其余 9 页为 `PlaceholderPage` 占位，标注后续 Phase
 
+## 已落地
+
+- 图表：`@ant-design/plots`（AntV G2） Line 组件 — 趋势图多系列 p75（LCP/FCP/INP/TTFB）
+- 时间格式化：dayjs（UTC ISO → 浏览器本地 `HH:00`）
+- 数据源：`/dashboard/v1/performance/overview`（ADR-0015）+ `NEXT_PUBLIC_DEFAULT_PROJECT_ID=demo` + `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001`
+- 三态展示：`live / empty / error` 通过 Badge variant 区分
+
 ## 非目标
 
 - 不引入 JWT 登录（T1.1.7）
-- 不引入 ECharts（延后至 T2.1.7）
-- 不引入 shadcn CLI / Radix UI（YAGNI，手写 6 个 UI 原语）
-- ECharts / 环比切换留给 T2.1.7
+- 不引入 ECharts（重度定制延后至 T2.1.7 评估）
+- 环比时间窗 / 分页面瀑布图 / 深度定制留给 T2.1.7
 - 认证 / 项目切换器留给 T1.1.7
 
 ## 本地开发
