@@ -30,7 +30,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@g-heal-claw/shared": "workspace:*"
+    "@g-heal-claw/shared": "workspace:*",
+    "web-vitals": "^4.2.4"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

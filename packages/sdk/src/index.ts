@@ -19,6 +19,10 @@ export type { GHealClawOptions } from "./options.js";
 export type { Hub, Scope } from "./hub.js";
 export type { Plugin } from "./plugin.js";
 export type { Transport } from "./transport/types.js";
+export {
+  performancePlugin,
+  type PerformancePluginOptions,
+} from "./plugins/performance.js";
 
 // 便于 UMD 脚本接入：提供一个扁平 namespace 对象
 import { init as _init } from "./init.js";
@@ -28,6 +32,7 @@ import {
   captureException as _captureException,
   addBreadcrumb as _addBreadcrumb,
 } from "./client.js";
+import { performancePlugin as _performancePlugin } from "./plugins/performance.js";
 import type { Breadcrumb } from "@g-heal-claw/shared";
 import type { GHealClawOptions } from "./options.js";
 
@@ -50,6 +55,7 @@ export const GHealClaw = {
     const hub = _getCurrentHub();
     if (hub) _addBreadcrumb(hub, breadcrumb);
   },
+  performancePlugin: _performancePlugin,
 };
 
 export default GHealClaw;

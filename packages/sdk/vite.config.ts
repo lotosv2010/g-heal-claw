@@ -10,7 +10,8 @@ export default defineConfig({
   build: {
     target: "es2020",
     sourcemap: true,
-    minify: "esbuild",
+    // Vite 8 + Rolldown 默认走 oxc-minify；显式指定 esbuild 需额外安装 esbuild
+    minify: true,
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
       name: "GHealClaw",
