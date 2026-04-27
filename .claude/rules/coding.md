@@ -138,6 +138,22 @@ apps/ai-agent/
 - 禁止空 catch 块
 - 所有 catch 必须记录日志或重新抛出
 
+## 测试标准
+
+| 层次 | 覆盖对象 | 工具 |
+|---|---|---|
+| 单元 | Service、工具函数、Zod Schema | Vitest |
+| 模块 | NestJS 模块（含 DB mock） | NestJS TestingModule + pg-mem |
+| 集成 | Gateway → Processor → DB 端到端 | Dockerized PG / Redis + 真实队列 |
+| 端到端 | Dashboard 关键流程 | Playwright |
+| SDK 浏览器 | SDK 运行时行为 | Playwright + jsdom 补齐 |
+| 契约 | SDK ↔ Gateway / Dashboard ↔ Web | Zod Schema 双端复用 |
+| 压测 | Gateway 吞吐、Processor 消费速率 | k6 / autocannon |
+
+- 业务逻辑必须有单元测试；修复 Bug 必须附带回归测试
+- 测试验证行为，而非实现细节
+- **集成测试禁止 mock 数据库**，一律使用 Dockerized PG
+
 ## 注释与文档
 
 - 代码注释和项目文档统一使用中文

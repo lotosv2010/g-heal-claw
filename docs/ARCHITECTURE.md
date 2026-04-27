@@ -1,355 +1,348 @@
 # g-heal-claw 系统架构文档
 
-> 版本: 1.0.0 | 日期: 2026-04-22
+> 版本: 2.0.0 | 日期: 2026-04-27
+>
+> **文档层级：PRD（什么）→ SPEC（契约）→ ARCHITECTURE（拓扑）→ DESIGN（为什么）**
 
 ---
 
 ## 1. 架构总览
 
-g-heal-claw 采用**模块化单体 + 独立 AI Agent** 的架构模式。后端以 NestJS 模块划分逻辑边界，前端使用 Next.js SSR，AI 能力通过 LangChain Agent 独立部署。
+g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 LangChain AI Agent** 三应用架构。
 
-**架构原则**：逻辑边界清晰，物理部署简单。NestJS 模块 ≈ 旧设计中的微服务边界，但共享同一进程，消除服务间 HTTP 调用和分布式事务复杂度。
+**设计原则**：
+- **逻辑边界清晰，物理部署简单** — NestJS 模块承担旧架构中微服务的角色，共享进程避免跨服务 HTTP 与分布式事务。
+- **入口与消费解耦** — 高吞吐 SDK 上报通过 BullMQ 队列与重业务逻辑解耦。
+- **AI 能力独立进程** — AI Agent 独立部署，资源与可用性不影响主站。
 
 ```
-┌──────────────┐     HTTPS      ┌──────────────────────────────────────┐
-│   用户应用    │ ─────────────> │           apps/server (NestJS)       │
-│  (内嵌 SDK)   │               │  ┌──────────┐ ┌──────────────────┐  │
-└──────────────┘               │  │ Gateway   │ │ Error Processor  │  │
-                                │  │ Module    │ │ Module           │  │
-                                │  └────┬─────┘ └────────┬─────────┘  │
-                                │       │    BullMQ       │            │
-                                │       └────────>────────┘            │
-                                │  ┌──────────┐ ┌──────────────────┐  │
-                                │  │ Sourcemap│ │ Notification     │  │
-                                │  │ Module   │ │ Module           │  │
-                                │  └──────────┘ └──────────────────┘  │
-                                │  ┌──────────────────┐               │
-                                │  │ Dashboard API     │               │
-                                │  │ Module (REST/JWT) │               │
-                                │  └──────────────────┘               │
-                                └──────────────────────────────────────┘
-                                         │ BullMQ            │ HTTP
-                                         v                   v
-                                ┌──────────────────┐ ┌──────────────┐
-                                │  apps/ai-agent   │ │  apps/web    │
-                                │  (LangChain)     │ │  (Next.js)   │
-                                │  诊断 + 自动修复  │ │  SSR 管理面板 │
-                                └──────────────────┘ └──────────────┘
+┌─────────────────┐  HTTPS   ┌───────────────────────────────────────────────────────────┐
+│ 用户应用         │ ───────▶│              apps/server (NestJS, Fastify)                  │
+│ · Web / H5       │         │                                                             │
+│ · 小程序          │         │ ┌───────────────┐        ┌────────────────────────────────┐│
+│ · 内嵌 SDK        │         │ │ GatewayModule │───────▶│ BullMQ: events-error /         ││
+└─────────────────┘         │ └───────┬───────┘        │        events-performance /    ││
+                            │         │                │        events-api / -resource/ ││
+                            │         │                │        events-visit / -custom /││
+                            │         │                │        events-track            ││
+                            │         ▼                └────────────────┬───────────────┘│
+                            │ ┌───────────────────────────────────────────┴────────────┐ │
+                            │ │ ProcessorModule                                         │ │
+                            │ │ · ErrorProcessor    · PerformanceProcessor             │ │
+                            │ │ · ApiProcessor      · ResourceProcessor                │ │
+                            │ │ · VisitProcessor    · CustomProcessor · TrackProcessor │ │
+                            │ └──────────┬─────────────────────────────┬────────────────┘ │
+                            │            │ metrics / issues              │ realtime feed   │
+                            │            ▼                              ▼                 │
+                            │ ┌──────────────┐ ┌───────────────┐ ┌─────────────────────┐  │
+                            │ │ SourcemapMod │ │  AlertModule  │ │ RealtimeModule       │  │
+                            │ │ (HTTP + Svc) │ │ (cron 评估)    │ │ (Redis Pub/Sub → SSE)│  │
+                            │ └──────┬───────┘ └───────┬───────┘ └──────────┬───────────┘  │
+                            │        │                 │ notifications      │ SSE          │
+                            │        │                 ▼                    │              │
+                            │        │         ┌────────────────────┐       │              │
+                            │        │         │ NotificationModule │       │              │
+                            │        │         │ (邮件/钉钉/企微/   │       │              │
+                            │        │         │  Slack/Webhook/SMS) │       │              │
+                            │        │         └──────┬─────────────┘       │              │
+                            │        │                │ BullMQ              │              │
+                            │        │                ▼ ai-diagnosis        │              │
+                            │ ┌──────┴────────┐ ┌───────────────┐          │              │
+                            │ │ HealModule    │─▶│ (跨进程队列)  │          │              │
+                            │ │ (触发自愈)     │ └───────┬───────┘          │              │
+                            │ └───────────────┘         │                  │              │
+                            │ ┌───────────────────────────────────────────────────────────┐│
+                            │ │ DashboardModule (REST + JWT) · OpenApiModule (API Token)  ││
+                            │ │ AuthModule · ProjectModule · SharedModule(DB/Redis/Storage)││
+                            │ └───────────────────────────────────────────────────────────┘│
+                            └──────────────┬──────────────────────────────┬────────────────┘
+                                           │ HTTP (SSR) + SSE              │ BullMQ
+                                           ▼                               ▼
+                              ┌────────────────────────┐    ┌──────────────────────────────┐
+                              │  apps/web (Next.js)     │    │ apps/ai-agent (LangChain)    │
+                              │  · App Router SSR       │    │  · 诊断 Agent                 │
+                              │  · Shadcn/ui            │    │  · 修复 Agent（沙箱 + Git PR） │
+                              │  · ECharts 大盘 / 实时   │◀───│  回写 heal_job + 通知         │
+                              └────────────────────────┘    └──────────────────────────────┘
+
+基础设施：PostgreSQL 17 · Redis 7 · MinIO / S3 · Docker Compose（本地）/ K8s（生产）
 ```
 
 ---
 
-## 2. 应用拓扑
+## 2. 应用边界
 
-### 2.1 应用清单
-
-| 应用 | 框架 | 端口 | 职责 |
+| 应用 | 框架 | 职责 | 部署形态 |
 |---|---|---|---|
-| `apps/server` | NestJS (Fastify adapter) | 3000 | 全部后端逻辑：采集、处理、存储、通知、REST API |
-| `apps/web` | Next.js (App Router) | 3001 | 管理面板：SSR 页面、认证、数据可视化 |
-| `apps/ai-agent` | LangChain + Node.js | 3002 | AI 诊断、修复生成、Git 操作、沙箱验证 |
+| `apps/server` | NestJS (Fastify) | 全部后端逻辑（入口 + 消费 + 查询 + 告警） | 单镜像多实例，Worker 可独立启动 |
+| `apps/web` | Next.js (App Router) | 管理面板 SSR 前端 | 独立镜像，对接 `apps/server` API |
+| `apps/ai-agent` | LangChain + Node.js | AI 诊断、修复生成、Git 操作 | 独立镜像，消费 BullMQ 任务 |
 
-### 2.2 NestJS 模块划分（apps/server）
-
-每个模块对应旧设计中的一个独立服务，保持逻辑边界清晰：
-
-| 模块 | 职责 | 对外暴露 |
-|---|---|---|
-| `GatewayModule` | SDK 事件接收、DSN 认证、限流、入队 | `POST /api/v1/events` |
-| `ProcessorModule` | 事件消费（BullMQ Worker）、指纹计算、Issue 聚合、严重等级分类 | 无（队列消费） |
-| `SourcemapModule` | Sourcemap 上传/存储/堆栈解析 | `POST /api/v1/sourcemaps`、`POST /api/v1/resolve` |
-| `NotificationModule` | 通知规则引擎、多渠道分发（邮件/Slack/钉钉/Webhook） | 无（队列消费）|
-| `DashboardModule` | 项目/Issue/事件/用户 CRUD、JWT 认证 | `REST /api/v1/*` |
-| `SharedModule` | 数据库连接、Redis、BullMQ 注册、通用 Guard/Pipe/Filter | 全局注入 |
-
-**模块间通信规则**：
-- 模块间通过 **NestJS 依赖注入** 共享 Service（同进程内调用）
-- 异步任务通过 **BullMQ 队列** 解耦（Gateway → Processor → AI Agent）
-- 禁止模块间直接导入 Controller，只允许导入 Service
-
-### 2.3 服务间通信
-
-```
-SDK ──HTTP──> server/GatewayModule ──BullMQ──> server/ProcessorModule
-                                                    │ (进程内调用)
-                                                    ├──> server/SourcemapModule
-                                                    │ (BullMQ)
-                                                    ├──> server/NotificationModule
-                                                    └──> ai-agent (独立进程)
-
-web (Next.js) ──HTTP──> server/DashboardModule ──SQL──> PostgreSQL
-```
-
-**通信协议**：
-- SDK → Server: HTTPS + JSON
-- Server 模块间: 进程内依赖注入（同步）或 BullMQ（异步）
-- Server → AI Agent: BullMQ 队列（`ai-diagnosis`、`auto-fix`）
-- Web → Server: HTTP + JSON（Next.js Server Actions / API Route → NestJS REST）
-- 数据持久化: PostgreSQL（Drizzle ORM）
-- 文件存储: MinIO/S3
-- 缓存: Redis
+**禁止 apps 之间直接引用代码**，只能通过 `packages/shared` 共享类型 / Zod Schema / 队列名常量，通过 BullMQ 队列异步通信。
 
 ---
 
-## 3. 数据流
+## 3. 后端模块拓扑（apps/server）
 
-### 3.1 错误采集流程
+### 3.1 模块清单
 
-```
-1. 用户应用发生错误
-2. SDK 捕获错误 → 收集上下文 + 面包屑 → 批量缓冲
-3. SDK 发送 POST /api/v1/events → server/GatewayModule
-4. GatewayModule 验证 DSN → Zod 校验载荷 → 检查限流
-5. GatewayModule 将事件推入 BullMQ "error-events" 队列 → 返回 202
-6. server/ProcessorModule 消费事件：
-   a. 调用 SourcemapModule.resolve() 解析堆栈（进程内）
-   b. 计算指纹（SHA256）
-   c. 匹配已有 Issue（指纹去重）或创建新 Issue
-   d. 分类严重等级
-7. 若为新 Issue 或回归 Issue：
-   a. 推入 "ai-diagnosis" 队列 → ai-agent
-   b. 推入 "notification" 队列 → server/NotificationModule
-```
-
-### 3.2 AI 诊断流程（LangChain ReAct Agent）
-
-```
-1. ai-agent 从 "ai-diagnosis" 队列消费任务
-2. 检查 prompt_hash 去重（同一 Issue 1小时内不重复）
-3. 检查项目月度 token 预算
-4. LangChain Agent 启动 ReAct 循环：
-   a. Tool: read_source — 从 Sourcemap 获取源码上下文
-   b. Tool: read_breadcrumbs — 获取面包屑和上下文
-   c. Tool: search_similar — 搜索历史相似 Issue 的诊断
-   d. 思考 → 生成诊断 Markdown（根因 + 方案 + 代码建议）
-5. 存储 AIDiagnosis 记录
-6. 若包含代码建议 → 推入 "auto-fix" 队列
-```
-
-### 3.3 自动修复流程（LangChain Agent + Tools）
-
-```
-1. ai-agent 从 "auto-fix" 队列消费任务
-2. LangChain Agent 启动修复流程：
-   a. Tool: git_clone — 浅克隆仓库（release tag）
-   b. Tool: apply_patch — 应用 unified diff 补丁
-   c. Tool: run_sandbox — 在沙箱中运行验证（lint + tsc）
-   d. Tool: create_pr — 创建分支 + 提交 + PR
-3. 验证失败 → Agent 可自动调整补丁并重试（最多 3 轮）
-4. PR 创建后推送通知给项目 Owner
-5. Owner 在 Dashboard 审批
-6. 审批通过 → 合并 PR → 触发 CI/CD 流水线
-7. 部署成功 → Issue 状态更新为 "auto_fixed"
-```
-
-### 3.4 Sourcemap 上传流程
-
-```
-1. 用户构建项目（vite build 等）
-2. 构建插件自动调用或用户手动执行 CLI:
-   npx @g-heal-claw/cli upload-sourcemaps --release X --path ./dist
-3. CLI 扫描 *.map 文件 → 逐个 POST /api/v1/sourcemaps
-4. server/SourcemapModule 存储到 MinIO/S3
-5. 可选：构建后删除本地 .map 文件（防止暴露源码）
-```
-
----
-
-## 4. 基础设施
-
-### 4.1 存储层
-
-| 组件 | 技术 | 用途 | 持久化 |
+| 模块 | 职责 | 对外暴露 | 依赖 |
 |---|---|---|---|
-| 主数据库 | PostgreSQL 17 | 全部结构化数据（用户、项目、Issue、诊断等） | Volume 持久化 |
-| 缓存 | Redis 7 | 限流计数器、指纹去重、Sourcemap 解析缓存、Session | Volume 持久化 |
-| 消息队列 | Redis + BullMQ | 事件队列、诊断队列、通知队列、修复队列 | Redis 持久化 |
-| 对象存储 | MinIO (开发) / S3 (生产) | Sourcemap 文件 | Volume/S3 |
-| 分析数据库 | ClickHouse (Phase 4) | 大规模事件聚合查询 | Volume 持久化 |
+| `GatewayModule` | SDK 入口：DSN 鉴权、Schema 校验、限流、入队 | HTTP `/ingest/*` | BullMQ queues、Redis |
+| `ProcessorModule` | 消费事件、计算指纹、聚合 Issue/指标 | BullMQ Workers | DB、Sourcemap、BullMQ |
+| `SourcemapModule` | Sourcemap 上传/查询/堆栈还原 | HTTP `/sourcemap/*` + Service | Storage、Redis cache |
+| `AlertModule` | 告警规则评估、触发 | BullMQ `alert-evaluator` | DB、Notification |
+| `NotificationModule` | 通知渠道分发（邮件/钉钉/企微/Slack/Webhook/**短信**） | BullMQ `notifications` | 外部 HTTP / SMS Provider |
+| `RealtimeModule` | 将聚合事件通过 Redis Pub/Sub 扇出，向前端推送 SSE | HTTP `/api/v1/stream/*` · `/open/v1/events/stream` | Redis Pub/Sub |
+| `DashboardModule` | 面向 Web 的 REST + JWT 认证 | HTTP `/api/v1/*` | DB |
+| `OpenApiModule` | 面向外部系统的 API Token 开放接口 | HTTP `/open/v1/*` | DB |
+| `HealModule` | 触发自愈流程，产出/回写 heal_job | HTTP + BullMQ `heal-jobs` | DB → ai-agent |
+| `ProjectModule` | 项目/成员/环境/Release/Key 管理 | 被 Dashboard/Open 调用 | DB |
+| `AuthModule` | 用户认证、JWT 签发、RBAC 守卫 | Guard + Service | DB、Redis |
+| `SharedModule` | DB 连接、Redis、BullMQ 注册、对象存储、IP 库、日志 | 全局注入 | — |
 
-### 4.2 队列设计
-
-| 队列名 | 生产者 | 消费者 | 并发 | 重试 |
-|---|---|---|---|---|
-| `error-events` | GatewayModule | ProcessorModule | 按项目并行 | 3 次，指数退避 |
-| `ai-diagnosis` | ProcessorModule | ai-agent | 1（LLM API 限流） | 2 次 |
-| `notification` | ProcessorModule / ai-agent | NotificationModule | 5 | 3 次 |
-| `auto-fix` | ai-agent | ai-agent | 1（Git 操作） | 1 次 |
-
-### 4.3 本地开发环境（Docker Compose）
-
-```yaml
-服务:
-  - postgres:17-alpine  (端口 5432)
-  - redis:7-alpine      (端口 6379)
-  - minio               (端口 9000 API / 9001 Console)
-  - minio-init          (初始化创建 sourcemaps bucket)
-```
-
-应用服务在宿主机上以 `pnpm dev` 运行，通过 localhost 连接基础设施容器。
-
-### 4.4 生产部署拓扑
+### 3.2 模块内部结构示例
 
 ```
-                     ┌─── CDN (Next.js 静态资源)
-                     │
-用户 ──> 负载均衡 ──┼─── apps/server 集群 (水平扩展)
-                     │
-                     └─── apps/web 集群 (Next.js SSR)
-
-内部网络:
-  apps/server 集群    ──> PostgreSQL (主从)
-  apps/ai-agent       ──> Redis Cluster
-                      ──> MinIO/S3
+apps/server/src/gateway/
+├── gateway.module.ts
+├── gateway.controller.ts        # /ingest 端点
+├── gateway.service.ts           # DSN 解析 + 限流 + 入队
+├── dto/
+│   └── ingest-batch.dto.ts      # Zod Schema + z.infer 类型
+└── guards/
+    └── dsn.guard.ts             # DSN publicKey → projectId 解析
 ```
 
-**扩展说明**: 当单体 server 达到瓶颈时，NestJS 模块可按需拆分为独立部署的微服务（模块边界已内置），无需重写代码。
+### 3.3 通信规则
+
+1. **外部 → 内部**：仅允许经过 `GatewayModule`（SDK 上报）和 `SourcemapModule`（上传）或 `DashboardModule`（面板）的 HTTP 入口。
+2. **模块间同步调用**：通过 NestJS DI 注入 Service，不得直接 import 他模块的 Controller。
+3. **模块间异步调用**：统一走 BullMQ 队列，队列名常量定义在 `packages/shared`。
+4. **server → ai-agent**：只通过 BullMQ 队列（`ai-diagnosis` / `ai-heal-fix`）；ai-agent 完成后将结果写回 DB 或触发回调队列。
+5. **数据库访问**：统一通过 `SharedModule` 提供的 Drizzle 客户端。
+6. **缓存 key 前缀**：按模块划分命名空间，如 `gateway:ratelimit:<pid>`、`dashboard:cache:<key>`，禁止裸 key。
+
+### 3.4 BullMQ 队列清单
+
+| 队列名 | 生产者 | 消费者 | 用途 |
+|---|---|---|---|
+| `events-error` | Gateway | Processor/Error | 异常事件 |
+| `events-performance` | Gateway | Processor/Performance | 性能事件（Web Vitals、navigation） |
+| `events-api` | Gateway | Processor/Api | API 请求事件 |
+| `events-resource` | Gateway | Processor/Resource | 静态资源事件 |
+| `events-visit` | Gateway | Processor/Visit | 页面访问 + 会话 |
+| `events-custom` | Gateway | Processor/Custom | 自定义事件 / 指标 / 日志（`custom_event`、`custom_metric`、`custom_log`） |
+| `events-track` | Gateway | Processor/Track | 代码/全埋点/曝光/停留时长（`track` 事件） |
+| `alert-evaluator` | `AlertModule` 定时器 | Alert Evaluator | 告警规则评估 |
+| `notifications` | Alert/Heal | Notification | 外部通知 |
+| `ai-diagnosis` | HealModule | ai-agent | AI 诊断 |
+| `ai-heal-fix` | ai-agent（自触发） | ai-agent | 生成 patch + 沙箱验证 + 创建 PR |
+| `sourcemap-warmup` | ReleaseUpload | Sourcemap | 预热堆栈还原 |
+
+**重试策略**：默认 3 次指数退避；失败事件进入 `*-dlq` 死信队列，由监控告警通知。
 
 ---
 
-## 5. 安全架构
+## 4. 数据流
 
-### 5.1 认证层次
+### 4.1 错误事件 → Issue
 
-| 场景 | 认证方式 |
+```
+SDK ──POST /ingest/v1/events──▶ Gateway
+    · DSN 鉴权 · Zod 校验 · 项目限流 · 服务端采样
+    └── BullMQ: events-error ──▶ ErrorProcessor
+                                  · Sourcemap 还原堆栈（SourcemapService）
+                                  · 计算指纹
+                                  · UPSERT issues + INSERT events_raw
+                                  · 触发 alert-evaluator（实时告警场景）
+```
+
+### 4.2 性能事件 → 聚合指标
+
+```
+SDK ──batch──▶ Gateway ──▶ BullMQ: events-performance ──▶ PerformanceProcessor
+   · 落库 events_raw · 增量聚合 metric_minute（p50/p95/p99/count/sum）
+   · 触发 Apdex 计算（每分钟一次 cron）
+```
+
+### 4.3 实时推送链路
+
+```
+Processor 写入 metric/issue 时 ──▶ Redis PUBLISH channel=`rt:<projectId>:<topic>`
+RealtimeModule (server) ── SUBSCRIBE ──▶ 维护订阅客户端 Map
+  ├─ SSE: /api/v1/stream/overview    (JWT 鉴权，推送聚合大盘变更)
+  ├─ SSE: /api/v1/stream/issues      (实时新增 Issue)
+  ├─ SSE: /api/v1/stream/heal/:jobId (heal_job 阶段变更)
+  └─ SSE: /open/v1/events/stream     (外部 API Token，事件级别推送，带采样)
+```
+
+- 订阅客户端在 Redis Key `rt:subs:<projectId>` 以 Set 维护，多 server 实例之间通过 Pub/Sub 自然去中心化。
+- 每个 channel 具备独立的消息速率限制（默认 50 msg/s/连接），超限采样丢弃并在 SSE `event: overflow` 告知。
+- 浏览器端断连自动重连，后端通过 `Last-Event-ID` 实现最近 60s 补推。
+
+### 4.4 自愈流程
+
+```
+User 点击「一键自愈」 ──POST /heal/issues/:id──▶ HealModule
+   · 创建 heal_job（status=pending）
+   · BullMQ: ai-diagnosis ──▶ ai-agent
+                              · 加载 Issue + Sourcemap + 仓库上下文
+                              · LangChain Agent 多步推理（ReAct）
+                              · 输出诊断 Markdown（status=patching）
+                              · 生成 diff patch（status=verifying）
+                              · Docker 沙箱运行 verify 命令
+                              · GitHub/GitLab API 创建 PR（status=pr_created）
+   · 回写 heal_job + 触发 NotificationModule
+```
+
+---
+
+## 5. 前端架构（apps/web）
+
+### 5.1 路由结构（App Router）
+
+```
+apps/web/app/
+├── (auth)/                      # 登录、注册、忘记密码
+├── (dashboard)/
+│   ├── projects/                # 项目切换与管理
+│   ├── overview/                # 总览仪表盘（核心指标卡 + 趋势）
+│   ├── performance/             # 性能分析（Web Vitals / 瀑布图 / Apdex）
+│   ├── errors/                  # 异常 Issue 列表与详情
+│   ├── api/                     # API 监控
+│   ├── resources/               # 静态资源分析
+│   ├── visits/                  # 访问分析（PV/UV/会话）
+│   ├── custom/                  # 自定义事件/日志/埋点分析
+│   ├── alerts/                  # 告警规则与历史
+│   ├── heal/                    # 自愈任务中心
+│   ├── settings/                # 项目/成员/环境/通知渠道/Token
+│   └── layout.tsx
+└── layout.tsx
+```
+
+### 5.2 数据获取
+
+- 服务端组件（RSC）默认 SSR 读数据，使用 `fetch` 命中 `apps/server` 的 `/api/v1/*`。
+- 客户端交互组件使用 `@tanstack/react-query` + `fetch`，统一 API Client 封装 JWT。
+- 实时数据（告警/heal 进度）通过 SSE 订阅 `/api/v1/stream/*`。
+
+### 5.3 UI 体系
+
+- Shadcn/ui + TailwindCSS v4（零配置主题）。
+- 图表 ECharts，通过 `@g-heal-claw/charts`（内部子包，随项目需要新增）。
+- 深色 / 浅色主题跟随系统。
+
+---
+
+## 6. AI Agent（apps/ai-agent）
+
+### 6.1 功能边界
+
+- 消费 `ai-diagnosis`、`ai-heal-fix` 队列任务。
+- 与 Git 平台（GitHub、GitLab）交互，通过 Personal Access Token / GitHub App。
+- 与 Docker 沙箱交互，运行 `heal.verify` 命令。
+- 通过 LangChain Agent 执行多步 ReAct 推理。
+
+### 6.2 Agent 工具（Tools）
+
+| Tool | 说明 |
 |---|---|
-| SDK → server/GatewayModule | DSN (publicKey) 通过 `X-GHC-Auth` 头 |
-| CLI → server/SourcemapModule | API Key 通过 `Authorization: Bearer` |
-| 用户 → web (Next.js) | NextAuth.js 或 JWT + Refresh Token |
-| web → server/DashboardModule | JWT（Server-side 调用） |
-| ai-agent → Git Provider | OAuth / Personal Access Token |
+| `readIssue(issueId)` | 获取 Issue 详情 + 代表事件 + 堆栈 |
+| `resolveStack(stackId)` | 调用 server SourcemapService 还原堆栈 |
+| `readFile(repoPath)` | 读取仓库文件（受 `heal.paths` 白名单限制） |
+| `grepRepo(pattern)` | 仓库内 ripgrep |
+| `writePatch(diff)` | 产出 patch，写入 heal_job |
+| `runSandbox(cmd)` | 在 Docker 沙箱执行 verify 命令 |
+| `createPr(title, body, branch)` | 通过 Git 平台 API 创建 PR |
 
-### 5.2 数据安全
+### 6.3 安全边界
 
-- **传输加密**: 所有外部通信强制 TLS 1.2+。
-- **静态加密**: `repo_access_token` 使用 AES-256-GCM 加密后存储。
-- **Sourcemap 文件**: 在 MinIO/S3 中启用服务端加密（SSE）。
-- **敏感数据脱敏**: SDK `beforeSend` 钩子允许用户在发送前清理敏感字段。
-- **LLM 数据安全**: 支持自托管 LLM 选项；项目级别可配置是否允许源码发送至外部 LLM。
-
-### 5.3 权限模型（RBAC）
-
-| 角色 | 项目管理 | 查看 Issue | 管理 Issue | 审批修复 | 系统设置 |
-|---|---|---|---|---|---|
-| Admin | 全部 | 全部 | 全部 | 全部 | 全部 |
-| Member | 只读 | 全部 | 全部 | 自己负责的 | 无 |
-| Viewer | 只读 | 全部 | 无 | 无 | 无 |
+- 模型访问通过独立密钥；可配置主备模型（Claude Opus 4.7 主，GPT-4.x 备）。
+- 所有 Tool 调用记录到 `heal_job.trace`（审计）。
+- 沙箱镜像不联网（除 npm registry mirror），修改仅限 `heal.paths`。
+- 单次任务 LOC 超过 `heal.maxLoc` 直接失败，防止 AI 大改动。
 
 ---
 
-## 6. 可观测性
+## 7. 包依赖规则
 
-### 6.1 日志
-
-- 所有服务使用结构化 JSON 日志。
-- 日志级别：`debug`, `info`, `warn`, `error`。
-- 每条日志包含：`timestamp`, `service`, `module`, `request_id`, `level`, `message`, `metadata`。
-- 生产环境级别：`info` 及以上。
-
-### 6.2 指标（Metrics）
-
-| 指标 | 类型 | 来源模块 |
+| 层级 | 允许依赖 | 禁止依赖 |
 |---|---|---|
-| `gateway_events_received_total` | Counter | GatewayModule |
-| `gateway_events_rejected_total` | Counter | GatewayModule |
-| `gateway_request_duration_ms` | Histogram | GatewayModule |
-| `queue_depth` | Gauge | 各队列 |
-| `processor_events_processed_total` | Counter | ProcessorModule |
-| `sourcemap_resolve_duration_ms` | Histogram | SourcemapModule |
-| `ai_diagnosis_duration_ms` | Histogram | ai-agent |
-| `ai_diagnosis_token_usage` | Counter | ai-agent |
-| `notification_sent_total` | Counter | NotificationModule |
+| `packages/shared` | zod | nestjs / react / next / langchain / node 运行时副作用 |
+| `packages/sdk` | shared | 任何 Node.js API |
+| `packages/miniapp-sdk` | shared | 浏览器 DOM API |
+| `packages/cli` | shared | apps/* |
+| `packages/vite-plugin` | shared | apps/* |
+| `apps/server` | shared, nestjs 生态, drizzle, bullmq, ioredis | apps/web, apps/ai-agent |
+| `apps/web` | shared, react / next 生态 | apps/server, apps/ai-agent, nestjs, bullmq |
+| `apps/ai-agent` | shared, langchain, simple-git, octokit | apps/server, apps/web, nestjs, react |
 
-格式：Prometheus 兼容，通过 `GET /metrics` 端点暴露。
-
-### 6.3 健康检查
-
-`GET /health` 端点返回：
-```json
-{
-  "status": "ok" | "degraded" | "down",
-  "version": "0.0.1",
-  "uptime": 12345,
-  "checks": {
-    "database": "ok",
-    "redis": "ok",
-    "queue": "ok"
-  }
-}
-```
+**红线**：
+- 禁止 `apps/*` 互相 import。
+- 禁止 `packages/shared` 引入运行时副作用（副作用 import、全局修改）。
+- 禁止绕过 `GatewayModule` 直接写 `events_raw`。
 
 ---
 
-## 7. 扩展性设计
+## 8. 基础设施
 
-### 7.1 水平扩展点
+### 8.1 数据库
 
-| 组件 | 扩展方式 | 瓶颈 |
-|---|---|---|
-| apps/server | 无状态，直接水平扩展（NestJS 多实例） | 数据库写入 |
-| apps/web | 无状态，Next.js 多实例 + CDN 静态资源 | 服务端渲染 CPU |
-| apps/ai-agent | Worker 多实例，受 LLM API 限流约束 | 外部 API 速率 |
-| PostgreSQL | 读写分离（主从复制） | 写入 TPS |
+- **PostgreSQL 17** 主存；`events_raw` 按周分区，热数据保留 30 天。
+- **TimescaleDB 扩展（可选）**：未来迁移 `metric_minute` 为 hypertable；当前用原生分区 + 物化视图。
+- **Redis 7**：BullMQ 队列、分布式限流令牌桶、Dashboard 查询缓存。
+- **MinIO / S3**：Sourcemap、大字段原始事件、诊断 Markdown、patch diff。
 
-### 7.2 容量规划（Phase 1 目标）
+### 8.2 可观测自举
 
-| 指标 | 目标值 |
-|---|---|
-| 事件采集吞吐量 | 1,000 events/s（单 server 实例） |
-| 事件处理延迟（p99） | < 5s（从 SDK 发送到 Issue 更新） |
-| Sourcemap 解析延迟（p99） | < 500ms |
-| AI 诊断延迟（p99） | < 60s |
-| Dashboard 页面响应（p99） | < 200ms |
-| 同时在线项目数 | 100 |
+- 后端日志：Pino，结构化 JSON，按 `requestId` 关联。
+- Prometheus 指标：`/metrics` 暴露 Gateway 吞吐、队列长度、DB 连接池、Redis RT。
+- 追踪：OpenTelemetry + OTLP（可选，通过环境变量开启）。
+- 自己也可以做自己的用户：`apps/web` 内嵌自家 SDK（dogfooding）。
 
-### 7.3 缓存策略
+### 8.3 部署
 
-| 缓存键 | TTL | 用途 |
-|---|---|---|
-| `sourcemap:{project_id}:{release}:{file_path}` | 24h | 解析后的 Sourcemap 映射 |
-| `resolve:{fingerprint}` | 1h | 解析后的堆栈信息 |
-| `ratelimit:{project_id}` | 1min | 令牌桶计数器 |
-| `diagnosis:{prompt_hash}` | 1h | 诊断去重 |
-
-### 7.4 模块拆分路径
-
-当系统达到单体瓶颈时，NestJS 模块可按以下优先级独立部署：
-
-1. **ai-agent** — 已独立（资源隔离，GPU/高内存需求）
-2. **ProcessorModule** — 最先拆出（CPU 密集，BullMQ Worker 天然无状态）
-3. **GatewayModule** — 高吞吐场景独立扩展
-4. **NotificationModule** — I/O 密集，可独立扩展
-5. **SourcemapModule / DashboardModule** — 最后拆分
+- **本地开发**：`docker compose up`（PostgreSQL + Redis + MinIO） + `pnpm dev`。
+- **生产**：Kubernetes 部署三个 Deployment（server / web / ai-agent），共享 Redis / PG / S3；Gateway 与 Worker 通过不同启动参数区分（同一镜像）。
+- **CI/CD**：Turborepo 增量构建，GitHub Actions 触发镜像构建 + K8s 发布。
 
 ---
 
-## 8. 灾备与容错
+## 9. 新增模块检查清单
 
-### 8.1 故障处理
+### 9.1 新增 NestJS 模块（apps/server）
 
-| 故障场景 | 影响 | 应对策略 |
-|---|---|---|
-| Redis 不可用 | 队列暂停、限流失效 | GatewayModule 降级为同步处理（限流放开） |
-| PostgreSQL 不可用 | 写入失败 | 事件暂存 Redis 队列，数据库恢复后重放 |
-| LLM API 不可用 | 诊断暂停 | 任务保留在队列，不影响错误采集和展示 |
-| MinIO/S3 不可用 | Sourcemap 上传/解析失败 | 错误事件正常采集，堆栈解析降级（显示原始堆栈） |
-| server 实例宕机 | 部分请求失败 | SDK 重试 + 多实例负载均衡 |
+1. 目录结构：`apps/server/src/<name>/<name>.module.ts` + controller / service / dto / processor。
+2. 在 `AppModule` 中注册。
+3. HTTP 端点必须含 `@ApiTags` + `@ApiOperation` + Zod 校验 Pipe。
+4. BullMQ 队列名在 `packages/shared` 常量文件中定义。
+5. 更新本文件 §3.1 模块清单 与 §3.4 队列清单（若新增队列）。
 
-### 8.2 数据备份
+### 9.2 新增 packages
 
-- PostgreSQL：每日全量备份 + WAL 持续归档。
-- MinIO/S3：跨区域复制（生产环境）。
-- Redis：AOF 持久化 + 定期 RDB 快照。
+1. `src/index.ts` 作为唯一公开导出入口。
+2. `package.json` 配置 `exports` 字段，ESM + 类型声明。
+3. Vite Library Mode 构建。
+4. 零副作用（SDK / CLI 入口除外）。
+5. 更新 §7 依赖规则表。
+
+### 9.3 新增事件子类型
+
+1. 在 `packages/shared` 增加 Zod Schema 与 `type` 枚举。
+2. Gateway 增加对应队列路由。
+3. Processor 实现对应 Worker。
+4. 更新 `SPEC.md` §4.2 事件子类型表、本文件 §3.4 队列清单。
 
 ---
 
-## 9. 风险登记
+## 10. 架构演进路线
 
-| 风险 | 影响 | 缓解措施 |
+| 阶段 | 触发条件 | 行动 |
 |---|---|---|
-| AI 生成的补丁破坏生产代码 | 严重 | 沙箱验证 + 强制人工审批 + 灰度发布 |
-| Sourcemap 解析 CPU 密集 | 高 | Redis 缓存解析结果；ProcessorModule 可拆分独立部署 |
-| LLM API 成本失控 | 中 | 按项目 Token 预算；缓存相同诊断；分诊使用小模型 |
-| SDK 包体积过大 | 中 | Tree-shaking；懒加载；核心目标 < 10KB gzip |
-| 敏感源码发送至 LLM | 严重 | 自托管 LLM 选项；秘密信息脱敏；项目级别用户同意 |
-| 限流被绕过或过度限制 | 中 | 按项目可配置限额；限流异常监控 + 告警 |
+| P0 | MVP | 当前模块化单体足矣，侧重 SDK + Gateway + Issue 聚合 + Dashboard |
+| P1 | 单库超过 2TB 或 Gateway 单节点吞吐 > 10k events/s | 引入 Kafka 替换 BullMQ，Gateway 与 Processor 独立镜像 |
+| P2 | 指标查询 P95 > 3s | 引入 ClickHouse，将 `metric_minute` 冷链路迁移过去 |
+| P3 | 接入多云 + 数据驻留 | 按 region 分库，跨 region 只同步元数据 |
+
+保持当前架构**不过度设计**，到了阈值再切换，避免早期复杂度拖慢交付。

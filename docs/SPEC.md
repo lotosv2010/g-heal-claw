@@ -1,612 +1,563 @@
 # g-heal-claw 技术规格说明书
 
-> 版本: 1.0.0 | 日期: 2026-04-22
+> 版本: 2.0.0 | 日期: 2026-04-27
+>
+> **文档层级：PRD（什么）→ SPEC（契约）→ ARCHITECTURE（拓扑）→ DESIGN（为什么）**
 
 ---
 
 ## 1. 概述
 
-本文档定义 g-heal-claw（自愈式生产监控系统）的功能规格，涵盖 SDK 接口、API 契约、数据模型，以及各服务的行为规则。
+g-heal-claw 是一站式前端可观测 + 自愈修复平台（Real User Monitoring + Self-Healing）。SDK 采集真实用户端的性能、异常、API、资源、页面、行为埋点数据 → 后端聚合分析 → 可视化面板 → 智能告警 → AI Agent 诊断并自动生成修复 PR。
+
+本文档定义功能规格：SDK 接口、HTTP 契约、数据模型、行为规则。技术架构见 `ARCHITECTURE.md`，技术选型理由见 `DESIGN.md`。
 
 ---
 
-## 2. SDK 规格 (`@g-heal-claw/sdk`)
+## 2. 术语定义
 
-### 2.1 初始化
+| 术语 | 含义 |
+|---|---|
+| Project | 一个被监控的业务应用，持有独立 DSN 与 Sourcemap 空间 |
+| Release | 应用发布版本号（语义化版本或 commit hash） |
+| Environment | 运行环境（production / staging / development 等） |
+| Event | SDK 上报的最小数据单元，含多种子类型 |
+| Session | 用户一次连续会话，30 分钟无操作则失效 |
+| Issue | 按指纹聚合的异常问题，含出现次数、影响用户数 |
+| Fingerprint | 异常指纹，基于 `type + message + top-frame` 计算 |
+| Apdex | 应用性能指数：`(满意样本 + 容忍样本/2) / 总样本` |
+| Heal PR | AI Agent 针对 Issue 自动生成的修复 Pull Request |
+
+---
+
+## 3. SDK 规格（`@g-heal-claw/sdk`）
+
+### 3.1 初始化
 
 ```typescript
 interface GHealClawOptions {
-  dsn: string                          // 格式: https://<key>@<host>/<project-id>
-  release?: string                     // 语义化版本号或构建 hash
-  environment?: string                 // 如 "production", "staging"
-  sampleRate?: number                  // 0.0 - 1.0, 默认 1.0
-  maxBreadcrumbs?: number              // 默认 100
-  beforeSend?: (event: ErrorEvent) => ErrorEvent | null
-  debug?: boolean                      // 开启控制台日志, 默认 false
+  dsn: string;                          // 必填，格式 https://<publicKey>@<host>/<projectId>
+  release?: string;                     // 版本号或 commit hash，用于 Sourcemap 匹配
+  environment?: string;                 // 默认 "production"
+  sampleRate?: number;                  // 全量事件采样 0-1，默认 1.0
+  errorSampleRate?: number;             // 异常采样，默认 1.0
+  performanceSampleRate?: number;       // 性能采样，默认 0.3
+  tracingSampleRate?: number;           // API 链路采样，默认 0.3
+  maxBreadcrumbs?: number;              // 面包屑容量，默认 100
+  maxBatchSize?: number;                // 单批事件数，默认 30
+  flushInterval?: number;               // 批量 flush 间隔 ms，默认 5000
+  transport?: 'beacon' | 'fetch' | 'image' | 'auto';   // 默认 auto
+  enablePerformance?: boolean;          // 默认 true
+  enableApiTracking?: boolean;          // 默认 true
+  enableResourceTracking?: boolean;     // 默认 true
+  enablePageView?: boolean;             // 默认 true
+  enableAutoTrack?: boolean;            // 全埋点，默认 false
+  enableWhiteScreenDetect?: boolean;    // 白屏检测，默认 true
+  slowApiThreshold?: number;            // 慢请求阈值 ms，默认 2000
+  ignoreErrors?: (string | RegExp)[];   // 忽略异常匹配
+  ignoreUrls?: (string | RegExp)[];     // 忽略 API URL
+  beforeSend?: (event: SdkEvent) => SdkEvent | null;   // 发送前拦截
+  debug?: boolean;
 }
 
-GHealClaw.init(options: GHealClawOptions): void
+GHealClaw.init(options: GHealClawOptions): void;
 ```
 
-- DSN 解析为 `protocol`、`publicKey`、`host`、`projectId`。
-- DSN 无效时，SDK 打印警告并变为空操作（no-op）。
-- `sampleRate` 按事件级别求值：`Math.random() < sampleRate`。
-- `beforeSend` 可修改事件或返回 `null` 以丢弃。
+**初始化行为**：
+- 解析 DSN → `publicKey`、`host`、`projectId`；无效则 no-op 并打印警告。
+- `sampleRate` 按事件求值：`Math.random() < sampleRate`；子类型采样率独立生效，取最小值。
+- `beforeSend` 返回 `null` 则丢弃；可用于过滤 Token/密码/PII。
+- SDK 必须在 `<head>` 尽早执行，全部 API 在初始化前调用应入队缓存，初始化后统一 flush。
+- SDK 体积约束：gzip < 15KB（核心 + 错误 + 性能），全量 < 30KB。
+- 对宿主页面的性能开销 ≤ 2%（CPU 占用 + 首屏阻塞时间）。
 
-### 2.2 自动错误捕获
+### 3.2 公开 API
 
-| 来源 | 处理器 | 捕获字段 |
+| API | 说明 |
+|---|---|
+| `setUser(user: { id: string; email?: string; name?: string })` | 设置用户身份，附加到所有后续事件 |
+| `setTag(key: string, value: string)` | 设置全局标签 |
+| `setContext(key: string, value: Record<string, unknown>)` | 设置全局上下文 |
+| `captureException(error: Error, ctx?: Record<string, unknown>): string` | 手动捕获异常，返回 eventId |
+| `captureMessage(msg: string, level?: 'info' \| 'warning' \| 'error'): string` | 捕获自定义消息 |
+| `addBreadcrumb(breadcrumb: Breadcrumb)` | 追加面包屑 |
+| `track(eventName: string, properties?: Record<string, unknown>)` | 上报自定义事件（代码埋点） |
+| `time(name: string, durationMs: number, properties?: Record<string, unknown>)` | 上报自定义耗时指标 |
+| `log(level: 'info' \| 'warn' \| 'error', msg: string, data?: unknown)` | 上报分级日志 |
+| `startTransaction(name: string): Transaction` | 开启手动性能事务 |
+| `flush(timeoutMs?: number): Promise<boolean>` | 立即 flush 队列 |
+| `close(): Promise<void>` | 停止采集并 flush |
+
+### 3.3 自动采集能力
+
+#### 3.3.1 异常监控
+
+| 来源 | 处理器 | 字段 |
 |---|---|---|
-| 未捕获异常 | `window.onerror` | message, source, lineno, colno, error 对象 |
-| 未处理的 Promise 拒绝 | `window.onunhandledrejection` | reason（Error 或字符串） |
+| JS 运行时异常 | `window.onerror` | message, source, lineno, colno, stack |
+| Promise 未处理拒绝 | `unhandledrejection` | reason（Error 或字符串） |
+| 静态资源错误 | 捕获阶段 `error` 监听（script/link/img/audio/video） | url, tagName, outerHTML |
+| 框架错误 | `React ErrorBoundary` / `Vue.config.errorHandler` 兜底接入 | 组件栈 |
 
-- SDK 包裹已有处理器（如果存在），在自身处理后调用原处理器。
-- 每个捕获的错误生成一条 `ErrorEvent` 载荷。
+- SDK 包裹已有处理器，链式调用不打断用户原处理。
+- 白屏检测：`requestIdleCallback` 后采样页面关键节点（`#app` / `#root` / `main`）的可视尺寸与 DOM 子节点数，阈值触发时上报 `type=white_screen` 错误。
 
-### 2.3 手动捕获
+#### 3.3.2 性能监控
+
+| 指标 | 采集方式 |
+|---|---|
+| FCP / LCP | `PerformanceObserver('paint' / 'largest-contentful-paint')` |
+| CLS | `PerformanceObserver('layout-shift')` 累计 |
+| INP | `PerformanceObserver('event')` + `interactionId` |
+| TTFB | `navigation.responseStart - navigation.requestStart` |
+| 页面加载阶段 | `PerformanceNavigationTiming`（DNS/TCP/SSL/请求/响应/DOM/资源） |
+| 首屏时间 | `MutationObserver` 监听 DOM 变化，`requestAnimationFrame` 窗口内最后一次计入 |
+| 长任务 | `PerformanceObserver('longtask')`，≥50ms 记录；2-5s 记卡顿，≥5s 记无响应 |
+
+- 性能指标在 `visibilitychange=hidden` 或 `pagehide` 触发上报，`LCP/INP/CLS` 使用最终值。
+
+#### 3.3.3 API 监控
+
+- 劫持 `XMLHttpRequest.prototype.open/send` 与 `window.fetch`。
+- 对每个请求生成 `ApiEvent`：method、url、status、duration、requestSize、responseSize。
+- 异常请求（状态码 ≥ 400 / 网络错误 / 超时）额外记录请求参数与响应片段（默认前 2KB，可配置）。
+- 注入 `x-trace-id`（若存在后端链路追踪），支持前后端链路串联。
+- 慢请求：超过 `slowApiThreshold` 标记 `slow=true`。
+
+#### 3.3.4 资源监控
+
+- `PerformanceObserver('resource')` 采集 script/link/img/font/media 等 `PerformanceResourceTiming`。
+- 记录加载耗时、`transferSize` / `encodedBodySize` / `decodedBodySize`、是否命中缓存、CDN 主机、协议。
+- 失败资源由异常监控捕获，与资源监控按 url 串联。
+- 后端按 `initiatorType` 聚合：每个项目/环境/小时粒度产出 `count`、`totalTransfer`、`avgDuration`，供大盘「按资源类型拆分的总大小与请求数量」使用。
+
+#### 3.3.5 页面访问
+
+- 初始化即上报 `page_view`：url、referrer、title、location、viewport、解析后的 UTM 与 `searchEngine`（基于 referrer 白名单：google / baidu / bing / duckduckgo / sogou / so.com / yahoo）。
+- SPA 路由切换（`history.pushState` / `replaceState` / `popstate` / `hashchange`）自动上报。
+- **Session 策略**：
+  - 首次访问生成 `sessionId` 与 `sessionStart`，存 `localStorage`，键 `_ghc_session_<projectId>`。
+  - 30 分钟无任何事件上报则标记过期，下一事件触发新 Session。
+  - **跨标签页共享**：使用 `storage` 事件监听 `_ghc_session_*` 的变化，同域名多标签页共享同一 `sessionId`；不存在 `BroadcastChannel` 兼容风险时优先使用 `BroadcastChannel('ghc_session')` 推送。
+  - 页面 `visibilitychange=hidden` 累加 session 活跃时长；`hidden` 超 30min 也视为过期。
+
+#### 3.3.6 自定义上报
+
+- `track(eventName, properties)` → `CustomEvent`。
+- `time(name, duration, properties)` → `CustomMetric`。
+- `log(level, msg, data)` → `CustomLog`。
+
+#### 3.3.7 埋点（Tracking）
+
+- **代码埋点**：`GHealClaw.track('btn_click', { productId })`。
+- **全埋点**：`enableAutoTrack=true` 时，监听全局 `click`/`submit`/`change`，对含 `data-track` 属性的元素上报：事件名来自 `data-track-name`，属性来自 `data-track-*`。
+- **曝光埋点**：`IntersectionObserver` 监听含 `data-track-expose` 的元素，首次进入视口且停留 ≥ 500ms 上报 `expose`。
+- **停留时长**：页面 `visibilitychange` 切换间隔累计，上报 `page_duration`。
+
+### 3.4 上报策略
+
+| 场景 | 策略 |
+|---|---|
+| 普通批量 | `fetch(..., {keepalive: true})`，触发条件：达到 `maxBatchSize` 或 `flushInterval` |
+| 页面离开 | `pagehide` / `beforeunload` 时优先 `navigator.sendBeacon`（**单次 ≤ 64KB**，超过拆批） |
+| 不支持 fetch | 降级 `XMLHttpRequest` 异步 |
+| 跨域被拦截 | 兜底 Image 请求（`new Image().src = url + '?payload=...'`，单条 ≤ 2KB） |
+| 自动降级顺序 | `beacon` → `fetch` → `image` |
+
+**Beacon 64KB 限制**：SDK 在序列化后检测大小，超限则先提取"必须送达"事件（error、session_end）用 Beacon 发送，其余回滚到 IndexedDB 队列待下次 flush。
+
+**数据可靠性**：
+- 发送失败的批次写入 `IndexedDB`（或 `localStorage` 兜底），SDK 启动时和 `online` 事件触发时重试，最多 3 次。
+- 队列上限 500 事件，超量丢弃最旧。
+
+### 3.5 采样与过滤
+
+- 全局采样率优先，子类型采样率二次过滤。
+- 采样决策在入队前完成，不占用上报配额。
+- `ignoreErrors` / `ignoreUrls` 在 `beforeSend` 之前匹配；匹配命中直接丢弃。
+- `beforeSend` 必须同步执行，返回 `null` 丢弃，返回新事件继续上报。
+
+---
+
+## 4. 数据模型（Event Payload）
+
+所有事件共享公共字段 + 子类型字段，使用 Zod Schema 定义于 `packages/shared`。
+
+### 4.1 公共字段
 
 ```typescript
-GHealClaw.captureException(error: Error, context?: Record<string, unknown>): string  // 返回事件 ID
-GHealClaw.captureMessage(message: string, level?: 'info' | 'warning' | 'error'): string
-```
-
-### 2.4 上下文 API
-
-```typescript
-GHealClaw.setUser(user: { id?: string; email?: string; name?: string }): void
-GHealClaw.setExtra(key: string, value: unknown): void
-GHealClaw.setTag(key: string, value: string): void
-```
-
-- 上下文附加到所有后续事件，直到被覆盖或清除。
-
-### 2.5 面包屑（Breadcrumbs）
-
-自动捕获的面包屑类型：
-
-| 类型 | 来源 | 数据 |
-|---|---|---|
-| `console` | `console.log/warn/error` | level, message |
-| `click` | `addEventListener('click')` | 目标选择器, 文本内容（截断 128 字符） |
-| `xhr` | `XMLHttpRequest` monkey-patch | method, url, status_code, duration_ms |
-| `fetch` | `fetch` monkey-patch | method, url, status_code, duration_ms |
-| `navigation` | `popstate`, `pushState`, `replaceState` | from, to |
-
-- 存储在 `maxBreadcrumbs` 大小的环形缓冲区中。
-- 单条面包屑结构：`{ type, category, message, data, timestamp, level }`。
-
-### 2.6 传输层
-
-- 事件批量发送：达到 **10 条** 或 **5 秒** 时刷新。
-- 请求：`POST <host>/api/v1/events`，`Content-Type: application/json`。
-- 认证头：`X-GHC-Auth: <publicKey>`。
-- 重试：3 次，指数退避（1s, 2s, 4s）。4xx 直接丢弃（不可重试）。
-- 页面卸载时：使用 `navigator.sendBeacon()` 刷新剩余事件。
-
-### 2.7 事件载荷
-
-```typescript
-interface ErrorEventPayload {
-  event_id: string             // UUID v4, 客户端生成
-  timestamp: string            // ISO 8601
-  platform: 'javascript'
-  release?: string
-  environment?: string
-  error: {
-    type: string               // 如 "TypeError"
-    message: string
-    stack_trace: string        // 原始堆栈字符串
-  }
-  context: {
-    browser: string            // 如 "Chrome 125.0"
-    os: string                 // 如 "Windows 10"
-    url: string
-    screen: string             // 如 "1920x1080"
-    user_agent: string
-  }
-  user?: {
-    id?: string
-    email?: string
-    name?: string
-  }
-  tags: Record<string, string>
-  extra: Record<string, unknown>
-  breadcrumbs: Breadcrumb[]
+interface BaseEvent {
+  eventId: string;           // UUID v7
+  projectId: string;         // 来自 DSN
+  publicKey: string;
+  timestamp: number;         // Unix ms
+  type: EventType;           // 事件类型
+  release?: string;
+  environment?: string;
+  sessionId: string;
+  user?: { id: string; email?: string; name?: string };
+  tags?: Record<string, string>;
+  context?: Record<string, unknown>;
+  device: {
+    ua: string;
+    os: string;
+    osVersion?: string;
+    browser: string;
+    browserVersion?: string;
+    deviceType: 'desktop' | 'mobile' | 'tablet' | 'bot' | 'unknown';
+    screen: { width: number; height: number; dpr: number };
+    network?: { effectiveType: string; rtt?: number; downlink?: number };
+    language: string;
+    timezone: string;
+  };
+  page: {
+    url: string;              // 不含 hash 的完整 URL
+    path: string;             // 归一化后的路径模板（如 /users/:id）
+    referrer?: string;        // 上一页来源
+    title?: string;
+    utm?: {                   // 来源解析（仅在 URL 含 UTM 时填充）
+      source?: string;
+      medium?: string;
+      campaign?: string;
+      term?: string;
+      content?: string;
+    };
+    searchEngine?: string;    // 基于 referrer 白名单识别：google/baidu/bing/...
+    channel?: string;         // 业务方自定义渠道（query 参数 ch/channel）
+  };
 }
 ```
 
-### 2.8 包体积要求
+### 4.1.1 Breadcrumb 结构
 
-| 格式 | 目标环境 | 最大体积 (gzip) |
-|---|---|---|
-| ESM | 现代打包工具 | 8 KB |
-| CJS | 传统 Node/打包工具 | 8 KB |
-| IIFE | `<script>` 标签 | 10 KB |
-
-- 零运行时依赖。
-- 构建工具：Vite Library Mode（输出 ESM + CJS + IIFE）。
-- 支持 Tree-shaking：手动捕获和面包屑模块在未使用时可被摇掉。
-
----
-
-## 3. API 契约
-
-### 3.1 数据采集网关（Ingestion Gateway）
-
-**基础 URL**: `<server-host>/api/v1`
-
-#### POST /events
-
-接收来自 SDK 的错误事件。
-
-| 字段 | 值 |
-|---|---|
-| 认证 | `X-GHC-Auth: <publicKey>` |
-| Content-Type | `application/json` |
-| 请求体 | `ErrorEventPayload[]`（数组，最多 50 条） |
-| 响应 202 | `{ "accepted": number }` |
-| 响应 400 | `{ "error": "validation_error", "details": [...] }` |
-| 响应 401 | `{ "error": "invalid_dsn" }` |
-| 响应 429 | `{ "error": "rate_limited", "retry_after": number }` |
-
-**限流策略**：按项目维度的令牌桶算法。默认：1000 事件/分钟。可在项目设置中配置。
-
-#### GET /health
-
-| 响应 200 | `{ "status": "ok", "version": string, "uptime": number }` |
-
----
-
-### 3.2 Sourcemap 服务
-
-**基础 URL**: `<server-host>/api/v1`
-
-#### POST /sourcemaps
-
-上传 sourcemap 文件。
-
-| 字段 | 值 |
-|---|---|
-| 认证 | `Authorization: Bearer <api-key>` |
-| Content-Type | `multipart/form-data` |
-| 字段 | `release`（字符串）, `file_path`（字符串）, `file`（二进制 .map 文件） |
-| 响应 201 | `{ "id": UUID, "storage_key": string }` |
-| 响应 409 | `{ "error": "duplicate", "existing_id": UUID }` |
-
-#### POST /resolve
-
-解析压缩后的堆栈信息。
-
-| 字段 | 值 |
-|---|---|
-| 认证 | 内部服务令牌 |
-| 请求体 | `{ "project_id": UUID, "release": string, "stack_trace": string }` |
-| 响应 200 | `{ "resolved_stack_trace": string, "frames": ResolvedFrame[] }` |
+所有 error / api / custom_log 事件可附带 `breadcrumbs: Breadcrumb[]`。
 
 ```typescript
-interface ResolvedFrame {
-  original_file: string        // 如 "src/components/UserProfile.tsx"
-  original_line: number
-  original_column: number
-  original_function?: string
-  context_lines?: {            // 前 5 行 + 当前行 + 后 5 行
-    pre: string[]
-    line: string
-    post: string[]
-  }
+interface Breadcrumb {
+  timestamp: number;                       // Unix ms
+  category: 'navigation' | 'click' | 'console' | 'xhr' | 'fetch' | 'ui' | 'custom';
+  level: 'debug' | 'info' | 'warning' | 'error';
+  message: string;                         // 简述
+  data?: Record<string, unknown>;          // category 特定的结构化字段
 }
 ```
 
----
+容量：默认最多 100 条；超出采用 FIFO 淘汰。
 
-### 3.3 后台管理 API（Dashboard API）
+### 4.2 事件子类型
 
-**基础 URL**: `<server-host>/api/v1`
-
-除特别说明外，所有接口需要 `Authorization: Bearer <jwt>`。
-
-#### 认证
-
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| POST | /auth/register | 注册账户：`{ email, name, password }` -> `{ user, token }` |
-| POST | /auth/login | 登录：`{ email, password }` -> `{ user, token, refresh_token }` |
-| POST | /auth/refresh | 刷新令牌：`{ refresh_token }` -> `{ token, refresh_token }` |
-| POST | /auth/password-reset | 请求重置密码：`{ email }` -> 204 |
-
-#### 项目管理
-
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | /projects | 列出用户的项目 |
-| POST | /projects | 创建项目：`{ name, platform }` -> `{ project }`（DSN 自动生成） |
-| GET | /projects/:id | 获取项目详情（含 DSN） |
-| PATCH | /projects/:id | 更新项目设置 |
-| DELETE | /projects/:id | 软删除项目 |
-| GET | /projects/:id/members | 列出团队成员 |
-| POST | /projects/:id/members | 邀请成员：`{ email, role }` |
-| DELETE | /projects/:id/members/:userId | 移除成员 |
-
-#### 异常（Issues）
-
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | /projects/:id/issues | 列出异常。查询参数：`status`, `severity`, `sort`, `order`, `page`, `limit`, `since`, `until` |
-| GET | /issues/:id | 异常详情（含最新事件、诊断结果、统计数据） |
-| PATCH | /issues/:id | 更新状态：`{ status, resolved_in_version? }` |
-| POST | /issues/:id/assign | 分配负责人：`{ user_id }` |
-
-#### 事件（Events）
-
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | /issues/:id/events | 分页获取某异常的事件列表 |
-| GET | /events/:id | 单个事件详情（含解析后堆栈、面包屑） |
-
-#### AI 诊断
-
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | /issues/:id/diagnosis | 获取最新诊断结果 |
-| POST | /issues/:id/diagnosis | 触发重新诊断 |
-| POST | /diagnoses/:id/feedback | 提交反馈：`{ rating: 'helpful' \| 'not_helpful' \| 'partial' }` |
-
-#### 通知规则
-
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | /projects/:id/notification-rules | 列出规则 |
-| POST | /projects/:id/notification-rules | 创建规则 |
-| PATCH | /notification-rules/:id | 更新规则 |
-| DELETE | /notification-rules/:id | 删除规则 |
-| POST | /notification-rules/:id/test | 发送测试通知 |
-
-#### 自动修复
-
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | /issues/:id/fixes | 列出修复尝试 |
-| POST | /fixes/:id/approve | 批准修复 -> 触发部署 |
-| POST | /fixes/:id/reject | 拒绝修复：`{ reason? }` |
-
----
-
-## 4. 数据模型
-
-### 4.1 枚举类型
-
-```
-ProjectPlatform:     web | node | react-native
-IssueStatus:         open | resolved | ignored | auto_fixed
-IssueSeverity:       critical | error | warning | info
-UserRole:            admin | member | viewer
-NotificationChannel: email | slack | dingtalk | webhook
-NotificationTrigger: new_issue | regression | severity_change | auto_fix_ready
-AutoFixStatus:       pending | pr_created | approved | deployed | failed
-DeployStatus:        triggered | running | success | failed
-FeedbackRating:      helpful | not_helpful | partial
-MemberRole:          owner | admin | member | viewer
-```
-
-### 4.2 实体定义
-
-#### User（用户）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK, 自动生成 |
-| email | varchar(255) | UNIQUE, NOT NULL |
-| name | varchar(255) | NOT NULL |
-| password_hash | varchar(255) | NOT NULL |
-| role | UserRole | NOT NULL, 默认 `member` |
-| created_at | timestamptz | NOT NULL, 默认 now() |
-| updated_at | timestamptz | NOT NULL, 默认 now() |
-
-#### Project（项目）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK, 自动生成 |
-| name | varchar(255) | NOT NULL |
-| dsn | varchar(255) | UNIQUE, NOT NULL |
-| platform | ProjectPlatform | NOT NULL, 默认 `web` |
-| repo_url | varchar(512) | 可空 |
-| repo_access_token | varchar(512) | 可空，静态加密 |
-| owner_id | uuid | FK -> User.id, NOT NULL |
-| settings | jsonb | 默认 `{}` |
-| created_at | timestamptz | NOT NULL, 默认 now() |
-| updated_at | timestamptz | NOT NULL, 默认 now() |
-
-#### SourcemapUpload（Sourcemap 上传记录）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK |
-| project_id | uuid | FK -> Project.id, NOT NULL |
-| release_id | uuid | FK -> Release.id, NOT NULL |
-| file_path | varchar(1024) | NOT NULL |
-| storage_key | varchar(1024) | NOT NULL |
-| uploaded_at | timestamptz | NOT NULL, 默认 now() |
-
-**唯一约束**: `(release_id, file_path)`
-
-#### ErrorEvent（错误事件）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK |
-| project_id | uuid | FK -> Project.id, NOT NULL, 已索引 |
-| release_id | uuid | FK -> Release.id, 可空 |
-| environment_id | uuid | FK -> Environment.id, 可空 |
-| timestamp | timestamptz | NOT NULL, 已索引 |
-| error_type | varchar(255) | NOT NULL |
-| message | text | NOT NULL |
-| stack_trace | text | 可空 |
-| resolved_stack_trace | text | 可空 |
-| browser | varchar(255) | 可空 |
-| os | varchar(255) | 可空 |
-| url | varchar(2048) | 可空 |
-| user_id | varchar(255) | 可空 |
-| extra_context | jsonb | 默认 `{}` |
-| breadcrumbs | jsonb | 默认 `[]` |
-| fingerprint | varchar(64) | NOT NULL, 已索引 |
-| created_at | timestamptz | NOT NULL, 默认 now() |
-
-#### Issue（异常）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK |
-| project_id | uuid | FK -> Project.id, NOT NULL, 已索引 |
-| fingerprint | varchar(64) | NOT NULL, 已索引 |
-| title | varchar(512) | NOT NULL |
-| first_seen | timestamptz | NOT NULL, 默认 now() |
-| last_seen | timestamptz | NOT NULL, 默认 now() |
-| event_count | integer | NOT NULL, 默认 1 |
-| status | IssueStatus | NOT NULL, 默认 `open`, 已索引 |
-| severity | IssueSeverity | NOT NULL, 默认 `error` |
-| assigned_to | uuid | FK -> User.id, 可空 |
-| resolved_in_version | varchar(128) | 可空 |
-
-**唯一约束**: `(project_id, fingerprint)`
-
-#### AIDiagnosis（AI 诊断）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK |
-| issue_id | uuid | FK -> Issue.id, NOT NULL |
-| model_used | varchar(128) | NOT NULL |
-| prompt_hash | varchar(64) | NOT NULL |
-| root_cause | text | NOT NULL, Markdown 格式 |
-| solution | text | NOT NULL, Markdown 格式 |
-| code_suggestion | text | 可空, unified diff 格式 |
-| confidence_score | real | 可空, 0.0-1.0 |
-| feedback_rating | FeedbackRating | 可空 |
-| token_usage | integer | 可空 |
-| created_at | timestamptz | NOT NULL, 默认 now() |
-
-#### AutoFixAttempt（自动修复尝试）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK |
-| issue_id | uuid | FK -> Issue.id, NOT NULL |
-| diagnosis_id | uuid | FK -> AIDiagnosis.id, NOT NULL |
-| branch_name | varchar(255) | NOT NULL |
-| pr_url | varchar(1024) | 可空 |
-| status | AutoFixStatus | NOT NULL, 默认 `pending` |
-| patch_diff | text | NOT NULL |
-| created_at | timestamptz | NOT NULL, 默认 now() |
-| reviewed_by | uuid | FK -> User.id, 可空 |
-| reviewed_at | timestamptz | 可空 |
-
-#### NotificationRule（通知规则）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK |
-| project_id | uuid | FK -> Project.id, NOT NULL |
-| channel | NotificationChannel | NOT NULL |
-| config | jsonb | NOT NULL, 默认 `{}` |
-| trigger | NotificationTrigger | NOT NULL |
-| conditions | jsonb | 默认 `{}` |
-| enabled | boolean | NOT NULL, 默认 `true` |
-
-#### DeployTrigger（部署触发）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK |
-| auto_fix_attempt_id | uuid | FK -> AutoFixAttempt.id, NOT NULL |
-| ci_provider | varchar(64) | NOT NULL |
-| pipeline_url | varchar(1024) | 可空 |
-| status | DeployStatus | NOT NULL, 默认 `triggered` |
-| triggered_at | timestamptz | NOT NULL, 默认 now() |
-
-#### Release（发布版本）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK |
-| project_id | uuid | FK -> Project.id, NOT NULL |
-| version | varchar(128) | NOT NULL |
-| commit_sha | varchar(40) | 可空 |
-| deploy_url | varchar(1024) | 可空 |
-| created_at | timestamptz | NOT NULL, 默认 now() |
-
-**唯一约束**: `(project_id, version)`
-
-> 将 release 从散落在 ErrorEvent/SourcemapUpload 中的字符串字段提升为一等实体，支持版本对比、回归检测、Sourcemap 关联。
-
-#### Environment（运行环境）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK |
-| project_id | uuid | FK -> Project.id, NOT NULL |
-| name | varchar(64) | NOT NULL |
-| is_production | boolean | NOT NULL, 默认 false |
-| created_at | timestamptz | NOT NULL, 默认 now() |
-
-**唯一约束**: `(project_id, name)`
-
-> 支持按环境（production / staging / development）过滤错误，避免测试环境噪音。
-
-#### ProjectMember（项目成员关联）
-
-| 字段 | 类型 | 约束 |
-|---|---|---|
-| id | uuid | PK |
-| project_id | uuid | FK -> Project.id, NOT NULL |
-| user_id | uuid | FK -> User.id, NOT NULL |
-| role | MemberRole | NOT NULL, 默认 `member` |
-| joined_at | timestamptz | NOT NULL, 默认 now() |
-
-**唯一约束**: `(project_id, user_id)`
-
-> 支持多项目多角色的团队协作模型，独立于全局 User.role。
-
----
-
-## 5. 错误指纹算法
-
-```
-fingerprint = SHA256(
-  normalize(error_type) + ":" +
-  normalize(top_5_stack_frames)
-)
-```
-
-**归一化规则**:
-1. 去除每个帧的行号和列号。
-2. 去除文件 URL 中的查询参数和哈希值。
-3. 将动态片段（UUID、数字 ID）替换为 `<dynamic>`。
-4. 将 webpack/vite 的 chunk hash 折叠为 `<hash>`。
-5. 归一化后取前 5 个栈帧。
-
-相同指纹的两个事件归属同一个 Issue。
-
----
-
-## 6. 严重等级分类规则
-
-| 条件 | 严重等级 |
+| `type` | Payload 关键字段 |
 |---|---|
-| `SyntaxError` 或 `RangeError` | critical |
-| 某 Issue 事件频率 > 100次/分钟 | critical |
-| `TypeError`, `ReferenceError` | error |
-| 通过 `captureMessage` 捕获的 `console.error` | warning |
-| `captureMessage` 且 level 为 `info` | info |
-| 默认（未匹配） | error |
+| `error` | `subType: 'js' \| 'promise' \| 'resource' \| 'framework' \| 'white_screen'`、`message`、`stack`、`componentStack`、`resource?`、`breadcrumbs` |
+| `performance` | `metric: 'LCP' \| 'FCP' \| 'CLS' \| 'INP' \| 'TTFB' \| 'FSP'`、`value`、`rating: 'good' \| 'needs-improvement' \| 'poor'`、`navigation?: NavigationTiming` |
+| `long_task` | `duration`、`startTime`、`attribution` |
+| `api` | `method`、`url`、`status`、`duration`、`requestSize`、`responseSize`、`traceId?`、`slow`、`failed`、`errorMessage?`、`requestBody?`（截断）、`responseBody?`（截断） |
+| `resource` | `initiatorType`、`url`、`duration`、`transferSize`、`encodedSize`、`protocol`、`cache` |
+| `page_view` | `enterAt`、`leaveAt?`、`duration?`、`loadType`、`isSpaNav` |
+| `page_duration` | `startTime`、`endTime`、`activeMs` |
+| `custom_event` | `name`、`properties` |
+| `custom_metric` | `name`、`duration`、`properties?` |
+| `custom_log` | `level`、`message`、`data?` |
+| `track` | `trackType: 'click' \| 'expose' \| 'submit' \| 'code'`、`target`、`properties` |
 
-规则按顺序匹配，首次命中生效。项目级别的自定义规则存储在 `Project.settings.severity_rules` 中。
+**指纹规则（error）**：`sha1(subType + normalizedMessage + topFrame.fileBase + topFrame.function)`。
+
+### 4.2.1 NavigationTiming（页面加载瀑布图数据）
+
+```typescript
+interface NavigationTiming {
+  dns: number;            // domainLookupEnd - domainLookupStart
+  tcp: number;            // connectEnd - connectStart
+  ssl?: number;           // connectEnd - secureConnectionStart（仅 https）
+  request: number;        // responseStart - requestStart
+  response: number;       // responseEnd - responseStart
+  domParse: number;       // domInteractive - responseEnd
+  domReady: number;       // domContentLoadedEventEnd - navigationStart
+  resourceLoad: number;   // loadEventStart - domContentLoadedEventEnd
+  total: number;          // loadEventEnd - navigationStart
+  redirect?: number;      // redirectEnd - redirectStart
+  type: 'navigate' | 'reload' | 'back_forward' | 'prerender';
+}
+```
+
+前端可据此绘制瀑布图，后端 `metric_minute` 按每个子阶段独立聚合（dim_key=`stage`, dim_value=`dns|tcp|ssl|request|response|domParse|domReady|resourceLoad`）。
 
 ---
 
-## 7. AI 诊断规格
+## 5. HTTP API 契约
 
-### 7.1 触发条件
+### 5.1 入口服务（Gateway）
 
-- 新 Issue 创建（首次出现新指纹的事件）。
-- 已解决的 Issue 回归（状态为 `resolved` 后再次出现事件）。
-- 用户手动请求重新诊断。
+| 路径 | 方法 | 鉴权 | 说明 |
+|---|---|---|---|
+| `/ingest/v1/events` | POST | 无（DSN 内联） | SDK 批量上报（JSON 或 `application/x-ndjson`） |
+| `/ingest/v1/beacon` | POST | 无 | sendBeacon 入口，等价 events 但响应 204 |
+| `/ingest/v1/envelope` | POST | 无 | 兼容 Sentry envelope 格式（未来扩展） |
 
-### 7.2 Prompt 结构
-
-```
-System: 你是一位资深软件工程师，正在诊断一个生产环境错误。
-        请用 Markdown 格式回复，包含三个部分：根因分析、解决方案、代码修复。
-
-User:
-  错误类型: {error_type}
-  错误信息: {message}
-  解析后堆栈:
-    {resolved_stack_trace}
-  源码上下文:
-    {file_path}:{line_number}
-    {context_lines}
-  面包屑 (最近 10 条):
-    {breadcrumbs}
-  浏览器: {browser}
-  页面 URL: {url}
-```
-
-### 7.3 响应结构
-
-```markdown
-## 根因分析
-{错误发生原因的分析}
-
-## 解决方案
-{分步修复指导}
-
-## 代码修复
-```diff
-{统一 diff 格式的代码修改（如适用）}
-```
-```
-
-### 7.4 成本控制
-
-- 每个 Issue 每小时最多 1 次诊断（通过 `prompt_hash` 去重）。
-- 每项目月度 token 预算，可在 Project.settings 中配置。
-- 预算耗尽后，诊断任务入队但不执行，直到下一个计费周期。
-
----
-
-## 8. 通知载荷格式
-
-### 8.1 Webhook 载荷
+**请求体**（events）：
 
 ```json
 {
-  "event": "new_issue" | "regression" | "severity_change" | "auto_fix_ready",
-  "timestamp": "ISO8601",
-  "project": { "id": "uuid", "name": "string" },
-  "issue": {
-    "id": "uuid",
-    "title": "string",
-    "severity": "string",
-    "status": "string",
-    "event_count": 0,
-    "url": "https://dashboard/issues/{id}"
-  },
-  "signature": "HMAC-SHA256 十六进制摘要"
+  "dsn": "https://<publicKey>@<host>/<projectId>",
+  "sentAt": 1714195200000,
+  "events": [ /* BaseEvent[] */ ]
 }
 ```
 
-### 8.2 签名验证
+**响应**：
+- `202 Accepted` — 已入队。
+- `429 Too Many Requests` — 超出项目限流，返回 `Retry-After`。
+- `400 Bad Request` — Schema 校验失败。
+- `401 Unauthorized` — DSN 无效或项目已删除。
 
-```
-signature = HMAC-SHA256(webhook_secret, JSON.stringify(body))
+**限流**：按 `projectId` 令牌桶，默认 100 事件/秒（可配置）；采样率由服务端再次生效（`server_sample_rate`）。
+
+### 5.2 Sourcemap 服务
+
+| 路径 | 方法 | 鉴权 | 说明 |
+|---|---|---|---|
+| `/sourcemap/v1/releases` | POST | API Token | 创建 release |
+| `/sourcemap/v1/releases/:release/artifacts` | POST | API Token | 上传 js + map（multipart） |
+| `/sourcemap/v1/releases/:release/artifacts` | GET | JWT | 列表 |
+| `/sourcemap/v1/releases/:release` | DELETE | API Token | 删除 release |
+
+### 5.3 Dashboard API（`/api/v1`）
+
+所有路径前缀 `/api/v1`，使用 JWT Bearer，响应统一封装。
+
+| 资源 | 路径 | 方法 |
+|---|---|---|
+| 认证 | `/auth/login`、`/auth/refresh`、`/auth/me` | POST/POST/GET |
+| 项目 | `/projects`、`/projects/:id`、`/projects/:id/members` | CRUD |
+| 环境 | `/projects/:id/environments` | CRUD |
+| Release | `/projects/:id/releases` | CRUD |
+| 异常 Issue | `/projects/:id/issues`、`/issues/:id`、`/issues/:id/events` | GET/PATCH |
+| 原始事件 | `/projects/:id/events?type=...` | GET |
+| 性能大盘 | `/projects/:id/performance/overview`、`/performance/web-vitals`、`/performance/apdex` | GET |
+| API 分析 | `/projects/:id/api/overview`、`/api/slow`、`/api/errors` | GET |
+| 资源分析 | `/projects/:id/resources/overview` | GET |
+| 访问分析 | `/projects/:id/visits/overview`、`/visits/top-pages`、`/visits/sessions/:id` | GET |
+| 自定义事件 | `/projects/:id/custom/events`、`/custom/metrics`、`/custom/logs` | GET |
+| 告警规则 | `/projects/:id/alert-rules`、`/alert-rules/:id` | CRUD |
+| 告警历史 | `/projects/:id/alert-history` | GET |
+| 通知渠道 | `/projects/:id/channels`、`/channels/:id` | CRUD |
+| 自愈 | `/issues/:id/heal`、`/heal/:jobId`、`/heal/:jobId/pr` | POST/GET/POST |
+
+**响应格式**：
+
+```typescript
+// 成功
+{ "data": T, "requestId": string }
+
+// 分页
+{ "data": T[], "pagination": { "page": number, "limit": number, "total": number }, "requestId": string }
+
+// 错误
+{ "error": string, "message": string, "details"?: unknown, "requestId": string }
 ```
 
-请求头: `X-GHC-Signature: sha256=<hex>`。
+### 5.4 开放 API
+
+面向运维/数据平台，同 Dashboard API 契约，以 `API Token`（项目级）鉴权：
+- `/open/v1/issues` — 拉取 Issue 列表。
+- `/open/v1/metrics/query` — 按维度查询聚合指标。
+- `/open/v1/events/stream` — SSE 推送实时事件（基础版）。
+- `/open/v1/export` — 批量导出（异步任务 + 下载链接）。
+
+**批量导出契约**：
+
+```http
+POST /open/v1/export
+{ "dataset": "issues|events|metrics", "format": "csv|jsonl",
+  "filter": { "from": "...", "to": "...", "environment": "..." } }
+→ 202 { "jobId": "..." }
+
+GET /open/v1/export/:jobId
+→ 200 { "status": "pending|running|done|failed", "downloadUrl"?: string, "expiresAt"?: string }
+```
+
+导出文件落 S3，`downloadUrl` 为预签名 URL（默认 1 小时过期）。单任务最大 1000 万行；超限拒绝并提示窗口收窄。
 
 ---
 
-## 9. CLI 规格 (`@g-heal-claw/cli`)
+## 6. 聚合与查询规则
 
-```bash
-# 上传某次发版的 sourcemaps
-npx @g-heal-claw/cli upload-sourcemaps \
-  --release 1.2.3 \
-  --path ./dist \
-  --url-prefix "~/static/js" \
-  --api-key <key> \
-  --host https://sourcemap.example.com
+### 6.1 Issue 聚合
 
-# 参数说明
---release     必填。发布版本号。
---path        必填。包含 .map 文件的目录。
---url-prefix  可选。URL 前缀，用于替换/去除。默认 "~/"。
---api-key     必填。项目 API 密钥。也可通过 GHC_API_KEY 环境变量读取。
---host        必填。Sourcemap 服务地址。也可通过 GHC_HOST 环境变量读取。
---dry-run     可选。仅列出文件，不执行上传。
+- 新事件到达：计算指纹 → 查 `issues` 表 → 命中则 `count++`、更新 `last_seen`；未命中则新建 Issue。
+- 每个 Issue 保留最近 N 条完整事件（N 默认 100）+ 长期统计计数。
+- 冷事件（N+ 之外）仅保留精简元数据，原始数据归档到对象存储。
+
+### 6.2 性能指标聚合
+
+- 所有原始性能事件按 `project_id + metric + minute` 聚合至 `metric_minute` 表（p50/p75/p90/p95/p99、count、sum）。
+- Apdex：每个项目独立配置 `apdexConfig = { metric: 'LCP' | 'FCP' | 'FSP' | 'customMetric', threshold: number }`。
+  - 默认 `{ metric: 'LCP', threshold: 2500 }`（毫秒）。
+  - 计算：满意 = `value ≤ T`、容忍 = `T < value ≤ 4T`、不满意 = `value > 4T`。
+  - 每分钟计算一次，写入 `metric_minute`（metric=`apdex`）。
+- 支持时间维度查询：`5m / 1h / 1d / 7d`，服务端选择合适的聚合粒度。
+
+### 6.3 地域 / 设备 / 网络 维度
+
+- SDK 不上报 IP，入口由服务端解析 `CF-Connecting-IP`/`X-Forwarded-For` 查 IP 库（MaxMind/纯真）得国家/省/市。
+- 聚合维度表：`project_id + metric + dim_key + dim_value + minute`。
+
+---
+
+## 7. 告警引擎
+
+### 7.1 告警规则 DSL
+
+```typescript
+interface AlertRule {
+  id: string;
+  projectId: string;
+  name: string;
+  enabled: boolean;
+  target: 'error_rate' | 'api_success_rate' | 'web_vital' | 'issue_count' | 'custom_metric';
+  filter?: { environment?: string; release?: string; tag?: Record<string, string> };
+  condition: {
+    aggregation: 'avg' | 'sum' | 'count' | 'p50' | 'p95' | 'p99' | 'rate';
+    operator: '>' | '<' | '>=' | '<=' | '==';
+    threshold: number;
+    window: { durationMs: number; minSamples?: number };   // 窗口至少样本数防止噪声
+  };
+  severity: 'info' | 'warning' | 'critical';
+  cooldownMs: number;          // 告警静默期
+  channels: string[];          // 通知渠道 id
+}
 ```
 
-- 递归扫描 `--path` 目录下的 `*.map` 文件。
-- 逐个通过 `POST /api/v1/sourcemaps` 上传。
-- 报告：已上传数量、跳过（重复）数量、失败数量。
-- 退出码：全部成功返回 0，有任何失败返回 1。
+### 7.2 评估流程
+
+- BullMQ `alert-evaluator` Worker 每分钟按规则查询聚合表。
+- 命中则写 `alert_history`，状态机 `firing → resolved`；静默期内不再发送。
+- 通知渠道支持：邮件（SMTP）、钉钉机器人、企业微信机器人、Slack Incoming Webhook、自定义 Webhook、**短信**（阿里云 / 腾讯云，通过 `SMS_PROVIDER` 切换）。
+- 支持告警模板变量：`{{rule.name}}`、`{{metric.value}}`、`{{issue.url}}`、`{{project.name}}`、`{{environment}}`、`{{window}}`。
+
+### 7.3 预置告警规则
+
+项目创建时自动下发以下规则模板（`enabled=false`，用户启用后生效）：
+
+| 名称 | 条件 | 严重度 |
+|---|---|---|
+| 错误率突增 | 过去 5 分钟 `error_rate` 相对前 1 小时均值 > 500%，且 error_rate > 5% | critical |
+| JS 错误数激增 | 过去 5 分钟 `error` 计数 > 过去 24h 同窗口均值 × 3 | warning |
+| 关键页面 LCP 劣化 | 过去 10 分钟特定页面 LCP p75 > 4000ms | warning |
+| API 成功率下降 | 过去 5 分钟 `api_success_rate` < 95% | critical |
+| 慢 API Top | 过去 10 分钟任一 API p95 > 3000ms | warning |
+| 白屏事件出现 | 过去 5 分钟 `white_screen` 计数 ≥ 1 | critical |
+
+用户可复制模板并调整阈值、环境过滤、通知渠道。
+
+---
+
+## 8. 自愈流程
+
+### 8.1 触发方式
+
+1. 用户在 Dashboard 点击 Issue 的「一键自愈」按钮 → 生成 `heal_job`。
+2. 告警规则配置「自动自愈」→ 命中后自动派发 heal job。
+
+### 8.2 Job 生命周期
+
+```
+pending → diagnosing → patching → verifying → pr_created
+              ↓              ↓           ↓
+           failed        failed       failed
+```
+
+| 阶段 | 职责 |
+|---|---|
+| diagnosing | LangChain Agent 调用 Tool：读 Issue → 读 Sourcemap 原始堆栈 → 读仓库关联文件 → 输出诊断 Markdown |
+| patching | Agent 生成 diff patch |
+| verifying | 在隔离的 Docker 沙箱 `git apply` + 运行项目测试命令（仓库配置 `heal.verify` 指定） |
+| pr_created | 通过 GitHub/GitLab API 创建 PR，附诊断 Markdown + 受影响 Issue 链接 |
+
+### 8.3 仓库配置（`.ghealclaw.yml`）
+
+```yaml
+repo:
+  platform: github              # github | gitlab
+  url: org/repo
+  baseBranch: main
+heal:
+  enabled: true
+  paths: ["src/**"]             # AI 可修改路径白名单
+  forbidden: ["src/payment/**"] # 禁止修改路径
+  verify: "pnpm lint && pnpm test"
+  maxLoc: 100                   # 单次修改最大行数
+  requireLabels: ["auto-heal"]  # PR 必贴标签
+```
+
+---
+
+## 9. 数据模型（数据库 Schema）
+
+核心表（Drizzle ORM，详见 `apps/server/src/shared/database/schema/`）：
+
+| 表 | 关键字段 |
+|---|---|
+| `projects` | id, name, slug, platform, owner_user_id, created_at |
+| `project_keys` | project_id, public_key, secret_key, is_active |
+| `project_members` | project_id, user_id, role |
+| `environments` | project_id, name |
+| `releases` | project_id, version, commit_sha, notes |
+| `release_artifacts` | release_id, filename, type, size, storage_key |
+| `issues` | project_id, fingerprint, type, title, level, status, first_seen, last_seen, event_count, user_count |
+| `events_raw` | id, project_id, type, payload(jsonb), ingested_at（按周分区） |
+| `metric_minute` | project_id, metric, dim_key, dim_value, bucket_ts, p50, p75, p90, p95, p99, count, sum |
+| `sessions` | id, project_id, user_id, started_at, last_active_at, page_count, error_count |
+| `alert_rules` | project_id, name, target, condition(jsonb), channels(jsonb), enabled |
+| `alert_history` | rule_id, started_at, ended_at, severity, payload(jsonb) |
+| `channels` | project_id, type, config(jsonb), enabled |
+| `heal_jobs` | id, issue_id, status, diagnosis_md, patch_diff, pr_url, started_at, finished_at |
+| `users` | id, email, password_hash, role |
+
+**保留策略**：
+- `events_raw` 默认 30 天滚动删除，冷数据归档至对象存储。
+- `metric_minute` 保留 365 天。
+
+---
+
+## 10. 权限与多租户
+
+- 基于 `Project + Role`：`owner` / `admin` / `member` / `viewer`。
+- Dashboard API 的所有资源路径必须经过 `ProjectGuard`，校验当前用户是否有该 `projectId` 访问权限。
+- 开放 API 使用项目级 `API Token`，独立配额与失效策略。
+
+---
+
+## 11. 安全规则
+
+- DSN `publicKey` 仅做项目识别，不含密钥，可暴露在前端。
+- Sourcemap 上传使用 `secretKey` 或 API Token。
+- SDK `beforeSend` 默认过滤常见 PII 字段名（password、token、authorization、cookie、secret）。
+- 后端对 `requestBody`/`responseBody` 长度硬截断至 4KB；大字段禁止入库，超限转存对象存储并只保存引用。
+- 所有 Dashboard 接口强制 HTTPS；JWT 过期 1h、Refresh Token 7d。
+
+---
+
+## 12. 兼容与多端
+
+- **浏览器**：Chrome / Safari / Firefox / Edge 最新两个主版本；IE 11 降级（无性能观察器，只采集错误）。
+- **小程序**：单独提供 `@g-heal-claw/miniapp-sdk`，复用 shared Schema，适配 `wx.request` / `my.request` 劫持。
+- **移动端 Hybrid**：通过 H5 SDK，注入 `deviceType=mobile` 标签即可。
+- **多环境**：`environment` 字段是所有查询的第一分区维度，严禁跨环境聚合污染。
+
+---
+
+## 13. 性能与容量目标
+
+| 指标 | 目标 | 测量方式 |
+|---|---|---|
+| Gateway 单节点吞吐 | ≥ 5000 events/s | k6 压测，p95 响应 < 50ms |
+| 端到端事件延迟（入库） | p95 < 2s | `ingested_at - timestamp` 直方图 |
+| Issue 聚合延迟 | p95 < 5s | `issue.last_seen - event.timestamp` |
+| 性能大盘查询延迟 | p95 < 1s | Dashboard API `/performance/*` |
+| Dashboard 首屏 | LCP < 1.5s | 自家 SDK dogfooding |
+| SDK 体积 | 核心 < 15KB gzip | CI Bundle size gate |
+| SDK 运行时开销 | CPU < 2% | **宿主 Long Task 占比**：SDK 内置自测模式，`requestAnimationFrame` 监测每秒 long task 累计时长，启用 `debug=true` 时打印 |
+| SDK 首屏阻塞 | < 50ms | 性能插件 `requestIdleCallback` 初始化，主线程占用 ≤ 50ms |
+
+详细容量规划与压测方案见 `DESIGN.md`。
