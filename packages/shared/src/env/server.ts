@@ -33,7 +33,7 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
   SMTP_USER: z.string().default(""),
   SMTP_PASSWORD: z.string().default(""),
-  SMTP_FROM: z.string().email(),
+  SMTP_FROM: z.email(),
   SMTP_SECURE: z
     .preprocess((v) => {
       if (typeof v === "boolean") return v;
@@ -49,9 +49,9 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   GEOIP_DB_PATH: z.string().min(1),
 
   // -------- 通知渠道默认值（可选）--------
-  DINGTALK_DEFAULT_WEBHOOK: z.string().url().optional().or(z.literal("")),
-  WECHAT_WORK_DEFAULT_WEBHOOK: z.string().url().optional().or(z.literal("")),
-  SLACK_DEFAULT_WEBHOOK: z.string().url().optional().or(z.literal("")),
+  DINGTALK_DEFAULT_WEBHOOK: z.url().optional().or(z.literal("")),
+  WECHAT_WORK_DEFAULT_WEBHOOK: z.url().optional().or(z.literal("")),
+  SLACK_DEFAULT_WEBHOOK: z.url().optional().or(z.literal("")),
   SMS_PROVIDER: z.enum(["none", "aliyun", "tencent"]).default("none"),
   SMS_ACCESS_KEY: z.string().default(""),
   SMS_ACCESS_SECRET: z.string().default(""),

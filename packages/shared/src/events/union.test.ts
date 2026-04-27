@@ -3,7 +3,8 @@ import { SdkEventSchema, type SdkEvent } from "./union.js";
 import { IngestRequestSchema } from "./ingest.js";
 
 const baseFields = {
-  eventId: "00000000-0000-0000-0000-000000000001",
+  // 合法 UUIDv4：zod v4 `z.uuid()` 的正则要求 version nibble 为 1~8，原先全 0 形式在 v4 下拒绝
+  eventId: "12345678-90ab-4cde-8f01-234567890abc",
   projectId: "proj_1",
   publicKey: "pk_1",
   timestamp: 1714200000000,

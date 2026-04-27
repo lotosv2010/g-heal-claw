@@ -24,15 +24,15 @@ export const BaseEnvSchema = z.object({
   POSTGRES_USER: z.string().min(1),
   POSTGRES_PASSWORD: z.string().min(1),
   POSTGRES_DB: z.string().min(1),
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.url(),
 
   // -------- 基础设施：Redis --------
-  REDIS_URL: z.string().url(),
+  REDIS_URL: z.url(),
 
   // -------- 基础设施：MinIO / S3 对象存储 --------
   MINIO_ROOT_USER: z.string().min(1),
   MINIO_ROOT_PASSWORD: z.string().min(1),
-  MINIO_ENDPOINT: z.string().url(),
+  MINIO_ENDPOINT: z.url(),
   MINIO_REGION: z.string().min(1).default("us-east-1"),
   MINIO_ACCESS_KEY: z.string().min(1),
   MINIO_SECRET_KEY: z.string().min(1),
@@ -47,14 +47,14 @@ export const BaseEnvSchema = z.object({
   SERVER_PORT: portString.default(3001),
   WEB_PORT: portString.default(3000),
   AI_AGENT_PORT: portString.default(3002),
-  PUBLIC_API_BASE_URL: z.string().url(),
-  PUBLIC_WEB_BASE_URL: z.string().url(),
+  PUBLIC_API_BASE_URL: z.url(),
+  PUBLIC_WEB_BASE_URL: z.url(),
 
   // -------- 可观测 --------
   LOG_LEVEL: z
     .enum(["trace", "debug", "info", "warn", "error", "fatal"])
     .default("info"),
-  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional().or(z.literal("")),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional().or(z.literal("")),
   OTEL_SERVICE_NAME: z.string().min(1).default("g-heal-claw"),
   PROMETHEUS_ENABLED: boolString.default(true),
 });

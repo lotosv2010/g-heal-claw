@@ -9,7 +9,8 @@ export function buildCustomLogEvent(
   overrides: Partial<CustomLog> = {},
 ): CustomLog {
   return {
-    eventId: "11111111-2222-3333-4444-555555555555",
+    // 合法 UUIDv4：zod v4 `z.uuid()` 要求 version=1~8、variant=8/9/a/b
+    eventId: "11111111-2222-4333-8444-555555555555",
     projectId: "demo",
     publicKey: "pk",
     timestamp: Date.now(),

@@ -7,6 +7,6 @@ import { BaseEventSchema } from "./base.js";
 export const CustomEventSchema = BaseEventSchema.extend({
   type: z.literal("custom_event"),
   name: z.string().min(1),
-  properties: z.record(z.unknown()).default({}),
+  properties: z.record(z.string(), z.unknown()).default({}),
 });
 export type CustomEvent = z.infer<typeof CustomEventSchema>;

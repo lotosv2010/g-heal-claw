@@ -25,7 +25,7 @@ export type EventType = z.infer<typeof EventTypeSchema>;
  */
 export const UserContextSchema = z.object({
   id: z.string().min(1),
-  email: z.string().email().optional(),
+  email: z.email().optional(),
   name: z.string().optional(),
 });
 export type UserContext = z.infer<typeof UserContextSchema>;
@@ -61,7 +61,7 @@ export type DeviceContext = z.infer<typeof DeviceContextSchema>;
  * 页面上下文（SPEC §4.1）
  */
 export const PageContextSchema = z.object({
-  url: z.string().url(),
+  url: z.url(),
   path: z.string(),
   referrer: z.string().optional(),
   title: z.string().optional(),
@@ -97,7 +97,7 @@ export const BreadcrumbSchema = z.object({
   ]),
   level: z.enum(["debug", "info", "warning", "error"]),
   message: z.string(),
-  data: z.record(z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 });
 export type Breadcrumb = z.infer<typeof BreadcrumbSchema>;
 
@@ -127,7 +127,7 @@ export type NavigationTiming = z.infer<typeof NavigationTimingSchema>;
  * 子类型 Schema 通过 `.extend({ type: z.literal('...'), ... })` 叠加自身字段。
  */
 export const BaseEventSchema = z.object({
-  eventId: z.string().uuid(),
+  eventId: z.uuid(),
   projectId: z.string().min(1),
   publicKey: z.string().min(1),
   timestamp: z.number().int().nonnegative(),
@@ -136,8 +136,8 @@ export const BaseEventSchema = z.object({
   environment: z.string().optional(),
   sessionId: z.string().min(1),
   user: UserContextSchema.optional(),
-  tags: z.record(z.string()).optional(),
-  context: z.record(z.unknown()).optional(),
+  tags: z.record(z.string(), z.string()).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
   device: DeviceContextSchema,
   page: PageContextSchema,
 });

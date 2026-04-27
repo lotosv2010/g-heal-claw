@@ -21,7 +21,7 @@ export const AiAgentEnvSchema = BaseEnvSchema.extend({
   GITHUB_APP_PRIVATE_KEY_PATH: z.string().optional().or(z.literal("")),
   GITHUB_WEBHOOK_SECRET: z.string().optional().or(z.literal("")),
   GITLAB_PERSONAL_ACCESS_TOKEN: z.string().optional().or(z.literal("")),
-  GITLAB_HOST: z.string().url().default("https://gitlab.com"),
+  GITLAB_HOST: z.url().default("https://gitlab.com"),
 
   // -------- 沙箱 --------
   HEAL_SANDBOX_IMAGE: z.string().min(1).default("node:20-alpine"),

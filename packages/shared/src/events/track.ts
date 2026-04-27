@@ -19,6 +19,6 @@ export const TrackEventSchema = BaseEventSchema.extend({
     selector: z.string().optional(),
     text: z.string().optional(),
   }),
-  properties: z.record(z.unknown()).default({}),
+  properties: z.record(z.string(), z.unknown()).default({}),
 });
 export type TrackEvent = z.infer<typeof TrackEventSchema>;
