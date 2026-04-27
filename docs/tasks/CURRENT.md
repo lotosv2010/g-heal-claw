@@ -59,7 +59,15 @@
 - [x] **T1.1.1** Monorepo 初始化（pnpm workspace + Turborepo + tsconfig）— 2d
 - [x] **T1.1.2** Docker Compose（PostgreSQL + Redis + MinIO）— 2d
 - [ ] **T1.1.3** `apps/server` 初始化（NestJS + Fastify adapter + 模块骨架 + 环境变量 Zod 校验）— 2d
-- [ ] **T1.1.4** `packages/shared` 初始化（Zod Schema + 队列名常量 + 通用工具）— 2d
+- [x] **T1.1.4** `packages/shared` 初始化（Zod Schema + 队列名常量 + 通用工具）— 2d（完成 2026-04-27，依据 ADR-0009）
+  - [x] **T1.1.4.1** 包脚手架（`package.json` / `tsconfig.json` / 目录骨架，仅依赖 zod）
+  - [x] **T1.1.4.2** Env Schema：BaseEnvSchema / ServerEnvSchema / AiAgentEnvSchema + `parseEnv` 纯函数（对齐 `.env.example` 11 段）
+  - [x] **T1.1.4.3** BullMQ 队列名常量（对齐 `ARCHITECTURE §3.4` 12 条 + DLQ 派生）
+  - [x] **T1.1.4.4** Event 基础 Schema（BaseEvent + Breadcrumb + NavigationTiming，对齐 `SPEC §4.1` / §4.1.1 / §4.2.1）
+  - [x] **T1.1.4.5** Event 子类型 Schema 11 种（error / performance / long_task / api / resource / page_view / page_duration / custom_event / custom_metric / custom_log / track）
+  - [x] **T1.1.4.6** 判别联合 `SdkEventSchema` + `IngestRequestSchema` + `src/index.ts` 桶式导出
+  - [x] **T1.1.4.7** Vitest 单测（parseEnv 失败分支 + Schema 判别联合 + 队列名冻结性，25 个 case 全绿）
+  - [x] **T1.1.4.8** 验证 `pnpm -F @g-heal-claw/shared build && typecheck && test`，更新 `.claude/rules/coding.md`（纯类型包使用 tsc 的例外）
 - [ ] **T1.1.5** Drizzle Schema & 迁移基线（projects / project_keys / project_members / environments / releases / users / issues / events_raw 分区表）— 3d
 - [ ] **T1.1.6** `apps/web` 初始化（Next.js App Router + TailwindCSS v4 + Shadcn/ui 基础组件）— 2d
 - [ ] **T1.1.7** 认证与项目管理 MVP（JWT 登录、项目 CRUD、成员 RBAC、API Token 管理）— 4d
@@ -287,7 +295,8 @@
 
 > 每周同步更新本节。
 
-- 进行中：T1.1.3 `apps/server` 初始化骨架
-- 下一步：T1.1.4 `packages/shared` 基线、T1.1.5 Drizzle Schema 首版
+- 进行中：无（T1.1.4 已完成）
+- 下一步：T1.1.3 `apps/server` 初始化（消费 `ServerEnvSchema`）、T1.1.5 Drizzle Schema 首版
+- 最近完成（2026-04-27）：T1.1.4 落地 ADR-0009，`packages/shared` 产出 Env/Queues/Events 三部分，25 项单测全绿
 - 阻塞：无
 - 最近文档审查（2026-04-27）：完成 SPEC/ARCHITECTURE/DESIGN/CURRENT 对 `docs/PRD.md` v2 的对齐；补全 Breadcrumb Schema、navigation 阶段、UTM、p90、Apdex T 可配置、预置告警规则、批量导出、短信渠道与可视化埋点范围决策

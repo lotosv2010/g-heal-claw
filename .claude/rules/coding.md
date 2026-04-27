@@ -64,8 +64,15 @@ packages/<name>/
 │   └── index.ts          # 唯一公开导出入口
 ├── package.json
 ├── tsconfig.json
-└── vite.config.ts        # Vite Library Mode
+└── vite.config.ts        # 构建配置（见下）
 ```
+
+**构建工具选择**（ADR-0009）：
+
+| 包类型 | 构建工具 | 理由 |
+|---|---|---|
+| `packages/shared` 等**纯类型 + Zod Schema + 常量**包 | `tsc --build` 直出 `dist/*.js` + `dist/*.d.ts` | 无需 bundling / tree-shake / minify；零配置、产物清晰、TS 引用工程原生支持 |
+| `packages/sdk` / `cli` / `vite-plugin` 等需浏览器兼容或发布到 npm 的包 | Vite Library Mode（ESM + UMD 双格式 + sourcemap） | 必须 tree-shake 与体积优化；SDK 还需严格的体积预算 |
 
 ### apps/server（NestJS 后端）
 

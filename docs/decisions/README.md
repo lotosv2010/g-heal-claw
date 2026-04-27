@@ -46,5 +46,6 @@
 | ADR-0006 | 告警引擎采用 Pull 式定时评估 | 采纳 |
 | ADR-0007 | 实时推送走 Redis Pub/Sub + SSE（非 WebSocket） | 采纳 |
 | ADR-0008 | 跨标签页 Session 同步走 BroadcastChannel + storage | 采纳 |
+| [ADR-0009](./0009-shared-package-baseline.md) | packages/shared 基线：Env Schema + parseEnv 纯函数、按 app 切片、tsc 直出、一子类型一文件 | 采纳 |
 
 > 当你需要为某条决策补充详细背景或推翻旧决策时，请新增 `0001-xxx.md`（而非修改旧文件），并在此索引更新状态。
