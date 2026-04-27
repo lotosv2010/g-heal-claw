@@ -58,7 +58,16 @@
 
 - [x] **T1.1.1** Monorepo 初始化（pnpm workspace + Turborepo + tsconfig）— 2d
 - [x] **T1.1.2** Docker Compose（PostgreSQL + Redis + MinIO）— 2d
-- [ ] **T1.1.3** `apps/server` 初始化（NestJS + Fastify adapter + 模块骨架 + 环境变量 Zod 校验）— 2d
+- [x] **T1.1.3** `apps/server` 初始化（NestJS + Fastify adapter + 模块骨架 + 环境变量 Zod 校验）— 2d（完成 2026-04-27，依据 ADR-0011）
+  - [x] **T1.1.3.1** 应用脚手架：`apps/server/package.json` / `tsconfig.json` / `tsconfig.build.json` / `nest-cli.json` / `.gitignore` / `README.md`；新增依赖 `@nestjs/*` `fastify@^4.28.1` `@fastify/cors@^9` `@fastify/static@^7` `dotenv-flow` `reflect-metadata` `rxjs`
+  - [x] **T1.1.3.2** `src/config/env.ts` + `config.module.ts`：`dotenv-flow` 显式指向 monorepo 根加载 → `parseEnv(ServerEnvSchema, process.env)` → `SERVER_ENV` DI token 全局注入；失败打印字段级错误并 `exit(1)`
+  - [x] **T1.1.3.3** `src/shared/shared.module.ts`（@Global，骨架阶段仅 Logger 占位）+ `src/shared/pipes/zod-validation.pipe.ts`（通用 ZodValidationPipe，抛 `BadRequestException`）
+  - [x] **T1.1.3.4** `src/health/*`：`GET /healthz` → `{ status: "ok" }`；不校验外部依赖
+  - [x] **T1.1.3.5** `src/gateway/*`：`POST /ingest/v1/events`，`@UsePipes(new ZodValidationPipe(IngestRequestSchema))`，骨架 Service 仅打日志 + 返回 `{ accepted: events.length }`；附 `@nestjs/swagger` 装饰器
+  - [x] **T1.1.3.6** `src/app.module.ts` + `src/main.ts`：Fastify adapter、`enableCors({ origin: [PUBLIC_WEB_BASE_URL, "http://localhost:3100"] })`、Swagger 挂 `/docs`（非 prod）、监听 `SERVER_PORT`
+  - [x] **T1.1.3.7** 单测 + e2e：`gateway.service.spec.ts`（1 用例）+ `test/gateway.e2e-spec.ts`（4 用例：合法 200 / 非法 400 / CORS preflight 204 / `/healthz` 200），通过 `unplugin-swc` + `.swcrc` 保证 Vitest 下装饰器元数据
+  - [x] **T1.1.3.8** 根 `.env` 引导：已创建 `.env`（由 `.env.example` 复制），`pnpm install` → `pnpm typecheck` / `pnpm test` 6/6 + 5/5 全绿
+  - [x] **T1.1.3.9** 端到端验证：`curl /healthz` = 200 `{"status":"ok"}`；`curl POST /ingest/v1/events` 合法 200 `{"accepted":1}`、空数组 400、CORS preflight（origin=`http://localhost:3100`）204；demo 3 按钮 → server 日志 `accepted=1`
 - [x] **T1.1.4** `packages/shared` 初始化（Zod Schema + 队列名常量 + 通用工具）— 2d（完成 2026-04-27，依据 ADR-0009）
   - [x] **T1.1.4.1** 包脚手架（`package.json` / `tsconfig.json` / 目录骨架，仅依赖 zod）
   - [x] **T1.1.4.2** Env Schema：BaseEnvSchema / ServerEnvSchema / AiAgentEnvSchema + `parseEnv` 纯函数（对齐 `.env.example` 11 段）
@@ -75,7 +84,18 @@
 
 ### M1.2 SDK 核心
 
-- [ ] **T1.2.1** SDK 骨架（`GHealClaw.init()`、DSN 解析、Hub、Plugin 接口）— 2d
+- [x] **T1.2.1** SDK 骨架（`GHealClaw.init()`、DSN 解析、Hub、Plugin 接口）— 2d（依据 ADR-0010，完成于 2026-04-27）
+  - [x] **T1.2.1.1** workspace 扩展：`pnpm-workspace.yaml` 纳入 `examples/*`
+  - [x] **T1.2.1.2** SDK 包脚手架（`package.json` / `tsconfig.json` / `vite.config.ts` 双格式 + dts 插件 / `vitest.config.ts`）
+  - [x] **T1.2.1.3** `parseDsn` 纯函数 + 单测（happy / 无效格式 / 缺 projectId）
+  - [x] **T1.2.1.4** `Hub` 单例（setUser / setTag / setContext / breadcrumb 环形缓冲 / getScope / resetHub）
+  - [x] **T1.2.1.5** `Plugin` 接口 + `PluginRegistry`（注册/去重/setup 失败隔离）
+  - [x] **T1.2.1.6** `createEvent` 事件构造（BaseEvent 最小字段：device/page/session，使用 shared 类型）
+  - [x] **T1.2.1.7** `FetchTransport` 占位（单事件 POST `/ingest/v1/events`，keepalive=true，吞错不抛）
+  - [x] **T1.2.1.8** 公开 API：`init` / `captureMessage` / `captureException` / `addBreadcrumb` / `getCurrentHub`
+  - [x] **T1.2.1.9** SDK 单测（Hub / Plugin / createEvent / FetchTransport mock — 19 用例全绿）
+  - [x] **T1.2.1.10** examples/nextjs-demo 脚手架（Next.js 15 App Router + Tailwind v4 + GhcProvider + 3 个测试按钮）
+  - [x] **T1.2.1.11** 端到端验证：`pnpm build/typecheck/test` 全绿；SDK 体积 2.73KB gzip（预算 15KB）；Next.js 生产构建成功。浏览器运行时观测需本地 `pnpm -F nextjs-demo dev` 后打开 <http://localhost:3100> 手动验证
 - [ ] **T1.2.2** ErrorPlugin（`window.onerror` + `unhandledrejection` + 静态资源错误）— 3d
 - [ ] **T1.2.3** Breadcrumb 收集（路由切换、点击、console、fetch/xhr 轨迹）— 2d
 - [ ] **T1.2.4** 设备与页面上下文采集（ua-parser / viewport / network / page info）— 1d
@@ -295,8 +315,10 @@
 
 > 每周同步更新本节。
 
-- 进行中：无（T1.1.4 已完成）
-- 下一步：T1.1.3 `apps/server` 初始化（消费 `ServerEnvSchema`）、T1.1.5 Drizzle Schema 首版
+- 进行中：无
+- 下一步：T1.1.5 Drizzle Schema 首版、T1.2.2 ErrorPlugin、T1.3.2 Gateway 接入 BullMQ
+- 最近完成（2026-04-27）：T1.1.3 `apps/server` 初始化（ADR-0011，NestJS 10 + Fastify 4 + ZodValidationPipe，5 用例单测/e2e 全绿，端到端 demo → server `accepted=1` 打通）
+- 最近完成（2026-04-27）：T1.2.1 SDK 骨架 + examples/nextjs-demo（ADR-0010，44 项单测全绿，SDK 体积 2.73KB gzip）
 - 最近完成（2026-04-27）：T1.1.4 落地 ADR-0009，`packages/shared` 产出 Env/Queues/Events 三部分，25 项单测全绿
 - 阻塞：无
 - 最近文档审查（2026-04-27）：完成 SPEC/ARCHITECTURE/DESIGN/CURRENT 对 `docs/PRD.md` v2 的对齐；补全 Breadcrumb Schema、navigation 阶段、UTM、p90、Apdex T 可配置、预置告警规则、批量导出、短信渠道与可视化埋点范围决策
