@@ -19,7 +19,7 @@
 |---|---|
 | 仓库结构 | Monorepo 脚手架已就绪（`pnpm-workspace.yaml` + `turbo.json` + `tsconfig.base.json`） |
 | 基础设施 | Docker Compose：PostgreSQL 17 + Redis 7 + MinIO 可用 |
-| 应用子目录 | `apps/server` `apps/web` `apps/ai-agent` 尚未初始化（仅占位） |
+| 应用子目录 | `apps/server` 已初始化（ADR-0011）；`apps/web` 已初始化（ADR-0012，shadcn/ui + 10 页骨架 + 性能页完整）；`apps/ai-agent` 尚未初始化 |
 | 包子目录 | `packages/sdk` `packages/shared` `packages/cli` `packages/vite-plugin` 尚未初始化 |
 | 文档 | `docs/SPEC.md` `docs/ARCHITECTURE.md` `docs/DESIGN.md` 已对齐 `docs/PRD.md` v2 |
 
@@ -78,7 +78,57 @@
   - [x] **T1.1.4.7** Vitest 单测（parseEnv 失败分支 + Schema 判别联合 + 队列名冻结性，25 个 case 全绿）
   - [x] **T1.1.4.8** 验证 `pnpm -F @g-heal-claw/shared build && typecheck && test`，更新 `.claude/rules/coding.md`（纯类型包使用 tsc 的例外）
 - [ ] **T1.1.5** Drizzle Schema & 迁移基线（projects / project_keys / project_members / environments / releases / users / issues / events_raw 分区表）— 3d
-- [ ] **T1.1.6** `apps/web` 初始化（Next.js App Router + TailwindCSS v4 + Shadcn/ui 基础组件）— 2d
+- [x] **T1.1.6** `apps/web` 初始化（Next.js App Router + shadcn/ui + 10 页路由骨架 + 仅落地"页面性能"）— 2d（完成 2026-04-27，依据 ADR-0012）
+  - [x] **T1.1.6.1** 应用脚手架：`package.json`（Next 16 + React 19 + Tailwind v4 + TS ~6.0.3，端口 3000）/ `tsconfig.json` / `next.config.ts`（`transpilePackages: ["@g-heal-claw/shared"]`）/ `next-env.d.ts` / `global.d.ts` / `postcss.config.mjs` / `.gitignore` / `.env.example`（`NEXT_PUBLIC_API_BASE_URL`） / `README.md`
+    - 输入：`examples/nextjs-demo` 已有的 Next 16 + TS 6 模板
+    - 输出：`apps/web/` 下脚手架文件全量创建，`pnpm install` 通过
+    - 验收：`pnpm -F @g-heal-claw/web typecheck` 通过（空项目级）
+    - 依赖：无
+  - [x] **T1.1.6.2** 全局样式与根布局：`app/globals.css`（Tailwind v4 入口 + shadcn OKLCH 主题 + `@theme inline` token 映射 + 自定义 `good/warn/brand` 语义色）/ `app/layout.tsx`（HTML 骨架、中文字体、`<body>` 类名）/ `app/page.tsx`（根路径 `redirect("/performance")`）
+    - 输入：T1.1.6.1
+    - 输出：根布局就绪，"/" 能重定向至 `/performance`
+    - 验收：`pnpm dev` 访问 `http://localhost:3000` 重定向生效
+    - 依赖：T1.1.6.1
+  - [x] **T1.1.6.3** UI 原语（真实 shadcn/ui new-york，含 Radix Slot/Tabs + cva + clsx/tailwind-merge + lucide-react + tw-animate-css）：`components.json` / `components/ui/button.tsx` / `card.tsx` / `badge.tsx`（扩展 good/warn/brand variant）/ `table.tsx` / `tabs.tsx` / `skeleton.tsx` + `lib/utils.ts`（canonical `cn = twMerge(clsx(inputs))`）
+    - 输入：T1.1.6.2
+    - 输出：6 个 UI 原语 + `cn()` 工具函数
+    - 验收：`typecheck` 通过；组件导出类型完整
+    - 依赖：T1.1.6.2
+  - [x] **T1.1.6.4** 菜单与外壳：`lib/nav.ts`（10 条菜单元数据单一事实源，`icon: LucideIcon`）/ `components/dashboard/sidebar.tsx`（左侧 10 条菜单 + lucide 图标 + 当前路由高亮）/ `components/dashboard/topbar.tsx`（项目切换下拉占位 + 时间范围下拉占位，使用 shadcn Button + lucide 图标）/ `components/dashboard/page-header.tsx`（页面标题 + 副标题 + 操作区插槽）
+    - 输入：T1.1.6.3
+    - 输出：Dashboard 外壳可复用
+    - 验收：Sidebar 菜单 10 项显示正确，当前路由 active 样式生效
+    - 依赖：T1.1.6.3
+  - [x] **T1.1.6.5** Dashboard 路由组：`app/(dashboard)/layout.tsx` 组合 Sidebar + Topbar + 内容区；`components/dashboard/placeholder-page.tsx` 通用占位组件（标题 / 副标题 / `Badge variant="brand"` "Phase X 交付"）
+    - 输入：T1.1.6.4
+    - 输出：Dashboard layout 就绪，PlaceholderPage 可复用
+    - 验收：访问任意 slug 页面都能看到外壳
+    - 依赖：T1.1.6.4
+  - [x] **T1.1.6.6** 9 个占位页：`app/(dashboard)/{overview,logs,errors,visits,api,resources,custom,realtime,projects}/page.tsx`，每个 3 行：调用 `<PlaceholderPage title="..." phase="Phase X" />`
+    - 输入：T1.1.6.5
+    - 输出：9 个占位页路由可访问
+    - 验收：10 条菜单点击均能渲染对应页面（9 占位 + 1 性能占位，性能页将在 T1.1.6.7/8/9 中填充）
+    - 依赖：T1.1.6.5
+  - [x] **T1.1.6.7** 性能页数据层：`lib/api/performance.ts`（类型定义含 `ThresholdTone = "good" | "warn" | "destructive"` + `getPerformanceOverview()`）/ `lib/fixtures/performance.ts`（5 Web Vitals + 加载阶段 + 24h 趋势 + Top 10 慢页面 静态 mock）
+    - 输入：T1.1.6.5
+    - 输出：性能页数据契约与 mock fixture 就绪；真实 API 端点在注释中 TODO
+    - 验收：`getPerformanceOverview()` 纯函数返回符合类型的 mock
+    - 依赖：T1.1.6.5
+  - [x] **T1.1.6.8** 性能页 UI 组件：`app/(dashboard)/performance/vitals-cards.tsx`（5 张 Web Vitals 卡，shadcn Card + Badge `variant={tone}`）/ `trend-chart.tsx`（CSS flex 趋势条，`bg-brand`/`bg-warn` 着色，代替 ECharts）/ `page-stages-bars.tsx`（页面加载 7 阶段条形图）/ `slow-pages-table.tsx`（Top 10 慢页面 shadcn Table + Badge 阈值色）
+    - 输入：T1.1.6.3 / T1.1.6.7
+    - 输出：4 个客户端组件
+    - 验收：组件独立可渲染（Storybook-less 验证：在 page.tsx 集成后肉眼核对）
+    - 依赖：T1.1.6.3, T1.1.6.7
+  - [x] **T1.1.6.9** 性能页组装：`app/(dashboard)/performance/page.tsx`（服务端组件，读 mock → 传递给 4 个客户端组件；PageHeader actions 用 `<Badge variant="warn">`）
+    - 输入：T1.1.6.8
+    - 输出：完整性能页路由可用
+    - 验收：访问 `/performance` 看到 Web Vitals 卡 + 加载阶段条 + 24h 趋势 + Top 10 表格
+    - 依赖：T1.1.6.8
+  - [x] **T1.1.6.10** 端到端验证（2026-04-27）：`typecheck` 通过；`build` 13 个静态页生成；`dev` 启动后 `GET /` → HTTP 307 → `/performance` 200，其余 9 个占位页 GET 均 200；自定义 utility `bg-warn / bg-brand / bg-good` 在产物 HTML 中出现。注：`lint` 因 Next 16 删除 `next lint` 暂用 placeholder（待 T1.1.7 统一接入 ESLint flat config）
+    - 输入：T1.1.6.9
+    - 输出：web app 可独立开发与构建
+    - 验收：typecheck / build 通过；10 条菜单全部可达
+    - 依赖：T1.1.6.9
 - [ ] **T1.1.7** 认证与项目管理 MVP（JWT 登录、项目 CRUD、成员 RBAC、API Token 管理）— 4d
 - [ ] **T1.1.8** CI 流水线（Turbo + Lint + Test + Build）— 1d
 
@@ -317,6 +367,7 @@
 
 - 进行中：无
 - 下一步：T1.1.5 Drizzle Schema 首版、T1.2.2 ErrorPlugin、T1.3.2 Gateway 接入 BullMQ
+- 最近完成（2026-04-27）：T1.1.6 `apps/web` 初始化（ADR-0012，Next 16 + shadcn/ui new-york + Tailwind v4 OKLCH 主题 + 10 页路由骨架 + 页面性能页完整落地）
 - 最近完成（2026-04-27）：T1.1.3 `apps/server` 初始化（ADR-0011，NestJS 10 + Fastify 4 + ZodValidationPipe，5 用例单测/e2e 全绿，端到端 demo → server `accepted=1` 打通）
 - 最近完成（2026-04-27）：T1.2.1 SDK 骨架 + examples/nextjs-demo（ADR-0010，44 项单测全绿，SDK 体积 2.73KB gzip）
 - 最近完成（2026-04-27）：T1.1.4 落地 ADR-0009，`packages/shared` 产出 Env/Queues/Events 三部分，25 项单测全绿
