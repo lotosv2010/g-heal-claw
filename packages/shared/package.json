@@ -22,6 +22,10 @@
     "./queues": {
       "types": "./dist/queues/index.d.ts",
       "import": "./dist/queues/index.js"
+    },
+    "./id": {
+      "types": "./dist/id.d.ts",
+      "import": "./dist/id.js"
     }
   },
   "files": [
@@ -37,6 +41,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "nanoid": "^5.0.9",
     "zod": "^4.3.6"
   },
   "devDependencies": {

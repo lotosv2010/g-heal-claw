@@ -1,18 +1,22 @@
-/**
- * 启动期 DDL（ADR-0017 §2）
- *
- * - dev / test：DatabaseService.onModuleInit 按顺序执行 ALL_DDL（幂等 CREATE IF NOT EXISTS）
- * - CI / production：走 drizzle-kit migrate（apps/server/drizzle/*.sql），本文件与之手工对齐
- *
- * FK 顺序：users → projects → (project_keys / project_members / environments / releases / issues)
- * 事件流表（events_raw / perf / error）独立于主表，不加 FK（ADR-0017 §3.2 备注）。
- */
+-- ==================================================================
+-- ADR-0017 首版基线迁移：多租户主表 8 张 + 事件流 3 张（切片表 + 分区父）
+-- ==================================================================
+--
+-- 本文件是生产/CI 迁移源真值；dev/test 由 DatabaseService.onModuleInit 跑
+-- ALL_DDL 字符串数组（两条路径手工对齐；T1.1.8 CI 后补 diff 校验自动化）。
+--
+-- 本文件命名受 drizzle-kit 约定约束（NNNN_slug.sql），手工维护原因：
+-- drizzle-kit 0.30 CJS 加载器与 apps/server 的 NodeNext `.js` 扩展解析
+-- 不兼容；且 PARTITION BY RANGE 分区 DDL drizzle-kit 不支持原生输出。
+-- 若后续 drizzle-kit 升级解决加载问题，可跑 `pnpm db:generate` 重新产出
+-- 非分区部分，再手工追加分区 DDL（ADR-0017 §2）。
+--
+-- 执行方式（prod）：pnpm -F @g-heal-claw/server db:migrate
 
-// ============================================================
-// 主表：users（ADR-0017 §3.1）
-// ============================================================
+-- ==================================================================
+-- 主表（FK 顺序：users → projects → 其他）
+-- ==================================================================
 
-export const CREATE_USERS = `
 CREATE TABLE IF NOT EXISTS users (
   id              varchar(32) PRIMARY KEY,
   email           varchar(255) NOT NULL UNIQUE,
@@ -24,17 +28,8 @@ CREATE TABLE IF NOT EXISTS users (
   created_at      timestamptz NOT NULL DEFAULT now(),
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
-`.trim();
-
-export const CREATE_IDX_USERS_EMAIL = `
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
-`.trim();
 
-// ============================================================
-// 主表：projects（ADR-0017 §3.2）
-// ============================================================
-
-export const CREATE_PROJECTS = `
 CREATE TABLE IF NOT EXISTS projects (
   id              varchar(32) PRIMARY KEY,
   slug            varchar(64) NOT NULL UNIQUE,
@@ -46,17 +41,8 @@ CREATE TABLE IF NOT EXISTS projects (
   created_at      timestamptz NOT NULL DEFAULT now(),
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
-`.trim();
-
-export const CREATE_IDX_PROJECTS_OWNER = `
 CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects (owner_user_id);
-`.trim();
 
-// ============================================================
-// 主表：project_keys（ADR-0017 §3.3）
-// ============================================================
-
-export const CREATE_PROJECT_KEYS = `
 CREATE TABLE IF NOT EXISTS project_keys (
   id              varchar(32) PRIMARY KEY,
   project_id      varchar(32) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -67,23 +53,10 @@ CREATE TABLE IF NOT EXISTS project_keys (
   last_used_at    timestamptz,
   created_at      timestamptz NOT NULL DEFAULT now()
 );
-`.trim();
-
-// partial index：Gateway 鉴权仅走热集合（ADR-0017 §3.3）
-export const CREATE_IDX_PROJECT_KEYS_PUBLIC = `
 CREATE INDEX IF NOT EXISTS idx_project_keys_public
   ON project_keys (public_key) WHERE is_active = true;
-`.trim();
-
-export const CREATE_IDX_PROJECT_KEYS_PROJECT = `
 CREATE INDEX IF NOT EXISTS idx_project_keys_project ON project_keys (project_id);
-`.trim();
 
-// ============================================================
-// 主表：project_members（ADR-0017 §3.4）
-// ============================================================
-
-export const CREATE_PROJECT_MEMBERS = `
 CREATE TABLE IF NOT EXISTS project_members (
   project_id      varchar(32) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   user_id         varchar(32) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -92,17 +65,8 @@ CREATE TABLE IF NOT EXISTS project_members (
   joined_at       timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (project_id, user_id)
 );
-`.trim();
-
-export const CREATE_IDX_MEMBERS_USER = `
 CREATE INDEX IF NOT EXISTS idx_members_user ON project_members (user_id);
-`.trim();
 
-// ============================================================
-// 主表：environments（ADR-0017 §3.5）
-// ============================================================
-
-export const CREATE_ENVIRONMENTS = `
 CREATE TABLE IF NOT EXISTS environments (
   project_id      varchar(32) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   name            varchar(32) NOT NULL,
@@ -111,13 +75,7 @@ CREATE TABLE IF NOT EXISTS environments (
   created_at      timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (project_id, name)
 );
-`.trim();
 
-// ============================================================
-// 主表：releases（ADR-0017 §3.6）
-// ============================================================
-
-export const CREATE_RELEASES = `
 CREATE TABLE IF NOT EXISTS releases (
   id              varchar(32) PRIMARY KEY,
   project_id      varchar(32) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -127,18 +85,9 @@ CREATE TABLE IF NOT EXISTS releases (
   created_at      timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT uq_releases_project_version UNIQUE (project_id, version)
 );
-`.trim();
-
-export const CREATE_IDX_RELEASES_PROJECT_CREATED = `
 CREATE INDEX IF NOT EXISTS idx_releases_project_created
   ON releases (project_id, created_at DESC);
-`.trim();
 
-// ============================================================
-// 主表：issues（ADR-0017 §3.7，本期仅建表不写入）
-// ============================================================
-
-export const CREATE_ISSUES = `
 CREATE TABLE IF NOT EXISTS issues (
   id                    varchar(32) PRIMARY KEY,
   project_id            varchar(32) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -156,23 +105,15 @@ CREATE TABLE IF NOT EXISTS issues (
   created_at            timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT uq_issues_project_fingerprint UNIQUE (project_id, fingerprint)
 );
-`.trim();
-
-export const CREATE_IDX_ISSUES_STATUS_LASTSEEN = `
 CREATE INDEX IF NOT EXISTS idx_issues_project_status_lastseen
   ON issues (project_id, status, last_seen DESC);
-`.trim();
-
-export const CREATE_IDX_ISSUES_SUBTYPE_LASTSEEN = `
 CREATE INDEX IF NOT EXISTS idx_issues_project_subtype_lastseen
   ON issues (project_id, sub_type, last_seen DESC);
-`.trim();
 
-// ============================================================
-// 事件流切片：perf_events_raw（ADR-0013，保持不变）
-// ============================================================
+-- ==================================================================
+-- 事件流：切片表（ADR-0013 / ADR-0016；保持原 schema，不加 FK）
+-- ==================================================================
 
-export const CREATE_PERF_EVENTS_RAW = `
 CREATE TABLE IF NOT EXISTS perf_events_raw (
   id              bigserial PRIMARY KEY,
   event_id        uuid NOT NULL UNIQUE,
@@ -197,29 +138,14 @@ CREATE TABLE IF NOT EXISTS perf_events_raw (
   environment     varchar(32),
   created_at      timestamptz NOT NULL DEFAULT now()
 );
-`.trim();
-
-export const CREATE_IDX_PERF_PROJECT_TS = `
 CREATE INDEX IF NOT EXISTS idx_perf_project_ts
   ON perf_events_raw (project_id, ts_ms DESC);
-`.trim();
-
-export const CREATE_IDX_PERF_PROJECT_METRIC_TS = `
 CREATE INDEX IF NOT EXISTS idx_perf_project_metric_ts
   ON perf_events_raw (project_id, metric, ts_ms DESC)
   WHERE metric IS NOT NULL;
-`.trim();
-
-export const CREATE_IDX_PERF_PROJECT_PATH_TS = `
 CREATE INDEX IF NOT EXISTS idx_perf_project_path_ts
   ON perf_events_raw (project_id, path, ts_ms DESC);
-`.trim();
 
-// ============================================================
-// 事件流切片：error_events_raw（ADR-0016，保持不变）
-// ============================================================
-
-export const CREATE_ERROR_EVENTS_RAW = `
 CREATE TABLE IF NOT EXISTS error_events_raw (
   id               bigserial PRIMARY KEY,
   event_id         uuid NOT NULL UNIQUE,
@@ -227,7 +153,7 @@ CREATE TABLE IF NOT EXISTS error_events_raw (
   public_key       varchar(64) NOT NULL,
   session_id       varchar(64) NOT NULL,
   ts_ms            bigint NOT NULL,
-  sub_type          varchar(16) NOT NULL,
+  sub_type         varchar(16) NOT NULL,
   message          text NOT NULL,
   message_head     varchar(128) NOT NULL,
   stack            text,
@@ -245,31 +171,17 @@ CREATE TABLE IF NOT EXISTS error_events_raw (
   environment      varchar(32),
   created_at       timestamptz NOT NULL DEFAULT now()
 );
-`.trim();
-
-export const CREATE_IDX_ERR_PROJECT_TS = `
 CREATE INDEX IF NOT EXISTS idx_err_project_ts
   ON error_events_raw (project_id, ts_ms DESC);
-`.trim();
-
-export const CREATE_IDX_ERR_PROJECT_SUB_TS = `
 CREATE INDEX IF NOT EXISTS idx_err_project_sub_ts
   ON error_events_raw (project_id, sub_type, ts_ms DESC);
-`.trim();
-
-export const CREATE_IDX_ERR_PROJECT_GROUP_TS = `
 CREATE INDEX IF NOT EXISTS idx_err_project_group_ts
   ON error_events_raw (project_id, sub_type, message_head, ts_ms DESC);
-`.trim();
 
-// ============================================================
-// 事件流：events_raw 分区父表（ADR-0017 §3.8）
-// ============================================================
-// 本期仅建骨架，Gateway 不写入；T1.4.1 完整 Processor 切入后启用。
-// Drizzle ORM 不支持 PARTITION BY RANGE 原生 DSL → 全部手写 SQL。
-// 分区键 (ingested_at) 必须进 PK，故 PK = (id, ingested_at)。
+-- ==================================================================
+-- 事件流：events_raw 分区父表（ADR-0017 §3.8；本期 Gateway 不写入）
+-- ==================================================================
 
-export const CREATE_EVENTS_RAW = `
 CREATE TABLE IF NOT EXISTS events_raw (
   id              bigserial,
   event_id        uuid NOT NULL,
@@ -279,95 +191,23 @@ CREATE TABLE IF NOT EXISTS events_raw (
   ingested_at     timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (id, ingested_at)
 ) PARTITION BY RANGE (ingested_at);
-`.trim();
 
-// 初始 4 张周分区（ADR-0017 §3.8；覆盖 2026-04-20 ~ 2026-05-18）
-export const CREATE_EVENTS_RAW_2026W17 = `
 CREATE TABLE IF NOT EXISTS events_raw_2026w17
   PARTITION OF events_raw
   FOR VALUES FROM ('2026-04-20') TO ('2026-04-27');
-`.trim();
 
-export const CREATE_EVENTS_RAW_2026W18 = `
 CREATE TABLE IF NOT EXISTS events_raw_2026w18
   PARTITION OF events_raw
   FOR VALUES FROM ('2026-04-27') TO ('2026-05-04');
-`.trim();
 
-export const CREATE_EVENTS_RAW_2026W19 = `
 CREATE TABLE IF NOT EXISTS events_raw_2026w19
   PARTITION OF events_raw
   FOR VALUES FROM ('2026-05-04') TO ('2026-05-11');
-`.trim();
 
-export const CREATE_EVENTS_RAW_2026W20 = `
 CREATE TABLE IF NOT EXISTS events_raw_2026w20
   PARTITION OF events_raw
   FOR VALUES FROM ('2026-05-11') TO ('2026-05-18');
-`.trim();
 
-// 父表索引（自动下推所有子分区）
-export const CREATE_IDX_EVENTS_RAW_PROJECT_TYPE_INGESTED = `
 CREATE INDEX IF NOT EXISTS idx_events_raw_project_type_ingested
   ON events_raw (project_id, type, ingested_at DESC);
-`.trim();
-
-export const CREATE_IDX_EVENTS_RAW_EVENT_ID = `
 CREATE INDEX IF NOT EXISTS idx_events_raw_event_id ON events_raw (event_id);
-`.trim();
-
-// ============================================================
-// 汇总
-// ============================================================
-
-/** 主表 DDL（严格 FK 顺序：users 先于 projects 先于其他）*/
-export const MAIN_DDL: readonly string[] = [
-  CREATE_USERS,
-  CREATE_IDX_USERS_EMAIL,
-  CREATE_PROJECTS,
-  CREATE_IDX_PROJECTS_OWNER,
-  CREATE_PROJECT_KEYS,
-  CREATE_IDX_PROJECT_KEYS_PUBLIC,
-  CREATE_IDX_PROJECT_KEYS_PROJECT,
-  CREATE_PROJECT_MEMBERS,
-  CREATE_IDX_MEMBERS_USER,
-  CREATE_ENVIRONMENTS,
-  CREATE_RELEASES,
-  CREATE_IDX_RELEASES_PROJECT_CREATED,
-  CREATE_ISSUES,
-  CREATE_IDX_ISSUES_STATUS_LASTSEEN,
-  CREATE_IDX_ISSUES_SUBTYPE_LASTSEEN,
-];
-
-export const PERFORMANCE_DDL: readonly string[] = [
-  CREATE_PERF_EVENTS_RAW,
-  CREATE_IDX_PERF_PROJECT_TS,
-  CREATE_IDX_PERF_PROJECT_METRIC_TS,
-  CREATE_IDX_PERF_PROJECT_PATH_TS,
-];
-
-export const ERROR_DDL: readonly string[] = [
-  CREATE_ERROR_EVENTS_RAW,
-  CREATE_IDX_ERR_PROJECT_TS,
-  CREATE_IDX_ERR_PROJECT_SUB_TS,
-  CREATE_IDX_ERR_PROJECT_GROUP_TS,
-];
-
-/** events_raw 父表 + 4 张周分区 + 2 个索引（Gateway 暂不写入）*/
-export const EVENTS_RAW_DDL: readonly string[] = [
-  CREATE_EVENTS_RAW,
-  CREATE_EVENTS_RAW_2026W17,
-  CREATE_EVENTS_RAW_2026W18,
-  CREATE_EVENTS_RAW_2026W19,
-  CREATE_EVENTS_RAW_2026W20,
-  CREATE_IDX_EVENTS_RAW_PROJECT_TYPE_INGESTED,
-  CREATE_IDX_EVENTS_RAW_EVENT_ID,
-];
-
-/** 合并 DDL：DatabaseService.onModuleInit 按顺序执行 */
-export const ALL_DDL: readonly string[] = [
-  ...MAIN_DDL,
-  ...PERFORMANCE_DDL,
-  ...ERROR_DDL,
-  ...EVENTS_RAW_DDL,
-];

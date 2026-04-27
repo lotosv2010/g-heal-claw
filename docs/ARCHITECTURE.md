@@ -345,10 +345,32 @@ apps/web/app/
 
 ### 8.1 数据库
 
-- **PostgreSQL 17** 主存；`events_raw` 按周分区，热数据保留 30 天。
+- **PostgreSQL 17** 主存；`events_raw` 按 `ingested_at` 周分区，热数据保留 30 天。
 - **TimescaleDB 扩展（可选）**：未来迁移 `metric_minute` 为 hypertable；当前用原生分区 + 物化视图。
 - **Redis 7**：BullMQ 队列、分布式限流令牌桶、Dashboard 查询缓存。
 - **MinIO / S3**：Sourcemap、大字段原始事件、诊断 Markdown、patch diff。
+
+#### 8.1.1 Schema 基线（ADR-0017）
+
+**主表（8 张，前缀 nanoid 主键）**：
+- `users` — 认证主体（usr_xxx）
+- `projects` — 多租户根（proj_xxx），`slug` UNIQUE 作为 URL 友好键
+- `project_keys` — DSN 鉴权键（pk_xxx），`public_key` partial index（`WHERE is_active=true`）
+- `project_members` — 项目级 RBAC，复合主键 (project_id, user_id)
+- `environments` — 项目环境，复合主键 (project_id, name)
+- `releases` — 发布版本（rel_xxx），(project_id, version) UNIQUE
+- `issues` — 异常聚合（iss_xxx），(project_id, fingerprint) UNIQUE；**本期仅建表不写入**（ADR-0016 分组仍走 `error_events_raw.message_head`，T1.4.2 指纹落地后切换）
+
+**事件流表（3 张，bigserial 或复合主键）**：
+- `perf_events_raw` — 性能切片（ADR-0013）
+- `error_events_raw` — 异常切片（ADR-0016）
+- `events_raw` — 通用归档父表，`PARTITION BY RANGE (ingested_at)` + 4 张周分区骨架（2026w17 ~ 2026w20）；**本期 Gateway 不写入**，T1.4.1 完整 Processor 启用
+
+**迁移管理（双路径）**：
+- `src/shared/database/ddl.ts` 手写 `ALL_DDL` 幂等 `CREATE IF NOT EXISTS` —— dev / test 零配置
+- `drizzle/0001_initial.sql` —— CI / production 执行 `pnpm db:migrate` 跑此文件
+- 两条路径手工对齐，T1.1.8 CI 后加 diff 校验自动化
+- `drizzle-kit` 0.30 CJS 加载器与 NodeNext `.js` 扩展不兼容 + 分区 DDL 不支持原生生成 → 迁移文件目前手写
 
 ### 8.2 可观测自举
 

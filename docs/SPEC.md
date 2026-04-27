@@ -684,27 +684,41 @@ heal:
 
 核心表（Drizzle ORM，详见 `apps/server/src/shared/database/schema/`）：
 
-| 表 | 关键字段 |
-|---|---|
-| `projects` | id, name, slug, platform, owner_user_id, created_at |
-| `project_keys` | project_id, public_key, secret_key, is_active |
-| `project_members` | project_id, user_id, role |
-| `environments` | project_id, name |
-| `releases` | project_id, version, commit_sha, notes |
-| `release_artifacts` | release_id, filename, type, size, storage_key |
-| `issues` | project_id, fingerprint, type, title, level, status, first_seen, last_seen, event_count, user_count |
-| `events_raw` | id, project_id, type, payload(jsonb), ingested_at（按周分区） |
-| `metric_minute` | project_id, metric, dim_key, dim_value, bucket_ts, p50, p75, p90, p95, p99, count, sum |
-| `sessions` | id, project_id, user_id, started_at, last_active_at, page_count, error_count |
-| `alert_rules` | project_id, name, target, condition(jsonb), channels(jsonb), enabled |
-| `alert_history` | rule_id, started_at, ended_at, severity, payload(jsonb) |
-| `channels` | project_id, type, config(jsonb), enabled |
-| `heal_jobs` | id, issue_id, status, diagnosis_md, patch_diff, pr_url, started_at, finished_at |
-| `users` | id, email, password_hash, role |
+### 9.1 已落地基线（ADR-0017，T1.1.5）
+
+**主表 8 张 + 事件流 3 张；主表用前缀 nanoid（`proj_xxx` / `usr_xxx` 等），事件流用 bigserial**。
+
+| 表 | 关键字段 | ID 类型 | 状态 |
+|---|---|---|---|
+| `users` | id, email, password_hash, display_name, role, is_active, last_login_at | `usr_xxx` | 已建表（T1.1.7 写入） |
+| `projects` | id, slug, name, platform, owner_user_id, retention_days, is_active | `proj_xxx` | 已建表（T1.1.7 写入） |
+| `project_keys` | id, project_id, public_key, secret_key, label, is_active, last_used_at | `pk_xxx` | 已建表（T1.3.2 鉴权） |
+| `project_members` | project_id, user_id, role, invited_by, joined_at | 复合 PK | 已建表 |
+| `environments` | project_id, name, description, is_production | 复合 PK | 已建表 |
+| `releases` | id, project_id, version, commit_sha, notes | `rel_xxx` | 已建表（T1.5 Sourcemap 写入） |
+| `issues` | id, project_id, fingerprint, sub_type, title, level, status, first_seen, last_seen, event_count, impacted_sessions, assigned_user_id | `iss_xxx` | **仅建表不写入**（ADR-0016 分组走 error_events_raw.message_head；T1.4.2 指纹落地后切换） |
+| `perf_events_raw` | id, event_id, project_id, public_key, session_id, ts_ms, type, metric, value, rating, navigation(jsonb), ... | `bigserial` | 生产写入中（ADR-0013） |
+| `error_events_raw` | id, event_id, project_id, public_key, session_id, ts_ms, sub_type, message, message_head, stack, frames(jsonb), breadcrumbs(jsonb) | `bigserial` | 生产写入中（ADR-0016） |
+| `events_raw` | id, event_id, project_id, type, payload(jsonb), ingested_at（周分区） | 复合 PK | **父表 + 4 周分区已建，Gateway 暂不写入**（T1.4.1 完整 Processor 启用） |
+
+**分区骨架**：`events_raw` 按 `ingested_at` 周分区，初始 4 张子表覆盖 2026-04-20 ~ 2026-05-18；分区维护脚本（滚动创建下周分区 + 归档历史分区）在 T1.4.1 落地。
+
+**迁移源**：`apps/server/drizzle/0001_initial.sql` 手工维护 + `src/shared/database/ddl.ts` 的 `ALL_DDL` 双路径（详见 ARCHITECTURE §8.1.1）。
+
+### 9.2 规划中表（MVP 后续）
+
+| 表 | 用途 | 落地阶段 |
+|---|---|---|
+| `release_artifacts` | Sourcemap / 构建产物元数据 | T1.5 |
+| `metric_minute` | 性能指标分钟粒度预聚合 | T2.1.4 |
+| `sessions` | 会话聚合（页面数 / 错误数） | T2.2.x |
+| `alert_rules` / `alert_history` | 告警规则与历史 | Phase 3 |
+| `channels` | 通知渠道配置 | Phase 3 |
+| `heal_jobs` | AI 自愈任务 | Phase 4 |
 
 **保留策略**：
-- `events_raw` 默认 30 天滚动删除，冷数据归档至对象存储。
-- `metric_minute` 保留 365 天。
+- `events_raw` 默认 30 天滚动删除（`projects.retention_days` 可项目级覆盖），冷数据归档至对象存储。
+- `metric_minute` 保留 365 天（落地后启用）。
 
 ---
 

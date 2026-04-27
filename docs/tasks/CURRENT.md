@@ -77,7 +77,14 @@
   - [x] **T1.1.4.6** 判别联合 `SdkEventSchema` + `IngestRequestSchema` + `src/index.ts` 桶式导出
   - [x] **T1.1.4.7** Vitest 单测（parseEnv 失败分支 + Schema 判别联合 + 队列名冻结性，25 个 case 全绿）
   - [x] **T1.1.4.8** 验证 `pnpm -F @g-heal-claw/shared build && typecheck && test`，更新 `.claude/rules/coding.md`（纯类型包使用 tsc 的例外）
-- [ ] **T1.1.5** Drizzle Schema & 迁移基线（projects / project_keys / project_members / environments / releases / users / issues / events_raw 分区表）— 3d
+- [x] **T1.1.5** Drizzle Schema 首版基线（依据 ADR-0017，多租户主表 8 张 + events_raw 周分区骨架 + drizzle-kit 迁移源真值；不落 Controller/Service/Guard）— 2.8d（完成 2026-04-28）
+  - [x] **T1.1.5.1** `packages/shared` 新增 `id.ts` 纯函数 + `nanoid@^5` 依赖 —— `generateId(prefix)` + 7 条前缀常量；8 case 单测（前缀 / 长度 / 字符集 / 10k 唯一性 / 空 prefix 拒绝 / 非法 prefix 拒绝 / 多前缀并存 / ID_PREFIXES 常量）全绿
+  - [x] **T1.1.5.2** apps/server devDependency 扩容 + `drizzle.config.ts` —— `drizzle-kit@^0.30` + `nanoid@^5` (runtime)；`drizzle.config.ts` glob 指向 `schema/*.ts`；pnpm 脚本 `db:generate` / `db:migrate` / `db:studio`
+  - [x] **T1.1.5.3** Schema 拆分 —— `schema/` 下 7 个 .ts 文件（users / projects / releases / issues / events-raw / perf-events-raw / error-events-raw；projects.ts 含 projects + project_keys + project_members + environments 4 子表）；`schema.ts` 改为桶式 re-export，errorsService / performanceService 不改动
+  - [x] **T1.1.5.4** `events_raw` 分区父表 + 4 张周分区 DDL —— `schema/events-raw.ts` 用 Drizzle composite PK；分区 DDL 在 `ddl.ts` 手写（Drizzle 不支持 PARTITION BY 原生 DSL）；2026w17 ~ 2026w20 四张子分区
+  - [x] **T1.1.5.5** `ddl.ts` 组合 —— MAIN_DDL (15 条) + PERFORMANCE_DDL (4 条) + ERROR_DDL (4 条) + EVENTS_RAW_DDL (7 条) = `ALL_DDL` 30 条；FK 顺序 users → projects → others 严格保证
+  - [x] **T1.1.5.6** 手写 `drizzle/0001_initial.sql` —— drizzle-kit 0.30 CJS 加载器与 NodeNext `.js` 扩展不兼容 + PARTITION BY 分区 DDL 不支持原生生成 → 按 ADR-0017 §2 "本期手写对齐" 方案落地；`drizzle/README.md` 记录执行方式与已知限制
+  - [x] **T1.1.5.7** 端到端验证 + 文档收尾 —— `pnpm -r typecheck` 全绿（5 workspace projects）；shared 33 tests + server 8 unit tests 全绿；SPEC §9 拆分为 9.1 已落地基线 + 9.2 规划表；ARCHITECTURE §8.1 新增 §8.1.1 Schema 基线小节
 - [x] **T1.1.6** `apps/web` 初始化（Next.js App Router + shadcn/ui + 10 页路由骨架 + 仅落地"页面性能"）— 2d（完成 2026-04-27，依据 ADR-0012）
   - [x] **T1.1.6.1** 应用脚手架：`package.json`（Next 16 + React 19 + Tailwind v4 + TS ~6.0.3，端口 3000）/ `tsconfig.json` / `next.config.ts`（`transpilePackages: ["@g-heal-claw/shared"]`）/ `next-env.d.ts` / `global.d.ts` / `postcss.config.mjs` / `.gitignore` / `.env.example`（`NEXT_PUBLIC_API_BASE_URL`） / `README.md`
     - 输入：`examples/nextjs-demo` 已有的 Next 16 + TS 6 模板
@@ -495,8 +502,9 @@
 
 > 每周同步更新本节。
 
-- 进行中：T1.4.0.4 + T2.1.1.7（端到端冒烟合并执行）—— 本地 PG → server → demo 4 条异常 + 3 条性能上报 → `SELECT ... FROM error_events_raw`、`SELECT ... FROM perf_events_raw` 校验；`/errors` 与 `/performance` 刷新看到 live 数据
-- 下一步：完成端到端冒烟后启动 T1.1.5 Drizzle Schema 首版；之后接入 T1.3.2 Gateway BullMQ 解耦 + T1.3.3 限流
+- 进行中：无
+- 下一步：T1.3.2 Gateway DSN 鉴权（走新建的 `project_keys` 表 + Redis 缓存）+ T1.3.3 项目级限流；可并行 T1.1.7 认证（走 `users` / `project_members`）
+- 最近完成（2026-04-28）：T1.1.5 Drizzle Schema 首版基线（ADR-0017，7 子任务 2.8d 全部落地）—— `packages/shared/id.ts` + 7 前缀常量 + 8 case 单测；apps/server devDeps 扩容（drizzle-kit@^0.30 + nanoid@^5）；Schema 拆分为 schema/ 子目录 7 文件（8 张主表 + 3 张事件流）；events_raw 分区父表 + 4 张周分区 DDL；`ALL_DDL` 30 条（FK 严格顺序）；`drizzle/0001_initial.sql` 迁移源手工维护；shared 33 tests + server 8 unit tests 全绿；SPEC §9 + ARCHITECTURE §8.1.1 同步
 - 最近完成（2026-04-27）：异常监控闭环切片 T1.2.2 / T1.4.0.1~3 / T1.6.2.0.1~6（ADR-0016）：SDK `errorPlugin` 三路订阅 + 资源加载过滤（55/55 单测绿，ESM 7.50KB gzip）；`error_events_raw` 幂等入库；GatewayService 分流 perf/error/其他；`/dashboard/v1/errors/overview` 五类 subType 占位 + 环比 + Top 分组；Web `/errors` 三态 Badge + CSS conic-gradient 环形图 + AntV Line 趋势；web build 11 页全绿（`/errors` 标记 ƒ Dynamic）
 - 最近完成（2026-04-27）：T2.1.6 Dashboard 性能大盘 API 首版（ADR-0015，DashboardModule 直查 `perf_events_raw` + p75 聚合；Web `/performance` 改为 live 数据，三态 Badge 区分 live/empty/error；fixture 移除；server test 5/5 全绿）
 - 最近完成（2026-04-27）：T2.1.1 SDK PerformancePlugin（ADR-0014，web-vitals@^4 + 自采 Navigation 瀑布，35/35 单测全绿，SDK 体积 ESM 6.38KB / UMD 5.58KB gzip，demo 冒烟 T2.1.1.7 按用户决定推迟）
