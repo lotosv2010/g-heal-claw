@@ -309,7 +309,8 @@ channels: [ops-dingtalk, frontend-email]
 
 ```bash
 pnpm install              # 安装依赖
-pnpm dev                  # Turbo 并行启动 apps + packages
+pnpm dev                  # Turbo 并行启动 apps + packages（含 SDK watch）
+pnpm dev:demo             # 仅启动 nextjs-demo 及其依赖（SDK / shared 自动 watch 重建）
 pnpm build                # 全量构建（依赖拓扑有序）
 pnpm test                 # Vitest 单元 + 集成测试
 pnpm typecheck            # 类型检查
@@ -320,6 +321,19 @@ docker compose up -d      # 启动基础设施
 docker compose down       # 停止基础设施
 docker compose down -v    # 清理所有数据卷（慎用）
 ```
+
+> **调试 SDK 时的注意事项**
+>
+> `examples/nextjs-demo` 通过 `@g-heal-claw/sdk` 的 `exports.main/module` 读取
+> `packages/sdk/dist/sdk.esm.js`。只改 SDK 源码不触发构建时，demo 仍运行旧 bundle。
+>
+> 推荐使用 `pnpm dev:demo`（等价于 `turbo dev --filter=nextjs-demo...`）：
+> turbo 会在 demo 启动前先 `^build` 一次 shared + SDK，然后并行跑三个 watcher：
+> - `@g-heal-claw/shared` `tsc --build --watch`
+> - `@g-heal-claw/sdk` `vite build --watch`
+> - `nextjs-demo` `next dev`
+>
+> 改 SDK 源码保存后 Vite 会重写 `dist/`，Next.js Turbopack 会自动热重载。
 
 ---
 

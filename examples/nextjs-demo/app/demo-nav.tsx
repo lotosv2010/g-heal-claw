@@ -14,6 +14,9 @@ const PERF_ROUTES: readonly Route[] = [
   { href: "/perf/slow-image", label: "Slow Image", hint: "大图 LCP 目标" },
   { href: "/perf/layout-shift", label: "Layout Shift", hint: "触发 CLS" },
   { href: "/perf/long-task", label: "Long Task", hint: "主线程阻塞 → INP 劣化" },
+  { href: "/perf/tbt", label: "TBT", hint: "总阻塞时间 · Lighthouse 核心指标" },
+  { href: "/perf/fid", label: "FID (deprecated)", hint: "首次输入延迟 · 已被 INP 取代" },
+  { href: "/perf/tti", label: "TTI (deprecated)", hint: "可交互时间 · Google 已停止维护" },
 ];
 
 const ERROR_ROUTES: readonly Route[] = [

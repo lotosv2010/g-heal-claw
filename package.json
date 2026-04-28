@@ -5,6 +5,7 @@
   "description": "Self-healing production monitoring system",
   "scripts": {
     "dev": "turbo dev",
+    "dev:demo": "turbo dev --filter=nextjs-demo...",
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",

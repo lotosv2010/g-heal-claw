@@ -8,8 +8,8 @@ function formatValue(m: VitalMetric): string {
     // LCP/FCP/INP/TTFB 展示：>= 1000ms 折算为 s，保留 2 位；< 1000ms 直接 ms
     return m.value >= 1000 ? `${(m.value / 1000).toFixed(2)} s` : `${m.value} ms`;
   }
-  // CLS：无单位，保留 2 位
-  return m.value.toFixed(2);
+  // CLS：无单位，保留 3 位（阈值 0.1 / 0.25 需要精细区分）
+  return m.value.toFixed(3);
 }
 
 const TONE_LABEL: Record<VitalMetric["tone"], string> = {

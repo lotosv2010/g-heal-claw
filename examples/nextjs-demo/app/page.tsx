@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { GHealClaw } from "@g-heal-claw/sdk";
 
 /**
  * Demo 入口首页
  *
- * 上半部分保留原有的 SDK 手动 API 演示按钮（captureMessage / captureException /
- * addBreadcrumb）；下半部分作为目录，跳转到性能与异常场景路由。
+ * 作为性能 / 异常场景目录，所有测试场景以路由形式组织在 (demo) 分组下。
+ * SDK 会在 GHealClawProvider 初始化时自动订阅 Web Vitals / 错误事件，
+ * 各场景页面通过自然交互（加载大图、阻塞主线程等）触发对应指标。
  */
 interface DemoRoute {
   readonly href: string;
@@ -20,6 +20,9 @@ const PERF_ROUTES: readonly DemoRoute[] = [
   { href: "/perf/slow-image", label: "Slow Image", hint: "大图 LCP 目标" },
   { href: "/perf/layout-shift", label: "Layout Shift", hint: "触发 CLS" },
   { href: "/perf/long-task", label: "Long Task", hint: "主线程阻塞 → INP 劣化" },
+  { href: "/perf/tbt", label: "TBT", hint: "总阻塞时间 · Lighthouse 核心指标" },
+  { href: "/perf/fid", label: "FID (deprecated)", hint: "首次输入延迟 · 已被 INP 取代" },
+  { href: "/perf/tti", label: "TTI (deprecated)", hint: "可交互时间 · Google 已停止维护" },
 ];
 
 const ERROR_ROUTES: readonly DemoRoute[] = [
@@ -42,48 +45,6 @@ export default function Home() {
           的 POST 请求。
         </p>
       </header>
-
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-          SDK 手动 API
-        </h2>
-        <div className="grid gap-3">
-          <button
-            type="button"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
-            onClick={() => GHealClaw.captureMessage("hello from demo", "info")}
-          >
-            captureMessage("hello from demo")
-          </button>
-          <button
-            type="button"
-            className="rounded-lg bg-rose-600 px-4 py-2 text-white transition hover:bg-rose-700"
-            onClick={() => {
-              try {
-                throw new Error("intentional demo error");
-              } catch (err) {
-                GHealClaw.captureException(err, { from: "demo-button" });
-              }
-            }}
-          >
-            captureException(new Error)
-          </button>
-          <button
-            type="button"
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-white transition hover:bg-emerald-700"
-            onClick={() =>
-              GHealClaw.addBreadcrumb({
-                timestamp: Date.now(),
-                category: "custom",
-                level: "info",
-                message: "manual breadcrumb",
-              })
-            }
-          >
-            addBreadcrumb(manual)
-          </button>
-        </div>
-      </section>
 
       <RouteSection title="性能场景" routes={PERF_ROUTES} accent="blue" />
       <RouteSection title="异常场景" routes={ERROR_ROUTES} accent="rose" />

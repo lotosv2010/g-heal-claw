@@ -115,7 +115,11 @@ describe("performancePlugin — 基础订阅与事件构造", () => {
     const { performancePlugin } = await import("./performance.js");
     installNavigationEntry();
     const send = vi.fn().mockResolvedValue(true);
-    const plugin = performancePlugin();
+    // 关闭废弃指标通道以聚焦 web-vitals 订阅断言
+    const plugin = performancePlugin({
+      reportDeprecated: false,
+      reportFSP: false,
+    });
     plugin.setup(buildHub(send), { dsn: "x" });
     expect(callbacks.LCP).toBeTypeOf("function");
     expect(callbacks.FCP).toBeTypeOf("function");
@@ -128,7 +132,12 @@ describe("performancePlugin — 基础订阅与事件构造", () => {
     const { performancePlugin } = await import("./performance.js");
     installNavigationEntry();
     const send = vi.fn().mockResolvedValue(true);
-    performancePlugin().setup(buildHub(send), { dsn: "x" });
+    performancePlugin({
+      reportDeprecated: false,
+      reportFSP: false,
+    }).setup(buildHub(send), {
+      dsn: "x",
+    });
     callbacks.LCP?.({
       name: "LCP",
       value: 2100,
@@ -152,7 +161,12 @@ describe("performancePlugin — 基础订阅与事件构造", () => {
     const { performancePlugin } = await import("./performance.js");
     installNavigationEntry();
     const send = vi.fn().mockResolvedValue(true);
-    performancePlugin().setup(buildHub(send), { dsn: "x" });
+    performancePlugin({
+      reportDeprecated: false,
+      reportFSP: false,
+    }).setup(buildHub(send), {
+      dsn: "x",
+    });
     callbacks.TTFB?.({
       name: "TTFB",
       value: 50,
@@ -174,7 +188,12 @@ describe("performancePlugin — 基础订阅与事件构造", () => {
     const { performancePlugin } = await import("./performance.js");
     installNavigationEntry();
     const send = vi.fn().mockResolvedValue(true);
-    performancePlugin().setup(buildHub(send), { dsn: "x" });
+    performancePlugin({
+      reportDeprecated: false,
+      reportFSP: false,
+    }).setup(buildHub(send), {
+      dsn: "x",
+    });
     callbacks.FCP?.({
       name: "FCP",
       value: -5,
@@ -184,16 +203,24 @@ describe("performancePlugin — 基础订阅与事件构造", () => {
       entries: [],
       navigationType: "navigate",
     });
-    const event = send.mock.calls[0]?.[0];
+    const event = send.mock.calls.find(
+      (c) => (c[0] as { metric?: string }).metric === "FCP",
+    )?.[0];
     expect(event.value).toBe(0);
     expect(PerformanceEventSchema.safeParse(event).success).toBe(true);
   });
 
-  it("未在白名单的 metric.name（如 FID）被过滤", async () => {
+  it("未在白名单的 metric.name（如 FID）被 web-vitals 通道过滤", async () => {
     const { performancePlugin } = await import("./performance.js");
     installNavigationEntry();
     const send = vi.fn().mockResolvedValue(true);
-    performancePlugin().setup(buildHub(send), { dsn: "x" });
+    // 关闭废弃 / FSP 通道以隔离此断言：仅校验 web-vitals 通道的过滤
+    performancePlugin({
+      reportDeprecated: false,
+      reportFSP: false,
+    }).setup(buildHub(send), {
+      dsn: "x",
+    });
     // web-vitals v4 不再订阅 FID，但即便第三方绕过传进来也应被过滤
     callbacks.LCP?.({
       name: "FID" as unknown as "LCP",
@@ -217,7 +244,12 @@ describe("performancePlugin — Navigation 采集时机", () => {
       get: () => "complete",
     });
     const send = vi.fn().mockResolvedValue(true);
-    performancePlugin().setup(buildHub(send), { dsn: "x" });
+    performancePlugin({
+      reportDeprecated: false,
+      reportFSP: false,
+    }).setup(buildHub(send), {
+      dsn: "x",
+    });
     callbacks.TTFB?.({
       name: "TTFB",
       value: 50,
@@ -227,7 +259,10 @@ describe("performancePlugin — Navigation 采集时机", () => {
       entries: [],
       navigationType: "navigate",
     });
-    expect(send.mock.calls[0]?.[0].navigation).toBeDefined();
+    const ttfb = send.mock.calls.find(
+      (c) => (c[0] as { metric?: string }).metric === "TTFB",
+    )?.[0];
+    expect(ttfb.navigation).toBeDefined();
   });
 
   it("readyState!=complete 时等待 load 事件后再附 navigation", async () => {
@@ -243,7 +278,15 @@ describe("performancePlugin — Navigation 采集时机", () => {
         if (type === "load") loadListener = cb as () => void;
       }) as typeof window.addEventListener);
     const send = vi.fn().mockResolvedValue(true);
-    performancePlugin().setup(buildHub(send), { dsn: "x" });
+    // reportDeprecated / reportTBT / reportFSP 全部关闭 → 只保留 navigation 的 load 监听，
+    // 避免 TTI / TBT / FSP 通道污染 send 调用索引
+    performancePlugin({
+      reportDeprecated: false,
+      reportTBT: false,
+      reportFSP: false,
+    }).setup(buildHub(send), {
+      dsn: "x",
+    });
     expect(addEventListener).toHaveBeenCalledWith(
       "load",
       expect.any(Function),
@@ -278,7 +321,11 @@ describe("performancePlugin — Navigation 采集时机", () => {
     const { performancePlugin } = await import("./performance.js");
     installNavigationEntry();
     const send = vi.fn().mockResolvedValue(true);
-    performancePlugin({ reportNavigation: false }).setup(buildHub(send), {
+    performancePlugin({
+      reportNavigation: false,
+      reportDeprecated: false,
+      reportFSP: false,
+    }).setup(buildHub(send), {
       dsn: "x",
     });
     callbacks.TTFB?.({
@@ -303,9 +350,99 @@ describe("performancePlugin — 降级分支", () => {
     const send = vi.fn().mockResolvedValue(true);
     const hub = buildHub(send);
     const warn = vi.spyOn(hub.logger, "warn").mockImplementation(() => {});
-    performancePlugin().setup(hub, { dsn: "x" });
+    performancePlugin({
+      reportDeprecated: false,
+      reportFSP: false,
+    }).setup(hub, { dsn: "x" });
     expect(warn).toHaveBeenCalledTimes(1);
     expect(callbacks.LCP).toBeNull();
     globalThis.PerformanceObserver = originalPO;
+  });
+});
+
+describe("performancePlugin — 废弃指标自采集通道（FID/TTI）", () => {
+  /**
+   * 伪造 PerformanceObserver：根据 observe({type}) 捕获 callback，
+   * 用例通过 triggerPO(type, entries) 显式喂条目。
+   */
+  type POCallback = (list: {
+    getEntries: () => readonly PerformanceEntry[];
+  }) => void;
+  const poBuckets: Record<string, POCallback[]> = {};
+  const disconnectSpies: Array<ReturnType<typeof vi.fn>> = [];
+
+  function installFakePerformanceObserver(): void {
+    class FakePO {
+      private readonly cb: POCallback;
+      public disconnect = vi.fn();
+      public constructor(cb: POCallback) {
+        this.cb = cb;
+        disconnectSpies.push(this.disconnect);
+      }
+      public observe(init: { type?: string }): void {
+        const type = init.type;
+        if (!type) return;
+        (poBuckets[type] ??= []).push(this.cb);
+      }
+    }
+    // 替换全局构造函数
+    Object.defineProperty(globalThis, "PerformanceObserver", {
+      configurable: true,
+      writable: true,
+      value: FakePO,
+    });
+  }
+
+  function triggerPO(type: string, entries: readonly PerformanceEntry[]): void {
+    for (const cb of poBuckets[type] ?? []) {
+      cb({ getEntries: () => entries });
+    }
+  }
+
+  beforeEach(() => {
+    Object.keys(poBuckets).forEach((k) => delete poBuckets[k]);
+    disconnectSpies.length = 0;
+    installFakePerformanceObserver();
+  });
+
+  it("首次 first-input 条目转成 FID 事件（Schema 通过）", async () => {
+    const { performancePlugin } = await import("./performance.js");
+    installNavigationEntry();
+    const send = vi.fn().mockResolvedValue(true);
+    performancePlugin().setup(buildHub(send), { dsn: "x" });
+
+    // 伪造 PerformanceEventTiming：processingStart - startTime = 120ms
+    const entry = {
+      name: "pointerdown",
+      entryType: "first-input",
+      startTime: 1000,
+      duration: 8,
+      processingStart: 1120,
+    } as unknown as PerformanceEntry;
+    triggerPO("first-input", [entry]);
+
+    const fidCall = send.mock.calls.find(
+      (c) => (c[0] as { metric?: string }).metric === "FID",
+    );
+    expect(fidCall).toBeDefined();
+    const event = fidCall?.[0];
+    expect(PerformanceEventSchema.safeParse(event).success).toBe(true);
+    expect(event.value).toBe(120);
+    expect(event.rating).toBe("needs-improvement");
+  });
+
+  it("reportDeprecated=false 时不注册 first-input / longtask Observer", async () => {
+    const { performancePlugin } = await import("./performance.js");
+    installNavigationEntry();
+    const send = vi.fn().mockResolvedValue(true);
+    // reportTBT 也需关闭，否则 observeTBT 仍会注册 longtask Observer
+    performancePlugin({
+      reportDeprecated: false,
+      reportTBT: false,
+    }).setup(buildHub(send), {
+      dsn: "x",
+    });
+    expect(poBuckets["first-input"]).toBeUndefined();
+    expect(poBuckets["longtask"]).toBeUndefined();
   });
 });

@@ -27,6 +27,14 @@ export {
   errorPlugin,
   type ErrorPluginOptions,
 } from "./plugins/error.js";
+export {
+  longTaskPlugin,
+  type LongTaskPluginOptions,
+} from "./plugins/long-task.js";
+export {
+  speedIndexPlugin,
+  type SpeedIndexPluginOptions,
+} from "./plugins/speed-index.js";
 
 // 便于 UMD 脚本接入：提供一个扁平 namespace 对象
 import { init as _init } from "./init.js";
@@ -38,6 +46,8 @@ import {
 } from "./client.js";
 import { performancePlugin as _performancePlugin } from "./plugins/performance.js";
 import { errorPlugin as _errorPlugin } from "./plugins/error.js";
+import { longTaskPlugin as _longTaskPlugin } from "./plugins/long-task.js";
+import { speedIndexPlugin as _speedIndexPlugin } from "./plugins/speed-index.js";
 import type { Breadcrumb } from "@g-heal-claw/shared";
 import type { GHealClawOptions } from "./options.js";
 
@@ -62,6 +72,8 @@ export const GHealClaw = {
   },
   performancePlugin: _performancePlugin,
   errorPlugin: _errorPlugin,
+  longTaskPlugin: _longTaskPlugin,
+  speedIndexPlugin: _speedIndexPlugin,
 };
 
 export default GHealClaw;
