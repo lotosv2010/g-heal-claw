@@ -115,21 +115,29 @@ GHealClaw.init(options: GHealClawOptions): void;
 | TTFB | `web-vitals@^4` `onTTFB(cb)` ≡ `navigation.responseStart - navigation.activationStart` | 首次可用即上报 |
 | 页面加载瀑布 | SDK 自采 `performance.getEntriesByType('navigation')[0]` → 见 §4.2.1 计算公式；**挂载到 TTFB 事件的 `navigation` 字段**，不新增事件类型 | `load` 事件后立即采集，随 TTFB 事件一并上报 |
 | 首屏时间（FSP） | `MutationObserver` 监听 DOM 变化，`requestAnimationFrame` 窗口内最后一次计入（T2.1.2 落地） | 首次满足判定即上报 |
-| 长任务 | `PerformanceObserver('longtask')`，≥50ms 记录；2-5s 记卡顿，≥5s 记无响应（T2.1.3 落地） | 触发即入队 |
+| 长任务（long_task） | `PerformanceObserver('longtask')` + `lt_duration_ms`，按 duration 三级分类：`long_task` 50ms~2s / `jank` 2s~5s / `unresponsive` ≥5s（T2.1.3 / T2.1.8 落地） | 触发即入队，`subType=tier` 用于服务端分级聚合 |
+| TBT（Total Blocking Time） | 由 `longTaskPlugin` 在窗口关闭时用 FCP~TTI 窗口内 `sum(max(0, duration-50))` 推导；非独立 Observer | `pagehide` / `visibilitychange=hidden` 封板一次 |
+| SI（Speed Index，Lighthouse 近似） | `PerformanceObserver('paint' + 'largest-contentful-paint')` 三里程碑（FP/FCP/LCP）梯形法 AUC 近似，精度 ±20%，仅供趋势参考 | `load` 后 `settleMs=3000ms` 封板上报 |
 
-**Rating 阈值（由 `web-vitals` 透传；与 Google 官方 Core Web Vitals 标准一致，`PerformanceEventSchema.rating` 直接保存）**：
+**Rating 阈值（核心 Web Vitals 由 `web-vitals` 透传；TBT/SI 为 Lighthouse 阈值；FID/TTI 已废弃但仍保留阈值以供历史数据渲染）**：
 
-| 指标 | `good` ≤ | `needs-improvement` ≤ | `poor` > |
-|---|---|---|---|
-| LCP | 2500 ms | 4000 ms | 4000 ms |
-| FCP | 1800 ms | 3000 ms | 3000 ms |
-| CLS | 0.1 | 0.25 | 0.25 |
-| INP | 200 ms | 500 ms | 500 ms |
-| TTFB | 800 ms | 1800 ms | 1800 ms |
+| 指标 | `good` ≤ | `needs-improvement` ≤ | `poor` > | 状态 |
+|---|---|---|---|---|
+| LCP | 2500 ms | 4000 ms | 4000 ms | Core Web Vital |
+| FCP | 1800 ms | 3000 ms | 3000 ms | Core Web Vital |
+| CLS | 0.1 | 0.25 | 0.25 | Core Web Vital |
+| INP | 200 ms | 500 ms | 500 ms | Core Web Vital（2024.3 取代 FID） |
+| TTFB | 800 ms | 1800 ms | 1800 ms | Core Web Vital |
+| FSP | — | — | — | 自定义首屏（T2.1.2 落地后启用阈值） |
+| TBT | 200 ms | 600 ms | 600 ms | Lighthouse 实验室口径 |
+| SI | 3400 ms | 5800 ms | 5800 ms | Lighthouse 实验室口径，SDK 近似 ±20% |
+| FID | 100 ms | 300 ms | 300 ms | **已废弃**，INP 替代 |
+| TTI | 3800 ms | 7300 ms | 7300 ms | **已废弃**，Google 不再维护 polyfill |
 
 > PRD §2.1 标注的"INP ≤ 100ms / TTFB ≤ 200ms"为**仪表盘默认告警阈值**（可配置），与采集侧 rating 阈值解耦，两者互不替代。
 
-- SDK 单事件单指标上报（`metric ∈ {LCP, FCP, CLS, INP, TTFB, FSP}`），避免 LCP/INP/CLS 最终值时机与 FCP/TTFB 即时上报时机冲突。
+- SDK 单事件单指标上报（`metric ∈ {LCP, FCP, CLS, INP, TTFB, FSP, FID, TTI, TBT, SI}`），避免 LCP/INP/CLS 最终值时机与 FCP/TTFB 即时上报时机冲突。
+- 废弃指标（FID / TTI）SDK 不采集新数据，仅保留 Schema 值用于历史数据渲染；UI 侧渲染「Deprecated」Badge 并在 tooltip 说明替代指标。
 - 非浏览器环境（SSR / Web Worker）或浏览器无 `PerformanceObserver` 时插件静默降级为 no-op，不抛错。
 
 #### 3.3.3 API 监控
@@ -265,8 +273,8 @@ interface Breadcrumb {
 | `type` | Payload 关键字段 |
 |---|---|
 | `error` | `subType: 'js' \| 'promise' \| 'resource' \| 'framework' \| 'white_screen'`、`message`、`stack`、`componentStack`、`resource?`、`breadcrumbs` |
-| `performance` | `metric: 'LCP' \| 'FCP' \| 'CLS' \| 'INP' \| 'TTFB' \| 'FSP'`、`value`、`rating: 'good' \| 'needs-improvement' \| 'poor'`、`navigation?: NavigationTiming` |
-| `long_task` | `duration`、`startTime`、`attribution` |
+| `performance` | `metric: 'LCP' \| 'FCP' \| 'CLS' \| 'INP' \| 'TTFB' \| 'FSP' \| 'FID' \| 'TTI' \| 'TBT' \| 'SI'`、`value`、`rating: 'good' \| 'needs-improvement' \| 'poor'`、`navigation?: NavigationTiming` |
+| `long_task` | `duration`、`startTime`、`attribution`、`tier: 'long_task' \| 'jank' \| 'unresponsive'`（T2.1.8 落地；兼容旧事件默认 `long_task`） |
 | `api` | `method`、`url`、`status`、`duration`、`requestSize`、`responseSize`、`traceId?`、`slow`、`failed`、`errorMessage?`、`requestBody?`（截断）、`responseBody?`（截断） |
 | `resource` | `initiatorType`、`url`、`duration`、`transferSize`、`encodedSize`、`protocol`、`cache` |
 | `page_view` | `enterAt`、`leaveAt?`、`duration?`、`loadType`、`isSpaNav` |
@@ -427,11 +435,27 @@ GET /dashboard/v1/performance/overview
       { "key": "lcp",          "label": "LCP",       "ms": 2180,"startMs": 0,    "endMs": 2180 }
     ],
     "trend": [
-      { "hour": "2026-04-27T00:00:00.000Z", "lcpP75": 2100, "fcpP75": 1380, "inpP75": 170, "ttfbP75": 590 }
+      { "hour": "2026-04-27T00:00:00.000Z", "lcpP75": 2100, "fcpP75": 1380, "inpP75": 170, "ttfbP75": 590,
+        "fidP75": 0, "ttiP75": 0, "tbtP75": 220, "fmpP75": 1420, "siP75": 3120,
+        "dnsP75": 38, "tcpP75": 42, "sslP75": 60, "contentDownloadP75": 96, "domParseP75": 240, "resourceLoadP75": 820, "sampleCount": 1284 }
     ],
     "slowPages": [
       { "url": "/checkout/review", "sampleCount": 842, "lcpP75Ms": 3820, "ttfbP75Ms": 1120, "bounceRate": 0 }
-    ]
+    ],
+    "fmpPages": [
+      { "url": "/home", "sampleCount": 3210, "fmpAvgMs": 1420, "fullyLoadedAvgMs": 2180, "within3sRatio": 0.92 }
+    ],
+    "dimensions": {
+      "browser":  [{ "value": "Chrome",  "sampleCount": 8420, "sharePercent": 65.4, "fmpAvgMs": 1380 }],
+      "os":       [{ "value": "Windows", "sampleCount": 6140, "sharePercent": 47.7, "fmpAvgMs": 1420 }],
+      "platform": [{ "value": "desktop", "sampleCount": 9820, "sharePercent": 76.3, "fmpAvgMs": 1360 }]
+    },
+    "longTasks": {
+      "count": 182,
+      "totalMs": 18420,
+      "p75Ms": 110,
+      "tiers": { "longTask": 160, "jank": 20, "unresponsive": 2 }
+    }
   }
 }
 ```
@@ -440,19 +464,28 @@ GET /dashboard/v1/performance/overview
 
 | 字段 | 来源 | 公式 |
 |---|---|---|
-| `vitals[*].value` | `perf_events_raw` | `percentile_cont(0.75) WITHIN GROUP (ORDER BY value)`；按 `project_id + metric` 分组 |
+| `vitals[*].value` | `perf_events_raw` | `percentile_cont(0.75) WITHIN GROUP (ORDER BY value)`；按 `project_id + metric` 分组（含 LCP/FCP/CLS/INP/TTFB/FSP/FID/TTI/TBT/SI 共 10 项） |
 | `vitals[*].sampleCount` | `perf_events_raw` | `COUNT(*)`；同窗口同 metric |
 | `vitals[*].tone` | 服务端映射 | 阈值表同 §3.3.2；`≤ good → "good"` / `≤ needs-improvement → "warn"` / 其他 `"destructive"` |
 | `vitals[*].deltaPercent` / `deltaDirection` | 当前窗口 vs 前一窗口 | `(current - previous) / previous × 100`；`abs(pct) < 0.1%` 或任一端为 0 时 `"flat"` |
 | `stages[*].ms`（前 7 阶段） | Navigation 样本 | 取最近 N=200 条 `metric='TTFB' AND navigation IS NOT NULL` 的样本各字段**中位数**；`startMs/endMs` 串行 cursor 累积 |
 | `stages.firstScreen.ms` | 当前用 FCP p75 近似 | T2.1.2 FSP 落地后切换为 FSP p75；从 0 起整体指标 |
 | `stages.lcp.ms` | LCP p75 | 从 0 起整体指标 |
-| `trend[*]` | `perf_events_raw` | `date_trunc('hour', to_timestamp(ts_ms/1000.0))` × `metric IN ('LCP','FCP','INP','TTFB')` 的 p75 宽表化；返回 UTC ISO，**前端用 dayjs 本地化** |
+| `trend[*]` | `perf_events_raw` | `date_trunc('hour', to_timestamp(ts_ms/1000.0))` × `metric IN ('LCP','FCP','CLS','INP','TTFB','FID','TTI','TBT','FSP','SI')` 的 p75 宽表化；返回 UTC ISO，**前端用 dayjs 本地化** |
 | `slowPages[*].lcpP75Ms` | `perf_events_raw` | `GROUP BY path` 后按 LCP p75 DESC 取 Top N |
 | `slowPages[*].ttfbP75Ms` | 二次查询 | 对 Top N 的 `path` 集合聚合 TTFB p75 |
 | `slowPages[*].bounceRate` | — | **本期恒为 0**；依赖 Phase 2.3 `VisitProcessor` |
+| `fmpPages[*]` | `perf_events_raw` | `GROUP BY path WHERE metric='FSP'`；`fmpAvgMs=AVG(value)`、`fullyLoadedAvgMs` 近似 LCP avg（同 path）、`within3sRatio=COUNT(value<=3000)/COUNT(*)` |
+| `dimensions.browser/os/platform` | `perf_events_raw` | `GROUP BY <device.browser \| device.os \| device.platform>` 取 Top-N，`sharePercent=count/total*100`、`fmpAvgMs` 同维度下 FSP 均值 |
+| `longTasks.count/totalMs/p75Ms` | `perf_events_raw` | `WHERE type='long_task'` 的 `COUNT` / `SUM(lt_duration_ms)` / `percentile_cont(0.75)` |
+| `longTasks.tiers` | `perf_events_raw` | 按 duration 桶：`longTask` 50~2000ms / `jank` 2000~5000ms / `unresponsive` ≥5000ms；旧事件无 tier 字段时按 duration 在服务端回填 |
 
-**空数据降级**：`vitals` 始终返回 5 项占位（`sampleCount=0` / `value=0` / `tone="good"` / `deltaDirection="flat"`）；`stages` / `trend` / `slowPages` 为空数组。前端据此渲染"暂无数据"，不抛错。
+**空数据降级**：
+- `vitals` 始终返回 **9 项**（LCP/INP/CLS/TTFB/FCP/TTI/TBT/FID/SI，面板展示顺序）占位（`sampleCount=0` / `value=0` / `tone="good"` / `deltaDirection="flat"`）
+- `stages` / `trend` / `slowPages` / `fmpPages` 为空数组
+- `dimensions.{browser,os,platform}` 为空数组
+- `longTasks` 为 `{ count: 0, totalMs: 0, p75Ms: 0, tiers: { longTask: 0, jank: 0, unresponsive: 0 } }`
+- 前端据此渲染"暂无数据"，不抛错。
 
 **索引命中**：`idx_perf_project_metric_ts`（Vitals / Trend / Waterfall）+ `idx_perf_project_path_ts`（SlowPages），现有索引覆盖全部查询路径。
 
@@ -589,6 +622,15 @@ GET /open/v1/export/:jobId
 
 - SDK 不上报 IP，入口由服务端解析 `CF-Connecting-IP`/`X-Forwarded-For` 查 IP 库（MaxMind/纯真）得国家/省/市。
 - 聚合维度表：`project_id + metric + dim_key + dim_value + minute`。
+
+**维度分阶段落地**：
+
+| 维度 | 当前状态 | 落地时间 |
+|---|---|---|
+| `browser` / `os` / `platform` | 已在 T2.1.8 `PerformanceOverviewDto.dimensions` 中落地，走 `perf_events_raw.device_*` 列 GROUP BY | ✅ T2.1.8 |
+| `deviceModel` / `deviceVendor` | `perf_events_raw` 尚无列，需 Schema 扩列 | Phase 2 后期 |
+| `region` / `city` / `carrier` | 依赖 IP 库 + 服务端解析管线 | Phase 2.3（VisitProcessor） |
+| `network.effectiveType` | 字段已在 BaseEvent 上报，聚合表未启用 | Phase 2.3 |
 
 ---
 

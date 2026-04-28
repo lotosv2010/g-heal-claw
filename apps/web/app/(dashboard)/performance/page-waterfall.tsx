@@ -2,6 +2,12 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import type { LoadStage } from "@/lib/api/performance";
 
 // 低饱和色板（Tailwind/AntD 对应色 300~400 区间）——
@@ -25,6 +31,13 @@ const STAGE_COLORS = [
  * 1. interval mark 默认竖直，range 要编码到 `y`（`['startMs','endMs']`）
  * 2. 通过 `coordinate.transpose` 旋转 90° 即得到横向条
  * 3. 翻转后 x/y 对调：类目在"y 轴"（视觉左侧）、时间区间在"x 轴"（视觉底部）
+ *
+ * 计算方式（ADR-0018 P2.2）：
+ * - Navigation 串联阶段（DNS / TCP / SSL / 请求 / 响应 / 解析 / 资源）取窗口内采样的 p75 串联累积
+ * - 首屏 / LCP 取同窗口 vital p75，单独起点为 0（整段时间轴的右界）
+ * - 选 p75 是稳定性优先而非压线：更贴近 Core Web Vitals 通行口径
+ * - `metric_minute` 预聚合路径被 T2.1.8 排除（见 ADR-0018 Excluded）；
+ *   启用后将替换此处运行时聚合——届时本组件只做渲染、不再依赖 overview live 计算。
  */
 export function PageWaterfall({ stages }: { stages: readonly LoadStage[] }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -98,17 +111,17 @@ export function PageWaterfall({ stages }: { stages: readonly LoadStage[] }) {
             items: [
               {
                 field: "ms",
-                name: "耗时",
+                name: "p75 耗时",
                 valueFormatter: (v: number) => `${v} ms`,
               },
               {
                 field: "startMs",
-                name: "开始",
+                name: "开始（累积 p75）",
                 valueFormatter: (v: number) => `${v} ms`,
               },
               {
                 field: "endMs",
-                name: "结束",
+                name: "结束（累积 p75）",
                 valueFormatter: (v: number) => `${v} ms`,
               },
             ],
@@ -131,9 +144,32 @@ export function PageWaterfall({ stages }: { stages: readonly LoadStage[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>页面加载瀑布图</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <CardTitle>页面加载瀑布图</CardTitle>
+          <Tooltip>
+            <TooltipTrigger
+              aria-label="查看计算方式"
+              className="text-muted-foreground hover:text-foreground inline-flex"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[320px] text-xs leading-relaxed">
+              <p>
+                串联阶段取窗口内 Navigation 采样的 <span className="font-medium">p75</span> 依次累积；
+                首屏 / LCP 直接取同窗口 vital p75。
+              </p>
+              <p className="mt-1.5">
+                选 p75 而非 p50 为稳定性优先，贴合 Core Web Vitals 口径。
+                <br />
+                <span className="text-muted-foreground">
+                  后续 <code className="rounded bg-muted px-1 py-0.5">metric_minute</code> 预聚合启用后将替换此运行时计算（ADR-0018）。
+                </span>
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
         <div className="text-muted-foreground text-xs">
-          共 <span className="text-foreground tabular-nums">{total}</span> ms · 阶段累积时序
+          共 <span className="text-foreground tabular-nums">{total}</span> ms · 阶段累积时序（p75）
         </div>
       </CardHeader>
       <CardContent>

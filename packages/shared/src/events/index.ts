@@ -18,7 +18,14 @@ export {
 
 export { ErrorEventSchema, type ErrorEvent, StackFrameSchema, type StackFrame } from "./error.js";
 export { PerformanceEventSchema, type PerformanceEvent } from "./performance.js";
-export { LongTaskEventSchema, type LongTaskEvent } from "./long-task.js";
+export {
+  LongTaskEventSchema,
+  type LongTaskEvent,
+  LongTaskTierSchema,
+  type LongTaskTier,
+  LONG_TASK_TIER_THRESHOLDS,
+  classifyLongTaskTier,
+} from "./long-task.js";
 export { ApiEventSchema, type ApiEvent } from "./api.js";
 export { ResourceEventSchema, type ResourceEvent } from "./resource.js";
 export { PageViewEventSchema, type PageViewEvent } from "./page-view.js";

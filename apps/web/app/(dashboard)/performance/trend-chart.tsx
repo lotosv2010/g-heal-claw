@@ -23,15 +23,16 @@ const DualAxes = dynamic(
  * 性能视图（过去 24 小时趋势）· 三轴组合图
  *
  * 轴划分：
- *  - 左轴「耗时（ms）」  折线：Navigation 6 段 + FCP/LCP/TTFB/FID/TTI/INP + FMP + TBT
+ *  - 左轴「耗时（ms）」  折线：Navigation 6 段 + FCP/LCP/TTFB/FID/TTI/INP/TBT/SI + FMP
  *  - 右轴「CLS 评分」    折线：CLS（无量纲 0~1，越小越好）· 与全局 CLS 口径统一
  *  - 右轴「样本数」      柱状：每桶样本数（近似 PV）
  *
  * 轴的显示/隐藏完全跟随图例选中：未选中对应系列时，轴不渲染，避免空轴导致 0 居中等歧义。
  *
- * 交互：
- *  - 默认展示「样本数」+「CLS」
- *  - 其余系列通过自定义图例一键开关（规避 @ant-design/plots 跨版本 legend filter API 差异）
+ * 图例分两行，顺序固定：
+ *  - 行1：样本数、首屏时间、DNS、TCP、SSL、内容下载、DOM 解析、资源下载
+ *  - 行2：LCP、INP、CLS、TTFB、FCP、TTI、TBT、FID、SI
+ *  - 默认选中：样本数、首屏时间、CLS
  */
 
 type MsSeriesKey =
@@ -40,15 +41,16 @@ type MsSeriesKey =
   | "tcp"
   | "ssl"
   | "contentDownload"
-  | "ttfb"
   | "domParse"
   | "resourceLoad"
   | "lcp"
-  | "fid"
+  | "inp"
+  | "ttfb"
+  | "fcp"
   | "tti"
   | "tbt"
-  | "inp"
-  | "fcp";
+  | "fid"
+  | "si";
 
 type SeriesKey = "sampleCount" | "cls" | MsSeriesKey;
 
@@ -60,23 +62,39 @@ interface MsSeriesDef {
   readonly pick: (b: TrendBucket) => number;
 }
 
-/** 左轴耗时系列（毫秒，p75）—— 首屏时间默认展示，其余隐藏 */
-const MS_SERIES: readonly MsSeriesDef[] = [
-  { key: "fmp",            label: "首屏时间",   color: "#f97316", defaultVisible: true,  pick: (b) => b.fmpP75 },
-  { key: "dns",            label: "DNS",       color: "#0ea5e9", defaultVisible: false, pick: (b) => b.dnsP75 },
-  { key: "tcp",            label: "TCP",       color: "#10b981", defaultVisible: false, pick: (b) => b.tcpP75 },
-  { key: "ssl",            label: "SSL",       color: "#f59e0b", defaultVisible: false, pick: (b) => b.sslP75 },
-  { key: "ttfb",           label: "TTFB",      color: "#a855f7", defaultVisible: false, pick: (b) => b.ttfbP75 },
-  { key: "contentDownload",label: "内容下载",   color: "#14b8a6", defaultVisible: false, pick: (b) => b.contentDownloadP75 },
-  { key: "domParse",       label: "DOM 解析",   color: "#ec4899", defaultVisible: false, pick: (b) => b.domParseP75 },
-  { key: "resourceLoad",   label: "资源下载",   color: "#8b5cf6", defaultVisible: false, pick: (b) => b.resourceLoadP75 },
-  { key: "lcp",            label: "LCP",       color: "#ef4444", defaultVisible: false, pick: (b) => b.lcpP75 },
-  { key: "fcp",            label: "FCP",       color: "#22c55e", defaultVisible: false, pick: (b) => b.fcpP75 },
-  { key: "fid",            label: "FID",       color: "#94a3b8", defaultVisible: false, pick: (b) => b.fidP75 },
-  { key: "tti",            label: "TTI",       color: "#64748b", defaultVisible: false, pick: (b) => b.ttiP75 },
-  { key: "tbt",            label: "TBT",       color: "#d946ef", defaultVisible: false, pick: (b) => b.tbtP75 },
-  { key: "inp",            label: "INP",       color: "#eab308", defaultVisible: false, pick: (b) => b.inpP75 },
+/**
+ * 图例第一行：样本数、首屏时间、DNS、TCP、SSL、内容下载、DOM 解析、资源下载
+ * 图例第二行：LCP、INP、CLS、TTFB、FCP、TTI、TBT、FID、SI
+ *
+ * 样本数 / CLS 不在 MS_SERIES 中（各自独立轴），通过分组常量控制渲染位置。
+ * 默认选中：样本数、首屏时间、CLS
+ */
+
+/** 第一行 ms 系列（样本数单独渲染，不在此数组中） */
+const MS_SERIES_ROW1: readonly MsSeriesDef[] = [
+  { key: "fmp",             label: "首屏时间",   color: "#f97316", defaultVisible: true,  pick: (b) => b.fmpP75 },
+  { key: "dns",             label: "DNS",        color: "#0ea5e9", defaultVisible: false, pick: (b) => b.dnsP75 },
+  { key: "tcp",             label: "TCP",        color: "#10b981", defaultVisible: false, pick: (b) => b.tcpP75 },
+  { key: "ssl",             label: "SSL",        color: "#f59e0b", defaultVisible: false, pick: (b) => b.sslP75 },
+  { key: "contentDownload", label: "内容下载",    color: "#14b8a6", defaultVisible: false, pick: (b) => b.contentDownloadP75 },
+  { key: "domParse",        label: "DOM 解析",    color: "#ec4899", defaultVisible: false, pick: (b) => b.domParseP75 },
+  { key: "resourceLoad",    label: "资源下载",    color: "#8b5cf6", defaultVisible: false, pick: (b) => b.resourceLoadP75 },
 ] as const;
+
+/** 第二行 ms 系列（CLS 单独渲染，不在此数组中） */
+const MS_SERIES_ROW2: readonly MsSeriesDef[] = [
+  { key: "lcp",  label: "LCP",  color: "#ef4444", defaultVisible: false, pick: (b) => b.lcpP75 },
+  { key: "inp",  label: "INP",  color: "#eab308", defaultVisible: false, pick: (b) => b.inpP75 },
+  { key: "ttfb", label: "TTFB", color: "#a855f7", defaultVisible: false, pick: (b) => b.ttfbP75 },
+  { key: "fcp",  label: "FCP",  color: "#22c55e", defaultVisible: false, pick: (b) => b.fcpP75 },
+  { key: "tti",  label: "TTI",  color: "#64748b", defaultVisible: false, pick: (b) => b.ttiP75 },
+  { key: "tbt",  label: "TBT",  color: "#d946ef", defaultVisible: false, pick: (b) => b.tbtP75 },
+  { key: "fid",  label: "FID",  color: "#94a3b8", defaultVisible: false, pick: (b) => b.fidP75 },
+  { key: "si",   label: "SI",   color: "#06b6d4", defaultVisible: false, pick: (b) => b.siP75 },
+] as const;
+
+/** 合并后的全量 ms 系列（计算 / 轴逻辑使用） */
+const MS_SERIES: readonly MsSeriesDef[] = [...MS_SERIES_ROW1, ...MS_SERIES_ROW2];
 
 const CLS_COLOR = "#6366f1";
 const CLS_LABEL = "CLS";
@@ -351,46 +369,74 @@ export function TrendChart({ buckets }: { buckets: readonly TrendBucket[] }) {
       <CardHeader>
         <CardTitle>性能视图 · {timePhrase}</CardTitle>
         <div className="text-muted-foreground text-xs">
-          默认展示「样本数 · CLS · 首屏时间」；左轴「耗时（ms）」· 右轴「CLS 评分」「样本数」—— 点击下方图例切换系列与对应坐标轴
+          默认展示「样本数 · 首屏时间 · CLS」；左轴「耗时（ms）」· 右轴「CLS 评分」「样本数」—— 点击图例切换
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex flex-wrap gap-1.5">
-          {/* 样本数（柱状）—— 方块图例与折线圆点图例区分 */}
-          <LegendChip
-            label={SAMPLE_COUNT_LABEL}
-            color={SAMPLE_COUNT_COLOR}
-            active={sampleVisible}
-            shape="square"
-            onToggle={() =>
-              setVisible((prev) => ({
-                ...prev,
-                sampleCount: !prev.sampleCount,
-              }))
-            }
-          />
-          {/* CLS（独立右轴，不混入 ms 系列） */}
-          <LegendChip
-            label={CLS_LABEL}
-            color={CLS_COLOR}
-            active={clsVisible}
-            shape="dot"
-            onToggle={() =>
-              setVisible((prev) => ({ ...prev, cls: !prev.cls }))
-            }
-          />
-          {MS_SERIES.map((s) => (
+        <div className="space-y-1.5">
+          {/* 行1：样本数、首屏时间、DNS、TCP、SSL、内容下载、DOM 解析、资源下载 */}
+          <div className="flex flex-wrap justify-center gap-1.5">
             <LegendChip
-              key={s.key}
-              label={s.label}
-              color={s.color}
-              active={visible[s.key]}
-              shape="dot"
+              label={SAMPLE_COUNT_LABEL}
+              color={SAMPLE_COUNT_COLOR}
+              active={sampleVisible}
+              shape="square"
               onToggle={() =>
-                setVisible((prev) => ({ ...prev, [s.key]: !prev[s.key] }))
+                setVisible((prev) => ({
+                  ...prev,
+                  sampleCount: !prev.sampleCount,
+                }))
               }
             />
-          ))}
+            {MS_SERIES_ROW1.map((s) => (
+              <LegendChip
+                key={s.key}
+                label={s.label}
+                color={s.color}
+                active={visible[s.key]}
+                shape="dot"
+                onToggle={() =>
+                  setVisible((prev) => ({ ...prev, [s.key]: !prev[s.key] }))
+                }
+              />
+            ))}
+          </div>
+          {/* 行2：LCP、INP、CLS、TTFB、FCP、TTI、TBT、FID、SI */}
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {MS_SERIES_ROW2.slice(0, 2).map((s) => (
+              <LegendChip
+                key={s.key}
+                label={s.label}
+                color={s.color}
+                active={visible[s.key]}
+                shape="dot"
+                onToggle={() =>
+                  setVisible((prev) => ({ ...prev, [s.key]: !prev[s.key] }))
+                }
+              />
+            ))}
+            <LegendChip
+              label={CLS_LABEL}
+              color={CLS_COLOR}
+              active={clsVisible}
+              shape="dot"
+              onToggle={() =>
+                setVisible((prev) => ({ ...prev, cls: !prev.cls }))
+              }
+            />
+            {MS_SERIES_ROW2.slice(2).map((s) => (
+              <LegendChip
+                key={s.key}
+                label={s.label}
+                color={s.color}
+                active={visible[s.key]}
+                shape="dot"
+                onToggle={() =>
+                  setVisible((prev) => ({ ...prev, [s.key]: !prev[s.key] }))
+                }
+              />
+            ))}
+          </div>
         </div>
 
         {nothingVisible ? (

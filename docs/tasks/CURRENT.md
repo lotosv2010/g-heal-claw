@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-04-27（异常监控闭环切片 T1.2.2 / T1.4.0.1~3 / T1.6.2.0.1~6 全部 [x]；T2.1.1.7 解冻并与 T1.4.0.4 合并为浏览器端到端冒烟）
+> 最后更新: 2026-04-28（ADR-0018 T2.1.8 性能模块完整性切片注册；文档一致性 Phase A 完成，进入 P0 代码实现）
 
 ## 状态说明
 
@@ -328,8 +328,8 @@
     - 输出：任务收尾 + 文档同步
     - 验收：所有子任务 `[x]`；CURRENT.md 记录体积数字
     - 依赖：T2.1.1.1 ~ T2.1.1.7
-- [ ] **T2.1.2** 首屏时间（MutationObserver + rAF 窗口）— 2d
-- [ ] **T2.1.3** 长任务 / 卡顿 / 无响应采集 — 2d
+- [~] **T2.1.2** 首屏时间（MutationObserver + rAF 窗口）— 2d（作为 T2.1.8.P0.3 统一交付）
+- [~] **T2.1.3** 长任务 / 卡顿 / 无响应采集 — 2d（≥50ms 采集已落地；3 级分级作为 T2.1.8.P0.2 统一交付）
 - [ ] **T2.1.4** PerformanceProcessor（events_raw + metric_minute 聚合 p50/p95/p99）— 3d
 - [ ] **T2.1.5** Apdex 计算 cron — 1d
 - [x] **T2.1.6** 性能大盘 API 首版（依据 ADR-0015，直查 `perf_events_raw` + p75 聚合；Apdex/metric_minute 预聚合推迟到 T2.1.4/T2.1.5）— 2d（完成 2026-04-27）
@@ -341,6 +341,22 @@
   - [x] **T2.1.6.6** `apps/web/app/(dashboard)/performance/page.tsx` 处理 live/empty/error 三态；`export const dynamic = "force-dynamic"` 避免 SSG 冻结 — 0.2d（完成 2026-04-27）
   - [x] **T2.1.6.7** 端到端验证：server typecheck/build/test（5/5 全绿）；web typecheck/build（`/performance` 标记 ƒ Dynamic）— 0.4d（完成 2026-04-27）
 - [ ] **T2.1.7** web/performance 页面增强（环比切换 / 分页面瀑布图 / ECharts 深度定制）— 5d
+- [~] **T2.1.8** 性能模块完整性切片（ADR-0018；SDK 已落地 longTaskPlugin / speedIndexPlugin，本切片补齐 FSP + 长任务分级 + SI 趋势白名单 + 回归测试 + 面板润色）— 5d
+  - **P0（指标矩阵完整性，阻断）**
+    - [ ] **T2.1.8.P0.1** 核实 SI 后端聚合路径：`aggregateTrend` 白名单加入 `'SI'`；`aggregateVitals` 的 `metric IS NOT NULL` 通过 SI 样本回放验证 — 0.3d
+    - [ ] **T2.1.8.P0.2** 长任务 3 级分级（原 T2.1.3）：SDK `longTaskPlugin` 按 duration 分类写 `lt_tier`；`aggregateLongTasks` 扩 `tiers: { longTask, jank, unresponsive }`；Web 由单卡分裂为 3 子卡或 3 色堆叠柱 — 1d
+    - [ ] **T2.1.8.P0.3** FSP 插件（原 T2.1.2）：`packages/sdk/src/plugins/fsp.ts` 用 MutationObserver + rAF 窗口；dispatch `metric='FSP'`；`demo/ghc-provider.tsx` 注册；服务端 `stages.firstScreen` 切换至 FSP p75 — 1.5d
+  - **P1（回归保障）**
+    - [ ] **T2.1.8.P1.1** `long-task.test.ts` + `speed-index.test.ts` 补齐单测（覆盖三级分级、FP/FCP/LCP 缺失、settleMs 时序、pagehide 兜底） — 0.7d
+    - [ ] **T2.1.8.P1.2** `performance.service.spec.ts` 覆盖 5 条聚合函数（pg-mem 或 Dockerized PG 二选一，ADR-0007 原则优先 Dockerized） — 0.7d
+    - [ ] **T2.1.8.P1.3** Topbar 时间范围 → URL `?windowHours=` 双向绑定（`24|48|168`），`router.replace` 不触 SSR 重走 — 0.3d
+  - **P2（体验润色）**
+    - [ ] **T2.1.8.P2.1** `VitalConfig.deprecated` 渲染灰底 "Deprecated" Badge（FID / TTI） — 0.2d
+    - [ ] **T2.1.8.P2.2** 瀑布阶段 tooltip 注入 p75 公式 + metric_minute 迁移锚点 feature-flag 注释 — 0.3d
+  - **刻意排除**
+    - Apdex cron（T2.1.5，依赖 Apdex T 项目级配置，等 T1.1.7 认证）
+    - `perf_events_raw` 表扩列（deviceModel / region / network），Phase 2 后期
+    - `metric_minute` 预聚合（T2.1.4，另起 ADR）
 
 ### M2.2 API 监控
 
@@ -502,8 +518,9 @@
 
 > 每周同步更新本节。
 
-- 进行中：无
+- 进行中：**T2.1.8 性能模块完整性切片（ADR-0018）** — 文档一致性（SPEC / ARCHITECTURE / CURRENT）已落地，进入 P0 代码实现（SI 后端聚合核实 → 长任务分级 → FSP 插件）
 - 下一步：T1.3.2 Gateway DSN 鉴权（走新建的 `project_keys` 表 + Redis 缓存）+ T1.3.3 项目级限流；可并行 T1.1.7 认证（走 `users` / `project_members`）
+- 最近完成（2026-04-28）：**性能模块端到端 review + ADR-0018 + 文档一致性** —— 识别 4 P0 + 3 P1 + 2 P2 差距；T2.1.8 里程碑注册；SPEC §3.3.2/§4.2/§5.4.0/§6.3 同步补齐（10 指标 Rating 表 + long_task 3 级 tier + `PerformanceOverviewDto` 新增 longTasks/fmpPages/dimensions + 维度分阶段落地表）；ARCHITECTURE §4.2.1 同步（SDK plugins 四元组 + Dashboard 多聚合并发）
 - 最近完成（2026-04-28）：T1.1.5 Drizzle Schema 首版基线（ADR-0017，7 子任务 2.8d 全部落地）—— `packages/shared/id.ts` + 7 前缀常量 + 8 case 单测；apps/server devDeps 扩容（drizzle-kit@^0.30 + nanoid@^5）；Schema 拆分为 schema/ 子目录 7 文件（8 张主表 + 3 张事件流）；events_raw 分区父表 + 4 张周分区 DDL；`ALL_DDL` 30 条（FK 严格顺序）；`drizzle/0001_initial.sql` 迁移源手工维护；shared 33 tests + server 8 unit tests 全绿；SPEC §9 + ARCHITECTURE §8.1.1 同步
 - 最近完成（2026-04-27）：异常监控闭环切片 T1.2.2 / T1.4.0.1~3 / T1.6.2.0.1~6（ADR-0016）：SDK `errorPlugin` 三路订阅 + 资源加载过滤（55/55 单测绿，ESM 7.50KB gzip）；`error_events_raw` 幂等入库；GatewayService 分流 perf/error/其他；`/dashboard/v1/errors/overview` 五类 subType 占位 + 环比 + Top 分组；Web `/errors` 三态 Badge + CSS conic-gradient 环形图 + AntV Line 趋势；web build 11 页全绿（`/errors` 标记 ƒ Dynamic）
 - 最近完成（2026-04-27）：T2.1.6 Dashboard 性能大盘 API 首版（ADR-0015，DashboardModule 直查 `perf_events_raw` + p75 聚合；Web `/performance` 改为 live 数据，三态 Badge 区分 live/empty/error；fixture 移除；server test 5/5 全绿）

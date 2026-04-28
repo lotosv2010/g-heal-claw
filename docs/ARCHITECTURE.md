@@ -189,27 +189,45 @@ SDK ──batch──▶ Gateway ──▶ BullMQ: events-error ──▶ ErrorP
 
 ### 4.2 性能事件 → 聚合指标
 
-#### 4.2.1 当前实现（ADR-0013 / 0014 / 0015）
+#### 4.2.1 当前实现（ADR-0013 / 0014 / 0015 / 0018）
 
 ```
-SDK (PerformancePlugin, web-vitals + Navigation)
-  ├─ metric ∈ {LCP, FCP, CLS, INP, TTFB} 单事件单指标
-  └─ Navigation 瀑布挂载在 TTFB 事件的 navigation 字段上
+SDK plugins（packages/sdk/src/plugins/）
+  ├─ performancePlugin (web-vitals@^4)
+  │    ├─ metric ∈ {LCP, FCP, CLS, INP, TTFB} 单事件单指标
+  │    └─ Navigation 瀑布挂载在 TTFB 事件的 navigation 字段上
+  ├─ longTaskPlugin (PerformanceObserver 'longtask', ≥50ms)
+  │    └─ type='long_task' 事件，T2.1.8 扩展 tier ∈ {long_task, jank, unresponsive}
+  ├─ speedIndexPlugin (FP/FCP/LCP 三里程碑梯形法 AUC)
+  │    └─ metric='SI'，load + settleMs=3000 封板一次，±20% 精度
+  ├─ fspPlugin (T2.1.8 落地)
+  │    └─ MutationObserver + rAF 窗口 → metric='FSP' 首屏时间
+  └─ errorPlugin（ADR-0016）
 
   ──POST /ingest/v1/events──▶ Gateway
       · Zod 校验 · DSN → projectId · 批量幂等（eventId UNIQUE）
-      · 直调 PerformanceService.saveBatch() → perf_events_raw（ADR-0013）
-      · 暂不入 BullMQ events-performance（过渡设计）
+      · 分流：type='performance'/'long_task' → PerformanceService.saveBatch() → perf_events_raw（ADR-0013）
+      ·       type='error' → ErrorService.saveBatch() → error_events_raw（ADR-0016）
+      · 暂不入 BullMQ events-performance（过渡设计，T2.1.4 改造）
 
-DashboardModule (ADR-0015)
+DashboardModule (ADR-0015 + ADR-0018)
   └─ GET /dashboard/v1/performance/overview
-      · 并发 5 次查询：Vitals p75 当前 / 环比 / 24h 趋势 / 瀑布样本中位数 / 慢页面 Top N
+      · 并发 N 次查询：
+        - aggregateVitals × 2（当前 / 环比，覆盖 LCP/FCP/CLS/INP/TTFB/FSP/FID/TTI/TBT/SI 共 10 指标）
+        - aggregateTrend（按小时 × metric 的 p75 宽表，白名单含全部 10 指标）
+        - aggregateWaterfallSamples（TTFB.navigation 样本中位数串成 9 阶段瀑布）
+        - aggregateSlowPages（按 path Top-N LCP p75）
+        - aggregateFmpPages（按 path FSP 平均 + within3sRatio）
+        - aggregateDimensions（browser / os / platform 三维分布）
+        - aggregateLongTasks（count/totalMs/p75Ms + 3 级 tier 拆分）
       · 直查 perf_events_raw，走 idx_perf_project_metric_ts / idx_perf_project_path_ts
-      · 空数据返回 5 张 Vitals 占位卡（sampleCount=0），不报错
+      · 空数据返回占位结构（9 Vitals + 空 stages/trend/slowPages/fmpPages/dimensions + 0 longTasks），不报错
 
 Web /performance
   · SSR force-dynamic + 三态 Badge（live / empty / error）
+  · Core Vitals 九宫格（LCP/INP/CLS/TTFB/FCP/TTI/TBT/FID/SI）+ Deprecated Badge
   · 趋势图用 dayjs 本地时区格式化 UTC ISO
+  · 顶栏时间选择器双向绑定 URL `?windowHours=` query（T2.1.8 落地）
 ```
 
 #### 4.2.2 目标实现（T2.1.4 之后）

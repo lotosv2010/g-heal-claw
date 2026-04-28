@@ -35,10 +35,16 @@ export interface PerformancePluginOptions {
    */
   readonly reportTBT?: boolean;
   /**
-   * 是否采集 FSP（First Screen Paint，首屏时间），默认 true
+   * 是否在 performancePlugin 内合成 FSP（First Screen Paint，首屏时间），**默认 false**
    *
-   * FSP = `domContentLoadedEventEnd - startTime`，作为"用户看到首屏内容"的代理值。
-   * 与 Dashboard "首屏时间 FMP 表 / 性能视图 fmp 系列" 配套 —— 关闭后该视图将无数据。
+   * 历史默认值为 true，基于 `domContentLoadedEventEnd - startTime` 近似；
+   * ADR-0018 P0.3 起引入独立的 `fspPlugin`（MutationObserver + rAF 静默窗口），
+   * 精度更高并与 SPA hydration 兼容。为避免双通道重复上报，此开关默认关闭。
+   *
+   * 仅当：
+   *   - 未注册 fspPlugin，且
+   *   - 可以接受 DCL 近似（精度较低）
+   * 时才显式置为 true 重新启用内置合成。
    */
   readonly reportFSP?: boolean;
 }
@@ -96,7 +102,8 @@ export function performancePlugin(
   const reportNavigation = opts.reportNavigation ?? true;
   const reportDeprecated = opts.reportDeprecated ?? true;
   const reportTBT = opts.reportTBT ?? true;
-  const reportFSP = opts.reportFSP ?? true;
+  // ADR-0018 P0.3：默认改为 false，避免与新 fspPlugin 双通道上报；显式传 true 可回退
+  const reportFSP = opts.reportFSP ?? false;
 
   return {
     name: "performance",

@@ -96,8 +96,6 @@ const CONFIGS: readonly VitalConfig[] = [
     unit: "ms",
     thresholds: [3800, 7300],
     poorCap: 15000,
-    deprecated: true,
-    replacedBy: "TBT / INP",
   },
   {
     key: "TBT",

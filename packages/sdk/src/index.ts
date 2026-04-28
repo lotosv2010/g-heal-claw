@@ -35,6 +35,7 @@ export {
   speedIndexPlugin,
   type SpeedIndexPluginOptions,
 } from "./plugins/speed-index.js";
+export { fspPlugin, type FspPluginOptions } from "./plugins/fsp.js";
 
 // 便于 UMD 脚本接入：提供一个扁平 namespace 对象
 import { init as _init } from "./init.js";
@@ -48,6 +49,7 @@ import { performancePlugin as _performancePlugin } from "./plugins/performance.j
 import { errorPlugin as _errorPlugin } from "./plugins/error.js";
 import { longTaskPlugin as _longTaskPlugin } from "./plugins/long-task.js";
 import { speedIndexPlugin as _speedIndexPlugin } from "./plugins/speed-index.js";
+import { fspPlugin as _fspPlugin } from "./plugins/fsp.js";
 import type { Breadcrumb } from "@g-heal-claw/shared";
 import type { GHealClawOptions } from "./options.js";
 
@@ -74,6 +76,7 @@ export const GHealClaw = {
   errorPlugin: _errorPlugin,
   longTaskPlugin: _longTaskPlugin,
   speedIndexPlugin: _speedIndexPlugin,
+  fspPlugin: _fspPlugin,
 };
 
 export default GHealClaw;

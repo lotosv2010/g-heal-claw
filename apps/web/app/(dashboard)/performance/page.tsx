@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { getPerformanceOverview, type OverviewSource } from "@/lib/api/performance";
+import { parseTimeSelection, toWindowHours } from "@/lib/time-range";
 
 // 强制动态渲染：每次请求都从 apps/server 拉最新聚合结果，避免被 SSG 冻结
 export const dynamic = "force-dynamic";
@@ -22,8 +23,23 @@ import { DimensionTabs } from "./dimension-tabs";
  *  5. 首屏时间 FMP Top（按页面聚合）
  *  6. 维度分布（浏览器 / OS / 平台 + 占位项）
  */
-export default async function PerformancePage() {
-  const { source, data } = await getPerformanceOverview();
+/**
+ * Next.js 16 约定：`searchParams` 为 Promise，需要 await 后再读取。
+ * 顶栏以 `range=...` 或 `from/to=...` 写入；这里转成 `windowHours` 透传到大盘接口。
+ */
+export default async function PerformancePage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const raw = (await searchParams) ?? {};
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === "string") qs.set(k, v);
+    else if (Array.isArray(v) && v.length > 0) qs.set(k, v[0] ?? "");
+  }
+  const windowHours = toWindowHours(parseTimeSelection(qs));
+  const { source, data } = await getPerformanceOverview({ windowHours });
 
   return (
     <div>

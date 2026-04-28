@@ -78,10 +78,11 @@ export function CommonMetricsCards({
     },
     {
       label: "长任务（≥50ms）",
-      // 双行提示：次数 + 累计阻塞时长；0 时前端降级展示 "0 次"
+      // 三级分布（ADR-0018）：长任务 / 卡顿(≥2s) / 无响应(≥5s)；0 时降级展示
       hint:
         longTasks.count > 0
-          ? `累计 ${formatMs(longTasks.totalMs)} · p75 ${formatMs(longTasks.p75Ms)}`
+          ? `累计 ${formatMs(longTasks.totalMs)} · p75 ${formatMs(longTasks.p75Ms)}\n` +
+            `长任务 ${longTasks.tiers.longTask} · 卡顿 ${longTasks.tiers.jank} · 无响应 ${longTasks.tiers.unresponsive}`
           : "窗口内无长任务样本",
       value:
         longTasks.count > 0 ? `${longTasks.count.toLocaleString()} 次` : "0 次",
@@ -106,7 +107,9 @@ export function CommonMetricsCards({
             <div className="text-foreground text-2xl font-semibold tabular-nums">
               {c.value}
             </div>
-            <div className="text-muted-foreground mt-1 text-xs">{c.hint}</div>
+            <div className="text-muted-foreground mt-1 whitespace-pre-line text-xs">
+              {c.hint}
+            </div>
           </CardContent>
         </Card>
       ))}

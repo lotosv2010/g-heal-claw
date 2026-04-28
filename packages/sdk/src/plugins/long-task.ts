@@ -1,4 +1,4 @@
-import type { LongTaskEvent } from "@g-heal-claw/shared";
+import { classifyLongTaskTier, type LongTaskEvent } from "@g-heal-claw/shared";
 import { createBaseEvent } from "../event.js";
 import type { Hub } from "../hub.js";
 import type { Plugin } from "../plugin.js";
@@ -119,11 +119,13 @@ function dispatchLongTask(
   reportAttribution: boolean,
 ): void {
   const base = createBaseEvent(hub, "long_task");
+  const duration = Math.max(1, Math.round(entry.duration));
   const event: LongTaskEvent = {
     ...base,
     type: "long_task",
-    duration: Math.max(1, Math.round(entry.duration)),
+    duration,
     startTime: Math.max(0, Math.round(entry.startTime)),
+    tier: classifyLongTaskTier(duration),
     attribution:
       reportAttribution && entry.attribution && entry.attribution.length > 0
         ? entry.attribution.map((a) => ({

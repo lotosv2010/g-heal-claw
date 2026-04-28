@@ -103,3 +103,39 @@ export function getSelectionPhrase(sel: TimeSelection): string {
     ? getPresetPhrase(sel.preset)
     : formatCustomPhrase(sel.range);
 }
+
+/**
+ * 将 TimeSelection 换算为 Dashboard 性能大盘接口需要的 `windowHours`
+ *
+ * 后端契约（apps/server `OverviewQuerySchema`）：整数 1~168（即 1h ~ 7d）。
+ * 约定：
+ *  - 15m / 1h → 1（最小粒度）
+ *  - 24h → 24
+ *  - 7d → 168
+ *  - 30d → 168（clamp 到上限，避免 API 400）
+ *  - 自定义区间 → Math.ceil((toMs - fromMs) / 3600_000)，同样 clamp
+ */
+export const DASHBOARD_WINDOW_MIN = 1;
+export const DASHBOARD_WINDOW_MAX = 168;
+
+export function toWindowHours(sel: TimeSelection): number {
+  if (sel.kind === "preset") {
+    switch (sel.preset) {
+      case "15m":
+        return DASHBOARD_WINDOW_MIN;
+      case "1h":
+        return DASHBOARD_WINDOW_MIN;
+      case "24h":
+        return 24;
+      case "7d":
+        return DASHBOARD_WINDOW_MAX;
+      case "30d":
+        return DASHBOARD_WINDOW_MAX;
+    }
+  }
+  const hours = Math.ceil((sel.range.toMs - sel.range.fromMs) / 3_600_000);
+  if (!Number.isFinite(hours) || hours < DASHBOARD_WINDOW_MIN)
+    return DASHBOARD_WINDOW_MIN;
+  if (hours > DASHBOARD_WINDOW_MAX) return DASHBOARD_WINDOW_MAX;
+  return hours;
+}

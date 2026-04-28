@@ -92,6 +92,8 @@ export interface TrendBucketDto {
   readonly tbtP75: number;
   // 自定义 FSP / 首屏时间（p75）
   readonly fmpP75: number;
+  // Lighthouse 实验室近似 Speed Index（p75；ADR-0018 补齐）
+  readonly siP75: number;
   // Navigation 阶段（p75）
   readonly dnsP75: number;
   readonly tcpP75: number;
@@ -141,6 +143,16 @@ export interface DimensionsDto {
   readonly platform: readonly DimensionRowDto[];
 }
 
+/** 长任务三级分布（ADR-0018；阈值见 SPEC §3.3.2） */
+export interface LongTaskTiersDto {
+  /** 50 ms ≤ duration < 2000 ms */
+  readonly longTask: number;
+  /** 2000 ms ≤ duration < 5000 ms —— 卡顿（用户可感知） */
+  readonly jank: number;
+  /** duration ≥ 5000 ms —— 无响应（页面假死） */
+  readonly unresponsive: number;
+}
+
 /** 长任务概览（来自 perf_events_raw 中 type = 'long_task' 的行） */
 export interface LongTaskSummaryDto {
   /** 时间窗内长任务样本数 */
@@ -149,6 +161,8 @@ export interface LongTaskSummaryDto {
   readonly totalMs: number;
   /** 长任务 duration 的 p75（ms） */
   readonly p75Ms: number;
+  /** 3 级分布 —— 服务端按 duration 回填，兼容历史未携带 tier 的事件 */
+  readonly tiers: LongTaskTiersDto;
 }
 
 export interface PerformanceOverviewDto {

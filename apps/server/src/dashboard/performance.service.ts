@@ -111,13 +111,18 @@ function buildLongTasks(row: LongTaskSummaryRow): LongTaskSummaryDto {
     count: row.count,
     totalMs: row.totalMs,
     p75Ms: row.p75Ms,
+    tiers: {
+      longTask: row.tiers.longTask,
+      jank: row.tiers.jank,
+      unresponsive: row.tiers.unresponsive,
+    },
   };
 }
 
 // ------- Vitals -------
 
 // 面板顺序（按业务要求）：LCP → INP → CLS → TTFB → FCP → TTI → TBT → FID → SI
-// SI（Speed Index）为 Lighthouse 专属指标，SDK 不采集，恒为占位 N/A
+// SI（Speed Index）由 SDK speedIndexPlugin 用 FP/FCP/LCP 梯形法 AUC 近似（ADR-0018，精度 ±20%）
 const VITAL_ORDER: readonly VitalKey[] = [
   "LCP",
   "INP",
@@ -223,6 +228,7 @@ interface TrendBucketAccumulator {
   ttiP75: number;
   tbtP75: number;
   fmpP75: number;
+  siP75: number;
   dnsP75: number;
   tcpP75: number;
   sslP75: number;
@@ -243,6 +249,7 @@ function createEmptyBucket(): TrendBucketAccumulator {
     ttiP75: 0,
     tbtP75: 0,
     fmpP75: 0,
+    siP75: 0,
     dnsP75: 0,
     tcpP75: 0,
     sslP75: 0,
@@ -306,6 +313,9 @@ function buildTrendBuckets(
         break;
       case "FSP":
         b.fmpP75 = value;
+        break;
+      case "SI":
+        b.siP75 = value;
         break;
       default:
         break;

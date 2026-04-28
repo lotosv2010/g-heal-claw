@@ -88,6 +88,15 @@ export interface LongTaskSummaryRow {
   readonly totalMs: number;
   /** duration 的 p75（ms） */
   readonly p75Ms: number;
+  /** 三级分布（ADR-0018，SPEC §3.3.2；仅按 duration 回填） */
+  readonly tiers: {
+    /** 50 ms ≤ duration < 2000 ms */
+    readonly longTask: number;
+    /** 2000 ms ≤ duration < 5000 ms */
+    readonly jank: number;
+    /** duration ≥ 5000 ms */
+    readonly unresponsive: number;
+  };
 }
 
 /**
@@ -147,9 +156,16 @@ export class PerformanceService {
   }
 
   /**
-   * 聚合：5 个 Web Vitals 的 p75 + 样本数（ADR-0015）
+   * 聚合：10 个性能指标的 p75 + 样本数（ADR-0015 + ADR-0018）
    *
-   * 走 `idx_perf_project_metric_ts` 索引；metric IN (...) 时 PG 走 Index Scan。
+   * 覆盖：LCP / FCP / CLS / INP / TTFB（Core Web Vitals）
+   *     + FSP（自定义首屏）
+   *     + FID / TTI（已废弃，保留历史数据渲染）
+   *     + TBT / SI（Lighthouse 实验室口径 + SDK 近似）
+   *
+   * 不用 `metric IN (...)` 白名单是刻意的：以 `metric IS NOT NULL` 吸收 SDK 未来扩展的新指标，
+   * 避免每次新增 metric 都要改两个地方；`type = 'performance'` 过滤保证不会串入 long_task。
+   * 走 `idx_perf_project_metric_ts` 索引。
    */
   public async aggregateVitals(params: WindowParams): Promise<VitalAggregateRow[]> {
     const db = this.database.db;
@@ -181,25 +197,43 @@ export class PerformanceService {
   }
 
   /**
-   * 聚合：长任务（type='long_task'） 窗口内 count / totalMs / p75(duration)
+   * 聚合：长任务（type='long_task'） 窗口内 count / totalMs / p75(duration) + 3 级分布
    *
-   * 来源 `perf_events_raw.lt_duration_ms`。无样本时返回 0 填充，前端判空而非抛错。
+   * 来源 `perf_events_raw.lt_duration_ms`。三级分布（ADR-0018）：
+   *   - `longTask`      50 ms ≤ duration < 2000 ms
+   *   - `jank`         2000 ms ≤ duration < 5000 ms
+   *   - `unresponsive` duration ≥ 5000 ms
+   * 分级直接按 duration 回填，无需依赖 SDK 新增字段，历史数据自动覆盖。
+   * 无样本时返回 0 填充，前端判空而非抛错。
    */
   public async aggregateLongTasks(
     params: WindowParams,
   ): Promise<LongTaskSummaryRow> {
     const db = this.database.db;
-    if (!db) return { count: 0, totalMs: 0, p75Ms: 0 };
+    if (!db) {
+      return {
+        count: 0,
+        totalMs: 0,
+        p75Ms: 0,
+        tiers: { longTask: 0, jank: 0, unresponsive: 0 },
+      };
+    }
     const { projectId, sinceMs, untilMs } = params;
     const rows = await db.execute<{
       n: string | number;
       total: string | number | null;
       p75: string | number | null;
+      tier_long: string | number | null;
+      tier_jank: string | number | null;
+      tier_unresponsive: string | number | null;
     }>(sql`
       SELECT
         COUNT(*) AS n,
         COALESCE(SUM(lt_duration_ms), 0) AS total,
-        percentile_cont(0.75) WITHIN GROUP (ORDER BY lt_duration_ms) AS p75
+        percentile_cont(0.75) WITHIN GROUP (ORDER BY lt_duration_ms) AS p75,
+        SUM(CASE WHEN lt_duration_ms <  2000 THEN 1 ELSE 0 END) AS tier_long,
+        SUM(CASE WHEN lt_duration_ms >= 2000 AND lt_duration_ms < 5000 THEN 1 ELSE 0 END) AS tier_jank,
+        SUM(CASE WHEN lt_duration_ms >= 5000 THEN 1 ELSE 0 END) AS tier_unresponsive
       FROM perf_events_raw
       WHERE project_id = ${projectId}
         AND type = 'long_task'
@@ -212,14 +246,20 @@ export class PerformanceService {
       count: r ? Number(r.n) : 0,
       totalMs: r && r.total != null ? Math.round(Number(r.total)) : 0,
       p75Ms: r && r.p75 != null ? Math.round(Number(r.p75)) : 0,
+      tiers: {
+        longTask: r && r.tier_long != null ? Number(r.tier_long) : 0,
+        jank: r && r.tier_jank != null ? Number(r.tier_jank) : 0,
+        unresponsive:
+          r && r.tier_unresponsive != null ? Number(r.tier_unresponsive) : 0,
+      },
     };
   }
 
   /**
-   * 聚合：按小时 × metric 的 p75 桶（LCP/FCP/CLS/INP/TTFB/FID/TTI/TBT/FSP）
+   * 聚合：按小时 × metric 的 p75 桶（10 指标全覆盖）
    *
    * 返回原始长表行；上层按 hour 合并成宽表 TrendBucketDto。
-   * 所有 web-vitals 核心指标 + 废弃 + 自定义 FSP + Lighthouse TBT 全部走这一查询。
+   * ADR-0018：白名单补齐 SI（Lighthouse 近似），避免趋势图漏算 Speed Index 系列。
    */
   public async aggregateTrend(params: WindowParams): Promise<TrendAggregateRow[]> {
     const db = this.database.db;
@@ -237,7 +277,7 @@ export class PerformanceService {
       FROM perf_events_raw
       WHERE project_id = ${projectId}
         AND type = 'performance'
-        AND metric IN ('LCP','FCP','CLS','INP','TTFB','FID','TTI','TBT','FSP')
+        AND metric IN ('LCP','FCP','CLS','INP','TTFB','FID','TTI','TBT','FSP','SI')
         AND value IS NOT NULL
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}

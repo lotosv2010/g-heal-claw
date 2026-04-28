@@ -81,6 +81,8 @@ export interface TrendBucket {
   readonly tbtP75: number;
   // FSP / 首屏时间
   readonly fmpP75: number;
+  // Lighthouse 实验室近似 Speed Index（ADR-0018）
+  readonly siP75: number;
   // Navigation 子字段
   readonly dnsP75: number;
   readonly tcpP75: number;
@@ -133,11 +135,19 @@ export interface Dimensions {
   readonly platform: readonly DimensionRow[];
 }
 
+/** 长任务 3 级分布（ADR-0018；阈值：50ms~2s / 2s~5s / ≥5s） */
+export interface LongTaskTiers {
+  readonly longTask: number;
+  readonly jank: number;
+  readonly unresponsive: number;
+}
+
 /** 长任务概览（来自 perf_events_raw type='long_task' 聚合） */
 export interface LongTaskSummary {
   readonly count: number;
   readonly totalMs: number;
   readonly p75Ms: number;
+  readonly tiers: LongTaskTiers;
 }
 
 export interface PerformanceOverview {
@@ -159,6 +169,12 @@ export interface PerformanceOverviewResult {
   readonly data: PerformanceOverview;
 }
 
+/** 概览查询参数（与后端 `OverviewQuerySchema` 对齐的子集） */
+export interface PerformanceOverviewParams {
+  /** 聚合窗口（小时），1~168；省略则使用后端默认 24 */
+  readonly windowHours?: number;
+}
+
 /**
  * 获取页面性能概览
  *
@@ -167,7 +183,9 @@ export interface PerformanceOverviewResult {
  * - 5xx / fetch 抛错 / JSON 解析失败 → `source: "error"`，降级为 emptyOverview
  * - 目标端点：`${NEXT_PUBLIC_API_BASE_URL}/dashboard/v1/performance/overview?projectId=...`
  */
-export async function getPerformanceOverview(): Promise<PerformanceOverviewResult> {
+export async function getPerformanceOverview(
+  params: PerformanceOverviewParams = {},
+): Promise<PerformanceOverviewResult> {
   // 开发默认值：与 apps/server 的 SERVER_PORT=3001、.env.example 一致；
   // 部署时通过 NEXT_PUBLIC_API_BASE_URL 覆盖
   const baseUrl =
@@ -176,7 +194,11 @@ export async function getPerformanceOverview(): Promise<PerformanceOverviewResul
   const projectId =
     process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID ?? "demo";
 
-  const url = `${baseUrl}/dashboard/v1/performance/overview?projectId=${encodeURIComponent(projectId)}`;
+  const qs = new URLSearchParams({ projectId });
+  if (params.windowHours != null && Number.isFinite(params.windowHours)) {
+    qs.set("windowHours", String(params.windowHours));
+  }
+  const url = `${baseUrl}/dashboard/v1/performance/overview?${qs.toString()}`;
 
   try {
     const response = await fetch(url, {
@@ -233,6 +255,11 @@ export function emptyOverview(): PerformanceOverview {
     slowPages: [],
     fmpPages: [],
     dimensions: { browser: [], os: [], platform: [] },
-    longTasks: { count: 0, totalMs: 0, p75Ms: 0 },
+    longTasks: {
+      count: 0,
+      totalMs: 0,
+      p75Ms: 0,
+      tiers: { longTask: 0, jank: 0, unresponsive: 0 },
+    },
   };
 }
