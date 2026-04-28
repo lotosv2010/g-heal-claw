@@ -87,9 +87,14 @@ export class DashboardPerformanceService {
 
     const vitals = buildVitals(vitalsCurrent, vitalsPrevious);
     const trend = buildTrendBuckets(trendRows, navTrendRows);
+    // firstScreen 优先取 FSP p75（ADR-0018 P0.3）；无 FSP 样本时回落到 FCP p75
+    // FSP 不在 VitalKey 枚举（仅 trend/瀑布使用），直接按 metric 字符串查
+    const fspP75 = vitalsCurrent.find((r) => r.metric === "FSP")?.p75;
+    const fcpP75 = vitalFromAggregate(vitalsCurrent, "FCP");
+    const firstScreenMs = fspP75 && fspP75 > 0 ? fspP75 : (fcpP75 ?? 0);
     const stages = buildStages(
       waterfallSamples,
-      vitalFromAggregate(vitalsCurrent, "FCP") ?? 0,
+      firstScreenMs,
       vitalFromAggregate(vitalsCurrent, "LCP") ?? 0,
     );
     const slowPages = buildSlowPages(slowPageRows);
