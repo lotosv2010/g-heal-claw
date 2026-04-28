@@ -82,10 +82,16 @@ describe("Gateway e2e", () => {
     await app.close();
   });
 
+  const VALID_DSN = "http://pk_demo@localhost:3001/demo";
+
   it("POST /ingest/v1/events — 合法 payload 返回 accepted 计数", async () => {
     const res = await supertest(app.getHttpServer())
       .post("/ingest/v1/events")
-      .send({ sentAt: Date.now(), events: [buildCustomLogEvent()] })
+      .send({
+        dsn: VALID_DSN,
+        sentAt: Date.now(),
+        events: [buildCustomLogEvent()],
+      })
       .expect(200);
     // NODE_ENV=test 下 DatabaseService 不建连接，persisted 恒为 0
     expect(res.body).toEqual({ accepted: 1, persisted: 0 });
@@ -94,10 +100,30 @@ describe("Gateway e2e", () => {
   it("POST /ingest/v1/events — 非法 payload（events 空）返回 400", async () => {
     const res = await supertest(app.getHttpServer())
       .post("/ingest/v1/events")
-      .send({ sentAt: Date.now(), events: [] })
+      .send({ dsn: VALID_DSN, sentAt: Date.now(), events: [] })
       .expect(400);
     expect(res.body).toMatchObject({ error: "VALIDATION_FAILED" });
     expect(Array.isArray(res.body.details)).toBe(true);
+  });
+
+  it("POST /ingest/v1/events — 缺 DSN → 401 INVALID_DSN", async () => {
+    const res = await supertest(app.getHttpServer())
+      .post("/ingest/v1/events")
+      .send({ sentAt: Date.now(), events: [buildCustomLogEvent()] })
+      .expect(401);
+    expect(res.body).toMatchObject({ error: "INVALID_DSN" });
+  });
+
+  it("POST /ingest/v1/events — 非法 DSN 字符串 → 401 INVALID_DSN", async () => {
+    const res = await supertest(app.getHttpServer())
+      .post("/ingest/v1/events")
+      .send({
+        dsn: "not-a-url",
+        sentAt: Date.now(),
+        events: [buildCustomLogEvent()],
+      })
+      .expect(401);
+    expect(res.body).toMatchObject({ error: "INVALID_DSN" });
   });
 
   it("CORS preflight — localhost:3100 放行", async () => {
