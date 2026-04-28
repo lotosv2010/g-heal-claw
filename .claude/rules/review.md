@@ -57,6 +57,12 @@
 - [ ] `packages/shared` 无运行时副作用
 - [ ] SDK 包体积 < 10KB gzip（如有变更需验证）
 
+### 8. 测试文件放置
+
+- [ ] 测试文件全部位于对应包/应用的 `tests/` 目录下
+- [ ] `src/**/*.{test,spec}.{ts,tsx}` 不存在（散落即违规）
+- [ ] `tests/` 目录结构镜像 `src/`，命名保留 `.test.ts` / `.spec.ts` 后缀
+
 ## 常见问题速查
 
 | 问题 | 修复方式 |
@@ -68,3 +74,4 @@
 | 环境变量直接 `process.env.XXX` | 通过 Zod Schema 校验后使用（NestJS: `@nestjs/config`） |
 | NestJS Controller 缺少 Swagger | 添加 `@ApiTags` + `@ApiOperation` + `@ApiResponse` 装饰器 |
 | 模块间直接导入 Controller | 改为导入 Service，通过 Module exports 暴露 |
+| 测试文件放在 `src/` 下 | 迁移到 `<package>/tests/`，保留镜像路径和 `.test.ts` / `.spec.ts` 后缀 |

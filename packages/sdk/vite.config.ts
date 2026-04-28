@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 import { resolve } from "node:path";
@@ -7,6 +8,15 @@ import { resolve } from "node:path";
 // - 类型声明由 vite-plugin-dts 产出到 dist/index.d.ts
 // - 浏览器目标：零 Node.js API；bundle shared 进产物避免消费方再装 zod
 export default defineConfig({
+  // 测试文件集中在 tests/ 目录（coding.md 放置规则）
+  test: {
+    environment: "jsdom",
+    include: ["tests/**/*.{test,spec}.ts"],
+    coverage: {
+      include: ["src/**/*.ts"],
+      exclude: ["src/**/index.ts"],
+    },
+  },
   build: {
     target: "es2020",
     sourcemap: true,
@@ -31,7 +41,6 @@ export default defineConfig({
     dts({
       entryRoot: "src",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts"],
       rollupTypes: true,
       tsconfigPath: "./tsconfig.json",
     }),

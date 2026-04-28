@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [swc.vite({ module: { type: "es6" } })],
   test: {
     environment: "node",
-    include: ["src/**/*.spec.ts"],
+    // 测试文件集中在 tests/ 目录（coding.md 放置规则）
+    include: ["tests/**/*.{spec,test}.ts"],
     globals: false,
   },
 });

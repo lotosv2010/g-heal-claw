@@ -161,6 +161,16 @@ apps/ai-agent/
 - 测试验证行为，而非实现细节
 - **集成测试禁止 mock 数据库**，一律使用 Dockerized PG
 
+### 测试文件放置规则（强制）
+
+- **所有测试文件必须集中放置在对应包/应用根目录下的 `tests/` 文件夹中**，禁止散落在 `src/`、`app/`、`components/`、`lib/` 等业务目录
+- 命名沿用 `*.test.ts` / `*.spec.ts`（TSX 同理），但**路径**必须以 `tests/` 为根
+- 目录镜像源码结构，便于定位：
+  - `packages/sdk/src/plugins/error.ts` → `packages/sdk/tests/plugins/error.test.ts`
+  - `apps/server/src/dashboard/errors.service.ts` → `apps/server/tests/dashboard/errors.service.spec.ts`
+- 端到端 / 集成测试按既有层次归类：`tests/unit/`、`tests/integration/`、`tests/e2e/`（按需）
+- **审查红线**：`src/**/*.{test,spec}.{ts,tsx}` 出现即判定违规，必须迁移至 `tests/`
+
 ## 注释与文档
 
 - 代码注释和项目文档统一使用中文

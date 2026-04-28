@@ -3,7 +3,7 @@ import type { CustomLog, ErrorEvent } from "@g-heal-claw/shared";
 /**
  * 测试夹具：生成一条最小可通过 Zod 校验的 custom_log 事件
  *
- * 放在 test/ 目录以便 service spec 与 e2e spec 共享，避免每个用例重复构造。
+ * 放在 tests/ 目录以便 service spec 与 e2e spec 共享，避免每个用例重复构造。
  */
 export function buildCustomLogEvent(
   overrides: Partial<CustomLog> = {},

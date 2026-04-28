@@ -4,10 +4,11 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    // 测试文件集中在 tests/ 目录（coding.md 放置规则）
+    include: ["tests/**/*.{test,spec}.ts"],
     coverage: {
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/**/index.ts"],
+      exclude: ["src/**/index.ts"],
     },
   },
 });
