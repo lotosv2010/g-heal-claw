@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-04-28（ADR-0018 T2.1.8 性能模块完整性切片注册；文档一致性 Phase A 完成，进入 P0 代码实现）
+> 最后更新: 2026-04-28（ADR-0019 T1.6.2.0.7 异常模块 9 类目扩展切片完成 + 测试放置规则落地 + turbo 严格串行链；typecheck 7/7 / build 5/5 全绿）
 
 ## 状态说明
 
@@ -237,6 +237,12 @@
     - 输出：`/errors` 完整 live 页面
     - 验收：触发 demo 异常后刷新 `/errors` 能看到样本；server 未运行时显示 `error` 态 Badge
     - 依赖：T1.6.2.0.5
+  - [x] **T1.6.2.0.7** 异常模块 9 类目扩展切片（ADR-0019）：SDK `httpPlugin`（Ajax + API code）+ `errorPlugin` 资源细分（js_load/image_load/css_load/media）+ 白屏心跳；`ErrorEventSchema.category` 9 值；`error_events_raw` drizzle 迁移 `0002_errors_ajax_columns.sql`；`ErrorsService` 9 类目聚合；Web `/errors` 重构（删除 summary-cards / sub-type-donut / top-groups-table / trend-chart；新增 category-cards / dimension-tabs / ranking-table / stack-chart（DualAxes 堆叠柱 + 全部日志 rose-600 折线））；demo 新增 7 场景路由；`turbo` dev/build 顺序重排为 shared → sdk → server → web → demo；`apps/web/(dashboard)/layout.tsx` 用 Suspense 包裹 Topbar 修复 `useSearchParams()` CSR bailout — 1.2d（完成 2026-04-28；`pnpm typecheck` 7/7 + `pnpm build` 5/5 全绿；单测待 T1.6.2.0.8 在新 `tests/` 目录下补齐）
+    - 输入：T1.6.2.0.6
+    - 输出：9 类目采集 / 存储 / 聚合 / 展示全链路；7 个异常演示路由；turbo 严格串行链
+    - 验收：typecheck + build 全绿；demo 触发 7 类场景可观测到对应 category 上报
+    - 依赖：T1.6.2.0.6
+  - [ ] **T1.6.2.0.8** 在各包 `tests/` 目录补回核心路径单测（ADR-0019 强制放置规则）：`packages/shared/tests/` + `packages/sdk/tests/plugins/{error,http}.test.ts` + `apps/server/tests/dashboard/errors.service.spec.ts` — 0.8d
 - [ ] **T1.2.3** Breadcrumb 收集（路由切换、点击、console、fetch/xhr 轨迹）— 2d
 - [ ] **T1.2.4** 设备与页面上下文采集（ua-parser / viewport / network / page info）— 1d
 - [ ] **T1.2.5** 上报传输层（beacon / fetch / image 自动协商 + 批量队列 + flushInterval）— 3d
@@ -519,7 +525,8 @@
 > 每周同步更新本节。
 
 - 进行中：**T2.1.8 性能模块完整性切片（ADR-0018）** — 文档一致性（SPEC / ARCHITECTURE / CURRENT）已落地，进入 P0 代码实现（SI 后端聚合核实 → 长任务分级 → FSP 插件）
-- 下一步：T1.3.2 Gateway DSN 鉴权（走新建的 `project_keys` 表 + Redis 缓存）+ T1.3.3 项目级限流；可并行 T1.1.7 认证（走 `users` / `project_members`）
+- 下一步：T1.6.2.0.8 在各包 `tests/` 目录补回核心路径单测（ADR-0019 强制放置规则）；完成后继续 T1.3.2 Gateway DSN 鉴权 + T1.3.3 项目级限流
+- 最近完成（2026-04-28）：**T1.6.2.0.7 异常模块 9 类目扩展切片（ADR-0019）** —— SDK `httpPlugin`（Ajax + API code）+ `errorPlugin` 资源细分（js_load/image_load/css_load/media + 白屏心跳）；`ErrorEventSchema.category` 9 值；drizzle `0002_errors_ajax_columns.sql`；`ErrorsService` 9 类目聚合；Web `/errors` 重构为 category-cards / dimension-tabs / ranking-table / stack-chart（DualAxes 堆叠柱 + 全部日志 rose-600 折线）；demo 新增 7 异常演示路由（ajax-fail / api-code / css-load / image-load / js-load / media-load / white-screen）；`turbo` dev/build 顺序改为严格串行 shared→sdk→server→web→demo；清理 19 个散落 src/ 下的 `.test.ts|.spec.ts` 并强制放置于 `tests/`；`apps/web/(dashboard)/layout.tsx` Suspense 包裹 Topbar 修复 Next 16 `useSearchParams()` CSR bailout；`pnpm typecheck` 7/7 + `pnpm build` 5/5 全绿
 - 最近完成（2026-04-28）：**性能模块端到端 review + ADR-0018 + 文档一致性** —— 识别 4 P0 + 3 P1 + 2 P2 差距；T2.1.8 里程碑注册；SPEC §3.3.2/§4.2/§5.4.0/§6.3 同步补齐（10 指标 Rating 表 + long_task 3 级 tier + `PerformanceOverviewDto` 新增 longTasks/fmpPages/dimensions + 维度分阶段落地表）；ARCHITECTURE §4.2.1 同步（SDK plugins 四元组 + Dashboard 多聚合并发）
 - 最近完成（2026-04-28）：T1.1.5 Drizzle Schema 首版基线（ADR-0017，7 子任务 2.8d 全部落地）—— `packages/shared/id.ts` + 7 前缀常量 + 8 case 单测；apps/server devDeps 扩容（drizzle-kit@^0.30 + nanoid@^5）；Schema 拆分为 schema/ 子目录 7 文件（8 张主表 + 3 张事件流）；events_raw 分区父表 + 4 张周分区 DDL；`ALL_DDL` 30 条（FK 严格顺序）；`drizzle/0001_initial.sql` 迁移源手工维护；shared 33 tests + server 8 unit tests 全绿；SPEC §9 + ARCHITECTURE §8.1.1 同步
 - 最近完成（2026-04-27）：异常监控闭环切片 T1.2.2 / T1.4.0.1~3 / T1.6.2.0.1~6（ADR-0016）：SDK `errorPlugin` 三路订阅 + 资源加载过滤（55/55 单测绿，ESM 7.50KB gzip）；`error_events_raw` 幂等入库；GatewayService 分流 perf/error/其他；`/dashboard/v1/errors/overview` 五类 subType 占位 + 环比 + Top 分组；Web `/errors` 三态 Badge + CSS conic-gradient 环形图 + AntV Line 趋势；web build 11 页全绿（`/errors` 标记 ƒ Dynamic）

@@ -55,5 +55,7 @@
 | [ADR-0015](./0015-dashboard-performance-api.md) | Dashboard 性能大盘 API 首版：DashboardModule 直查 `perf_events_raw` 做 p75 聚合，Web 端走 `NEXT_PUBLIC_DEFAULT_PROJECT_ID` + `NEXT_PUBLIC_API_BASE_URL` | 采纳 |
 | [ADR-0016](./0016-error-monitoring-slice.md) | 异常监控闭环切片：SDK ErrorPlugin（window.error + unhandledrejection + 资源 capture）+ `error_events_raw` 单表 + Dashboard `(subType, message_head)` 字面分组直查聚合 | 采纳 |
 | [ADR-0017](./0017-drizzle-schema-baseline.md) | Drizzle Schema 首版基线：多租户主表 8 张（users / projects / project_keys / project_members / environments / releases / issues / events_raw 分区）+ 前缀 nanoid 主键 + drizzle-kit 迁移源真值 | 采纳 |
+| [ADR-0018](./0018-performance-module-gap-slice.md) | 性能监控模块完整性切片（T2.1.8）：longTask / speedIndex 插件补齐 + `PerformanceEventSchema.metric` 9 值（新增 FSP/FID/TTI/TBT/SI）+ Dashboard longTasks/fmpPages/dimensions + Core Vitals 九宫格三段式阈值指针 | 采纳 |
+| [ADR-0019](./0019-errors-module-taxonomy-and-test-placement.md) | 异常监控模块 9 类目扩展（category 字段 + httpPlugin + ErrorsService 9 rollup + Web `/errors` 重构）+ 测试文件统一放置规则（`tests/`，`src/**/*.{test,spec}.{ts,tsx}` 判为违规） | 采纳 |
 
 > 当你需要为某条决策补充详细背景或推翻旧决策时，请新增 `0001-xxx.md`（而非修改旧文件），并在此索引更新状态。

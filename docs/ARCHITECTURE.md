@@ -94,8 +94,8 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `AlertModule` | 告警规则评估、触发 | BullMQ `alert-evaluator` | DB、Notification |
 | `NotificationModule` | 通知渠道分发（邮件/钉钉/企微/Slack/Webhook/**短信**） | BullMQ `notifications` | 外部 HTTP / SMS Provider |
 | `RealtimeModule` | 将聚合事件通过 Redis Pub/Sub 扇出，向前端推送 SSE | HTTP `/api/v1/stream/*` · `/open/v1/events/stream` | Redis Pub/Sub |
-| `DashboardModule` | 面向 Web 的只读聚合 API（首版 ADR-0015 性能大盘直查 `perf_events_raw` + p75；首版 ADR-0016 异常大盘直查 `error_events_raw` 按 `(sub_type, message_head)` 字面分组；T1.1.7 后并入 JWT + ProjectGuard） | HTTP `/dashboard/v1/*` → Phase 6 迁移至 `/api/v1/*` | DB、PerformanceService、ErrorsService |
-| `ErrorsModule` | 异常事件切片存储与聚合（ADR-0016）：`error_events_raw` 幂等落库 + 4 个 aggregate 方法（summary / bySubType / trend / topGroups），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
+| `DashboardModule` | 面向 Web 的只读聚合 API（首版 ADR-0015 性能大盘直查 `perf_events_raw` + p75；首版 ADR-0016/0019 异常大盘直查 `error_events_raw` 按 9 类目 `category` 聚合 + `(sub_type, message_head)` 字面排行；T1.1.7 后并入 JWT + ProjectGuard） | HTTP `/dashboard/v1/*` → Phase 6 迁移至 `/api/v1/*` | DB、PerformanceService、ErrorsService |
+| `ErrorsModule` | 异常事件切片存储与聚合（ADR-0016 + ADR-0019）：`error_events_raw` 幂等落库（新增 Ajax/API code 列）+ 9 类目 `categoryCards` / `stackBuckets` / `ranking` / `dimensions` 聚合方法，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `PerformanceModule` | 性能事件切片存储与聚合（ADR-0013）：`perf_events_raw` 落库 + p75 / 趋势 / 瀑布 / 慢页面 Top N 聚合 | 进程内 Service | DB |
 | `OpenApiModule` | 面向外部系统的 API Token 开放接口 | HTTP `/open/v1/*` | DB |
 | `HealModule` | 触发自愈流程，产出/回写 heal_job | HTTP + BullMQ `heal-jobs` | DB → ai-agent |
@@ -202,7 +202,12 @@ SDK plugins（packages/sdk/src/plugins/）
   │    └─ metric='SI'，load + settleMs=3000 封板一次，±20% 精度
   ├─ fspPlugin (T2.1.8 落地)
   │    └─ MutationObserver + rAF 窗口 → metric='FSP' 首屏时间
-  └─ errorPlugin（ADR-0016）
+  ├─ errorPlugin（ADR-0016 + ADR-0019）
+  │    └─ window.error 冒泡/捕获 + unhandledrejection；category ∈
+  │       {js, promise, white_screen, js_load, image_load, css_load, media}
+  └─ httpPlugin（ADR-0019）
+       └─ fetch / XHR monkey-patch；category ∈ {ajax, api_code}，
+          默认跳过上报端点避免雪崩
 
   ──POST /ingest/v1/events──▶ Gateway
       · Zod 校验 · DSN → projectId · 批量幂等（eventId UNIQUE）
