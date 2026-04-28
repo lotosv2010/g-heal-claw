@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-04-28（ADR-0019 T1.6.2.0.7 异常模块 9 类目扩展切片完成 + 测试放置规则落地 + turbo 严格串行链；typecheck 7/7 / build 5/5 全绿）
+> 最后更新: 2026-04-28（T1.6.2.0.8 `tests/` 目录核心路径单测补齐：shared 17/17 + sdk 19/19 + server 7 单元 + 4 e2e 全绿；typecheck 7/7 + build 5/5 保持）
 
 ## 状态说明
 
@@ -242,7 +242,11 @@
     - 输出：9 类目采集 / 存储 / 聚合 / 展示全链路；7 个异常演示路由；turbo 严格串行链
     - 验收：typecheck + build 全绿；demo 触发 7 类场景可观测到对应 category 上报
     - 依赖：T1.6.2.0.6
-  - [ ] **T1.6.2.0.8** 在各包 `tests/` 目录补回核心路径单测（ADR-0019 强制放置规则）：`packages/shared/tests/` + `packages/sdk/tests/plugins/{error,http}.test.ts` + `apps/server/tests/dashboard/errors.service.spec.ts` — 0.8d
+  - [x] **T1.6.2.0.8** 在各包 `tests/` 目录补回核心路径单测（ADR-0019 强制放置规则）：`packages/shared/tests/events/error.test.ts`（9 subType + resource.kind 判别，8 case）+ `packages/sdk/tests/plugins/http.test.ts`（fetch 成功/api_code/非 2xx/抛错/ignoreUrls/self-ingest/双 patch + XHR 404/onerror，10 case）+ `packages/sdk/tests/plugins/error.test.ts`（JS/Promise/资源 4 分类/WeakSet 去重/ignoreErrors，9 case）+ `apps/server/tests/dashboard/errors.service.spec.ts`（9 类目 ratio / null 兜底 / delta up/down/flat / 空窗口 / topGroups，7 case）— 0.8d（完成 2026-04-28；同步修正 `packages/sdk/vitest.config.ts` include 改为 `tests/**`）
+    - 输入：T1.6.2.0.7
+    - 输出：shared 17 tests / sdk 19 tests / server 7 单元 + 4 e2e 全绿；`src/**/*.{test,spec}.{ts,tsx}` 保持零存在
+    - 验收：`pnpm typecheck` 7/7 + `pnpm build` 5/5 + 分包 `pnpm test` 全绿
+    - 依赖：T1.6.2.0.7
 - [ ] **T1.2.3** Breadcrumb 收集（路由切换、点击、console、fetch/xhr 轨迹）— 2d
 - [ ] **T1.2.4** 设备与页面上下文采集（ua-parser / viewport / network / page info）— 1d
 - [ ] **T1.2.5** 上报传输层（beacon / fetch / image 自动协商 + 批量队列 + flushInterval）— 3d
@@ -524,8 +528,9 @@
 
 > 每周同步更新本节。
 
-- 进行中：**T2.1.8 性能模块完整性切片（ADR-0018）** — 文档一致性（SPEC / ARCHITECTURE / CURRENT）已落地，进入 P0 代码实现（SI 后端聚合核实 → 长任务分级 → FSP 插件）
-- 下一步：T1.6.2.0.8 在各包 `tests/` 目录补回核心路径单测（ADR-0019 强制放置规则）；完成后继续 T1.3.2 Gateway DSN 鉴权 + T1.3.3 项目级限流
+- 进行中：无（T1.6.2.0 切片全部完成）
+- 下一步候选：①T1.3.2 Gateway DSN 鉴权 Guard + 项目缓存 ②T1.3.3 项目级限流（Redis 令牌桶 Lua）③T1.4.1 ErrorProcessor 入队消费 + 指纹聚合 + BullMQ → `error_issues` ④T2.1.8 P0（SI 后端聚合核实 → 长任务分级 → FSP 插件）
+- 最近完成（2026-04-28）：**T1.6.2.0.8 `tests/` 目录核心路径单测补齐（ADR-0019 放置规则）** —— `packages/shared/tests/events/error.test.ts` 8 case（9 subType + resource.kind 判别 + ajax/api_code request 字段 + 向后兼容）；`packages/sdk/tests/plugins/http.test.ts` 10 case（fetch 成功/api_code/非 2xx/抛错/非 JSON/ignoreUrls/self-ingest/双 patch + XHR 404/onerror）；`packages/sdk/tests/plugins/error.test.ts` 9 case（JS/Promise Error+字符串/资源 4 分类/WeakSet 冒泡+捕获去重/ignoreErrors 子串）；`apps/server/tests/dashboard/errors.service.spec.ts` 7 case（9 类目 ratio / resource.kind=null|other 兜底 js_load / delta up+down+flat / 空窗口 9 占位 / topGroups.category 映射）；同步修正 `packages/sdk/vitest.config.ts` include 为 `tests/**`；shared 17/17 + sdk 19/19 + server 7 单元 + 4 e2e 全绿
 - 最近完成（2026-04-28）：**T1.6.2.0.7 异常模块 9 类目扩展切片（ADR-0019）** —— SDK `httpPlugin`（Ajax + API code）+ `errorPlugin` 资源细分（js_load/image_load/css_load/media + 白屏心跳）；`ErrorEventSchema.category` 9 值；drizzle `0002_errors_ajax_columns.sql`；`ErrorsService` 9 类目聚合；Web `/errors` 重构为 category-cards / dimension-tabs / ranking-table / stack-chart（DualAxes 堆叠柱 + 全部日志 rose-600 折线）；demo 新增 7 异常演示路由（ajax-fail / api-code / css-load / image-load / js-load / media-load / white-screen）；`turbo` dev/build 顺序改为严格串行 shared→sdk→server→web→demo；清理 19 个散落 src/ 下的 `.test.ts|.spec.ts` 并强制放置于 `tests/`；`apps/web/(dashboard)/layout.tsx` Suspense 包裹 Topbar 修复 Next 16 `useSearchParams()` CSR bailout；`pnpm typecheck` 7/7 + `pnpm build` 5/5 全绿
 - 最近完成（2026-04-28）：**性能模块端到端 review + ADR-0018 + 文档一致性** —— 识别 4 P0 + 3 P1 + 2 P2 差距；T2.1.8 里程碑注册；SPEC §3.3.2/§4.2/§5.4.0/§6.3 同步补齐（10 指标 Rating 表 + long_task 3 级 tier + `PerformanceOverviewDto` 新增 longTasks/fmpPages/dimensions + 维度分阶段落地表）；ARCHITECTURE §4.2.1 同步（SDK plugins 四元组 + Dashboard 多聚合并发）
 - 最近完成（2026-04-28）：T1.1.5 Drizzle Schema 首版基线（ADR-0017，7 子任务 2.8d 全部落地）—— `packages/shared/id.ts` + 7 前缀常量 + 8 case 单测；apps/server devDeps 扩容（drizzle-kit@^0.30 + nanoid@^5）；Schema 拆分为 schema/ 子目录 7 文件（8 张主表 + 3 张事件流）；events_raw 分区父表 + 4 张周分区 DDL；`ALL_DDL` 30 条（FK 严格顺序）；`drizzle/0001_initial.sql` 迁移源手工维护；shared 33 tests + server 8 unit tests 全绿；SPEC §9 + ARCHITECTURE §8.1.1 同步
