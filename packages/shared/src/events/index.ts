@@ -16,7 +16,16 @@ export {
   type BaseEvent,
 } from "./base.js";
 
-export { ErrorEventSchema, type ErrorEvent, StackFrameSchema, type StackFrame } from "./error.js";
+export {
+  ErrorEventSchema,
+  type ErrorEvent,
+  StackFrameSchema,
+  type StackFrame,
+  ResourceKindSchema,
+  type ResourceKind,
+  ErrorRequestSchema,
+  type ErrorRequest,
+} from "./error.js";
 export { PerformanceEventSchema, type PerformanceEvent } from "./performance.js";
 export {
   LongTaskEventSchema,

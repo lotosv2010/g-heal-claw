@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import {
   errorPlugin,
+  httpPlugin,
   init,
   longTaskPlugin,
   performancePlugin,
@@ -21,6 +22,7 @@ import {
  * - LongTaskPlugin：采集 ≥50ms 主线程阻塞任务（PerformanceObserver longtask）
  * - SpeedIndexPlugin：近似采集 Speed Index（FP/FCP/LCP 三里程碑 AUC）
  * - ErrorPlugin：捕获 window.error（JS + 资源）+ unhandledrejection
+ * - HttpPlugin：捕获 fetch / XHR 的 ajax 失败 + 业务 code 异常
  */
 export function GhcProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -43,6 +45,10 @@ export function GhcProvider({ children }: { children: ReactNode }) {
           longTaskPlugin(),
           speedIndexPlugin(),
           errorPlugin(),
+          httpPlugin({
+            // 默认兜底：响应 JSON 中 code ≠ 0 视为 api_code 异常
+            // 可在业务接入时按需替换 apiCodeFilter
+          }),
         ],
       },
     );

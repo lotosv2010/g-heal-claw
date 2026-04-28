@@ -25,11 +25,19 @@ const PERF_ROUTES: readonly DemoRoute[] = [
   { href: "/perf/tti", label: "TTI (deprecated)", hint: "可交互时间 · Google 已停止维护" },
 ];
 
+// 对应大盘 9 分类卡片：js / promise / white_screen / ajax / js_load / image_load / css_load / media / api_code
 const ERROR_ROUTES: readonly DemoRoute[] = [
-  { href: "/errors/sync", label: "Sync Throw", hint: "同步异常 + captureException" },
+  { href: "/errors/sync", label: "Sync Throw (js)", hint: "同步异常 + captureException" },
+  { href: "/errors/runtime", label: "Runtime TypeError (js)", hint: "undefined 属性访问" },
   { href: "/errors/promise", label: "Promise Reject", hint: "未处理的 rejection" },
-  { href: "/errors/resource", label: "Resource 404", hint: "静态资源加载失败" },
-  { href: "/errors/runtime", label: "Runtime TypeError", hint: "undefined 属性访问" },
+  { href: "/errors/white-screen", label: "White Screen", hint: "手动上报 subType=white_screen" },
+  { href: "/errors/ajax-fail", label: "Ajax 异常", hint: "fetch / XHR 非 2xx 或网络失败" },
+  { href: "/errors/api-code", label: "API Code 异常", hint: "响应 code ≠ 0 的业务异常" },
+  { href: "/errors/js-load", label: "JS 加载异常", hint: "404 的 <script>" },
+  { href: "/errors/image-load", label: "图片加载异常", hint: "404 的 <img>" },
+  { href: "/errors/css-load", label: "CSS 加载异常", hint: "404 的 <link stylesheet>" },
+  { href: "/errors/media-load", label: "音视频加载异常", hint: "404 的 <video> / <audio>" },
+  { href: "/errors/resource", label: "Resource 404（综合）", hint: "静态资源加载失败样例" },
 ];
 
 export default function Home() {

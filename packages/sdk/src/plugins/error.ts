@@ -1,6 +1,7 @@
 import type {
   Breadcrumb,
   ErrorEvent as GhcErrorEvent,
+  ResourceKind,
   StackFrame,
 } from "@g-heal-claw/shared";
 import { createBaseEvent } from "../event.js";
@@ -155,16 +156,63 @@ function dispatchResource(
   const tagName = target.tagName.toLowerCase();
   // outerHTML 可能极长（复杂 SVG/iframe），MVP 截断
   const outerHTML = safeOuterHtml(target).slice(0, 512);
+  const kind = classifyResource(tagName, url);
   const event: GhcErrorEvent = {
     ...createBaseEvent(hub, "error"),
     type: "error",
     subType: "resource",
     message: `Resource load failed: <${tagName}> ${url || "(no src)"}`,
-    resource: { url, tagName, outerHTML },
+    resource: { url, tagName, kind, outerHTML },
     breadcrumbs: snapshotBreadcrumbs(hub),
   };
-  hub.logger.debug("error dispatch resource", tagName, url);
+  hub.logger.debug("error dispatch resource", tagName, kind, url);
   void hub.transport.send(event);
+}
+
+/**
+ * 资源分类：依据 tagName + URL 后缀决定 9 分类卡片归属
+ *
+ * - script / iframe    → js_load
+ * - link[rel=css] / .css → css_load
+ * - img / picture      → image_load
+ * - audio / video / source → media
+ * - 其他               → other（服务端落库时仍保留）
+ */
+function classifyResource(tagName: string, url: string): ResourceKind {
+  const tag = tagName.toLowerCase();
+  const pathname = extractPath(url).toLowerCase();
+  if (tag === "script" || pathname.endsWith(".js") || pathname.endsWith(".mjs"))
+    return "js_load";
+  if (
+    tag === "link" ||
+    pathname.endsWith(".css")
+  )
+    return "css_load";
+  if (tag === "img" || tag === "picture") return "image_load";
+  if (
+    tag === "audio" ||
+    tag === "video" ||
+    tag === "source" ||
+    pathname.endsWith(".mp4") ||
+    pathname.endsWith(".webm") ||
+    pathname.endsWith(".mp3") ||
+    pathname.endsWith(".m4a") ||
+    pathname.endsWith(".ogg") ||
+    pathname.endsWith(".wav")
+  )
+    return "media";
+  return "other";
+}
+
+function extractPath(url: string): string {
+  try {
+    // URL 解析允许相对路径，缺省使用 location.origin 兜底
+    const base =
+      typeof location !== "undefined" ? location.origin : "http://localhost";
+    return new URL(url, base).pathname;
+  } catch {
+    return url;
+  }
 }
 
 // ---- 工具 ----

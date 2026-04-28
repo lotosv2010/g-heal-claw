@@ -1,7 +1,9 @@
 import {
   bigint,
   bigserial,
+  doublePrecision,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -29,6 +31,8 @@ export const errorEventsRaw = pgTable(
     sessionId: varchar("session_id", { length: 64 }).notNull(),
     tsMs: bigint("ts_ms", { mode: "number" }).notNull(),
     subType: varchar("sub_type", { length: 16 }).notNull(),
+    /** 资源子分类（仅 subType=resource 时有意义，对齐 SPEC 9 分类） */
+    resourceKind: varchar("resource_kind", { length: 16 }),
     message: text("message").notNull(),
     messageHead: varchar("message_head", { length: 128 }).notNull(),
     stack: text("stack"),
@@ -36,6 +40,12 @@ export const errorEventsRaw = pgTable(
     componentStack: text("component_stack"),
     resource: jsonb("resource"),
     breadcrumbs: jsonb("breadcrumbs"),
+    /** ajax / api_code 请求结构化字段（展开自 event.request） */
+    requestUrl: text("request_url"),
+    requestMethod: varchar("request_method", { length: 16 }),
+    requestStatus: integer("request_status"),
+    requestDurationMs: doublePrecision("request_duration_ms"),
+    requestBizCode: varchar("request_biz_code", { length: 64 }),
     url: text("url").notNull(),
     path: text("path").notNull(),
     ua: text("ua"),
@@ -55,6 +65,13 @@ export const errorEventsRaw = pgTable(
       t.projectId,
       t.subType,
       t.messageHead,
+      t.tsMs,
+    ),
+    /** 资源子分类按小时粒度聚合时使用 */
+    index("idx_err_project_kind_ts").on(
+      t.projectId,
+      t.subType,
+      t.resourceKind,
       t.tsMs,
     ),
   ],

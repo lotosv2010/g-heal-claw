@@ -221,30 +221,50 @@ CREATE INDEX IF NOT EXISTS idx_perf_project_path_ts
 
 export const CREATE_ERROR_EVENTS_RAW = `
 CREATE TABLE IF NOT EXISTS error_events_raw (
-  id               bigserial PRIMARY KEY,
-  event_id         uuid NOT NULL UNIQUE,
-  project_id       varchar(64) NOT NULL,
-  public_key       varchar(64) NOT NULL,
-  session_id       varchar(64) NOT NULL,
-  ts_ms            bigint NOT NULL,
-  sub_type          varchar(16) NOT NULL,
-  message          text NOT NULL,
-  message_head     varchar(128) NOT NULL,
-  stack            text,
-  frames           jsonb,
-  component_stack  text,
-  resource         jsonb,
-  breadcrumbs      jsonb,
-  url              text NOT NULL,
-  path             text NOT NULL,
-  ua               text,
-  browser          varchar(64),
-  os               varchar(64),
-  device_type      varchar(16),
-  release          varchar(64),
-  environment      varchar(32),
-  created_at       timestamptz NOT NULL DEFAULT now()
+  id                   bigserial PRIMARY KEY,
+  event_id             uuid NOT NULL UNIQUE,
+  project_id           varchar(64) NOT NULL,
+  public_key           varchar(64) NOT NULL,
+  session_id           varchar(64) NOT NULL,
+  ts_ms                bigint NOT NULL,
+  sub_type             varchar(16) NOT NULL,
+  resource_kind        varchar(16),
+  message              text NOT NULL,
+  message_head         varchar(128) NOT NULL,
+  stack                text,
+  frames               jsonb,
+  component_stack      text,
+  resource             jsonb,
+  breadcrumbs          jsonb,
+  request_url          text,
+  request_method       varchar(16),
+  request_status       integer,
+  request_duration_ms  double precision,
+  request_biz_code     varchar(64),
+  url                  text NOT NULL,
+  path                 text NOT NULL,
+  ua                   text,
+  browser              varchar(64),
+  os                   varchar(64),
+  device_type          varchar(16),
+  release              varchar(64),
+  environment          varchar(32),
+  created_at           timestamptz NOT NULL DEFAULT now()
 );
+`.trim();
+
+/**
+ * 旧 DB 升级路径：新增列以幂等方式加入；首次运行后 create table 会把列带上，
+ * 之后重跑走 ADD COLUMN IF NOT EXISTS 走 no-op
+ */
+export const ALTER_ERROR_EVENTS_RAW_ADD_COLUMNS = `
+ALTER TABLE error_events_raw
+  ADD COLUMN IF NOT EXISTS resource_kind       varchar(16),
+  ADD COLUMN IF NOT EXISTS request_url         text,
+  ADD COLUMN IF NOT EXISTS request_method      varchar(16),
+  ADD COLUMN IF NOT EXISTS request_status      integer,
+  ADD COLUMN IF NOT EXISTS request_duration_ms double precision,
+  ADD COLUMN IF NOT EXISTS request_biz_code    varchar(64);
 `.trim();
 
 export const CREATE_IDX_ERR_PROJECT_TS = `
@@ -260,6 +280,11 @@ CREATE INDEX IF NOT EXISTS idx_err_project_sub_ts
 export const CREATE_IDX_ERR_PROJECT_GROUP_TS = `
 CREATE INDEX IF NOT EXISTS idx_err_project_group_ts
   ON error_events_raw (project_id, sub_type, message_head, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_ERR_PROJECT_KIND_TS = `
+CREATE INDEX IF NOT EXISTS idx_err_project_kind_ts
+  ON error_events_raw (project_id, sub_type, resource_kind, ts_ms DESC);
 `.trim();
 
 // ============================================================
@@ -348,9 +373,11 @@ export const PERFORMANCE_DDL: readonly string[] = [
 
 export const ERROR_DDL: readonly string[] = [
   CREATE_ERROR_EVENTS_RAW,
+  ALTER_ERROR_EVENTS_RAW_ADD_COLUMNS,
   CREATE_IDX_ERR_PROJECT_TS,
   CREATE_IDX_ERR_PROJECT_SUB_TS,
   CREATE_IDX_ERR_PROJECT_GROUP_TS,
+  CREATE_IDX_ERR_PROJECT_KIND_TS,
 ];
 
 /** events_raw 父表 + 4 张周分区 + 2 个索引（Gateway 暂不写入）*/

@@ -6,6 +6,17 @@ import type {
 import type { Hub } from "./hub.js";
 import { createBaseEvent } from "./event.js";
 
+/** 手动 captureException 可选参数（subType 允许覆盖默认 "js"） */
+export interface CaptureExceptionOptions {
+  readonly context?: Record<string, unknown>;
+  /**
+   * 指定 ErrorEvent.subType；默认 "js"。
+   *
+   * 适用场景：白屏检测（white_screen）/ 框架错误（framework）等 SDK 未自动兜底的子类型。
+   */
+  readonly subType?: GhcErrorEvent["subType"];
+}
+
 /**
  * 把 Error 对象拆成 message + stack；骨架阶段不做 Sourcemap 还原
  */
@@ -40,26 +51,50 @@ export function captureMessage(
 }
 
 /**
- * 手动捕获异常：落 error 事件（骨架 subType 固定为 js）
+ * 手动捕获异常：落 error 事件
+ *
+ * @param ctx 可传 Record<string, unknown>（兼容旧签名 = 仅自定义 context），
+ *            或 CaptureExceptionOptions（支持自定义 subType / context）
  */
 export function captureException(
   hub: Hub,
   err: unknown,
-  ctx?: Record<string, unknown>,
+  ctx?: Record<string, unknown> | CaptureExceptionOptions,
 ): string {
   const { message, stack } = normalizeError(err);
   const base = createBaseEvent(hub, "error");
+  const { subType, context } = resolveCaptureOptions(ctx);
   const event: GhcErrorEvent = {
     ...base,
     type: "error",
-    subType: "js",
+    subType,
     message,
     stack,
     breadcrumbs: [...hub.scope.breadcrumbs],
-    context: { ...base.context, ...(ctx ?? {}) },
+    context: { ...base.context, ...context },
   };
   dispatch(hub, event);
   return base.eventId;
+}
+
+function resolveCaptureOptions(
+  ctx: Record<string, unknown> | CaptureExceptionOptions | undefined,
+): { subType: GhcErrorEvent["subType"]; context: Record<string, unknown> } {
+  if (!ctx) return { subType: "js", context: {} };
+  // 判定是否为 CaptureExceptionOptions（含 subType 或 context 键）
+  if (isCaptureOptions(ctx)) {
+    return {
+      subType: ctx.subType ?? "js",
+      context: ctx.context ?? {},
+    };
+  }
+  return { subType: "js", context: ctx };
+}
+
+function isCaptureOptions(
+  ctx: Record<string, unknown> | CaptureExceptionOptions,
+): ctx is CaptureExceptionOptions {
+  return "subType" in ctx || ("context" in ctx && typeof ctx.context === "object");
 }
 
 /**

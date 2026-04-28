@@ -26,6 +26,13 @@ export interface SubTypeCountRow {
   readonly count: number;
 }
 
+/** 聚合：按 (sub_type, resource_kind) 计数（resource_kind 可空） */
+export interface CategoryCountRow {
+  readonly subType: string;
+  readonly resourceKind: string | null;
+  readonly count: number;
+}
+
 /** 聚合：每小时桶 × sub_type */
 export interface TrendRow {
   readonly hour: string;
@@ -33,9 +40,18 @@ export interface TrendRow {
   readonly count: number;
 }
 
+/** 聚合：每小时桶 × (sub_type, resource_kind) */
+export interface CategoryTrendRow {
+  readonly hour: string;
+  readonly subType: string;
+  readonly resourceKind: string | null;
+  readonly count: number;
+}
+
 /** 聚合：Top 分组（sub_type × message_head） */
 export interface TopGroupRow {
   readonly subType: string;
+  readonly resourceKind: string | null;
   readonly messageHead: string;
   readonly count: number;
   readonly impactedSessions: number;
@@ -43,6 +59,16 @@ export interface TopGroupRow {
   readonly lastSeenMs: number;
   readonly samplePath: string;
 }
+
+/** 聚合：单维度分布（value, count, impactedSessions） */
+export interface DimensionRow {
+  readonly value: string;
+  readonly count: number;
+  readonly impactedSessions: number;
+}
+
+/** 支持聚合的 DB 维度列白名单（与 error_events_raw schema 对齐） */
+export type SupportedDimensionColumn = "browser" | "os" | "device_type";
 
 const MESSAGE_HEAD_MAX = 128;
 
@@ -188,6 +214,7 @@ export class ErrorsService {
     const { projectId, sinceMs, untilMs } = params;
     const rows = await db.execute<{
       sub_type: string;
+      resource_kind: string | null;
       message_head: string;
       n: string | number;
       sessions: string | number;
@@ -197,6 +224,7 @@ export class ErrorsService {
     }>(sql`
       SELECT
         sub_type,
+        resource_kind,
         message_head,
         COUNT(*)                    AS n,
         COUNT(DISTINCT session_id)  AS sessions,
@@ -207,12 +235,13 @@ export class ErrorsService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
-      GROUP BY sub_type, message_head
+      GROUP BY sub_type, resource_kind, message_head
       ORDER BY n DESC
       LIMIT ${limit}
     `);
     return rows.map((r) => ({
       subType: String(r.sub_type),
+      resourceKind: r.resource_kind == null ? null : String(r.resource_kind),
       messageHead: String(r.message_head),
       count: Number(r.n),
       impactedSessions: Number(r.sessions),
@@ -221,10 +250,119 @@ export class ErrorsService {
       samplePath: String(r.sample_path ?? ""),
     }));
   }
+
+  /** (sub_type, resource_kind) 分组计数 —— 9 分类卡片数据来源 */
+  public async aggregateByCategory(
+    params: ErrorWindowParams,
+  ): Promise<CategoryCountRow[]> {
+    const db = this.database.db;
+    if (!db) return [];
+    const { projectId, sinceMs, untilMs } = params;
+    const rows = await db.execute<{
+      sub_type: string;
+      resource_kind: string | null;
+      n: string | number;
+    }>(sql`
+      SELECT
+        sub_type,
+        resource_kind,
+        COUNT(*) AS n
+      FROM error_events_raw
+      WHERE project_id = ${projectId}
+        AND ts_ms >= ${sinceMs}
+        AND ts_ms <  ${untilMs}
+      GROUP BY sub_type, resource_kind
+      ORDER BY n DESC
+    `);
+    return rows.map((r) => ({
+      subType: String(r.sub_type),
+      resourceKind: r.resource_kind == null ? null : String(r.resource_kind),
+      count: Number(r.n),
+    }));
+  }
+
+  /** (hour, sub_type, resource_kind) 堆叠图数据来源（9 分类） */
+  public async aggregateCategoryTrend(
+    params: ErrorWindowParams,
+  ): Promise<CategoryTrendRow[]> {
+    const db = this.database.db;
+    if (!db) return [];
+    const { projectId, sinceMs, untilMs } = params;
+    const rows = await db.execute<{
+      hour: Date | string;
+      sub_type: string;
+      resource_kind: string | null;
+      n: string | number;
+    }>(sql`
+      SELECT
+        date_trunc('hour', to_timestamp(ts_ms / 1000.0)) AS hour,
+        sub_type,
+        resource_kind,
+        COUNT(*) AS n
+      FROM error_events_raw
+      WHERE project_id = ${projectId}
+        AND ts_ms >= ${sinceMs}
+        AND ts_ms <  ${untilMs}
+      GROUP BY hour, sub_type, resource_kind
+      ORDER BY hour ASC
+    `);
+    return rows.map((r) => ({
+      hour:
+        r.hour instanceof Date
+          ? r.hour.toISOString()
+          : new Date(String(r.hour)).toISOString(),
+      subType: String(r.sub_type),
+      resourceKind: r.resource_kind == null ? null : String(r.resource_kind),
+      count: Number(r.n),
+    }));
+  }
+
+  /**
+   * 单维度分布（DB 可用列：browser / os / device_type）
+   *
+   * 空值过滤：`WHERE <col> IS NOT NULL AND <col> <> ''`
+   * Top 20：按事件数倒排，受 idx_err_project_ts 扫描支撑；数据量大时后续可加列专用索引
+   */
+  public async aggregateDimension(
+    params: ErrorWindowParams,
+    column: SupportedDimensionColumn,
+    limit = 20,
+  ): Promise<DimensionRow[]> {
+    const db = this.database.db;
+    if (!db) return [];
+    const { projectId, sinceMs, untilMs } = params;
+    // drizzle 的 sql`` 对列名支持通过 sql.identifier
+    const col = sql.identifier(column);
+    const rows = await db.execute<{
+      value: string;
+      n: string | number;
+      sessions: string | number;
+    }>(sql`
+      SELECT
+        ${col}                       AS value,
+        COUNT(*)                     AS n,
+        COUNT(DISTINCT session_id)   AS sessions
+      FROM error_events_raw
+      WHERE project_id = ${projectId}
+        AND ts_ms >= ${sinceMs}
+        AND ts_ms <  ${untilMs}
+        AND ${col} IS NOT NULL
+        AND ${col} <> ''
+      GROUP BY ${col}
+      ORDER BY n DESC
+      LIMIT ${limit}
+    `);
+    return rows.map((r) => ({
+      value: String(r.value),
+      count: Number(r.n),
+      impactedSessions: Number(r.sessions),
+    }));
+  }
 }
 
 function toRow(event: ErrorEvent): NewErrorEventRow {
   const messageHead = (event.message ?? "").slice(0, MESSAGE_HEAD_MAX);
+  const request = event.request;
   return {
     eventId: event.eventId,
     projectId: event.projectId,
@@ -232,6 +370,7 @@ function toRow(event: ErrorEvent): NewErrorEventRow {
     sessionId: event.sessionId,
     tsMs: event.timestamp,
     subType: event.subType,
+    resourceKind: event.resource?.kind ?? null,
     message: event.message ?? "",
     messageHead,
     stack: event.stack ?? null,
@@ -239,6 +378,14 @@ function toRow(event: ErrorEvent): NewErrorEventRow {
     componentStack: event.componentStack ?? null,
     resource: event.resource ?? null,
     breadcrumbs: event.breadcrumbs ?? null,
+    requestUrl: request?.url ?? null,
+    requestMethod: request?.method ?? null,
+    requestStatus: request?.status ?? null,
+    requestDurationMs: request?.durationMs ?? null,
+    requestBizCode:
+      request?.bizCode === undefined || request.bizCode === null
+        ? null
+        : String(request.bizCode),
     url: event.page.url,
     path: event.page.path,
     ua: event.device.ua,
