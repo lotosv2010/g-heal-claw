@@ -52,4 +52,4 @@ performancePlugin({ hashRouter: true });
 
 ## 查看数据
 
-→ 监控中心 / [页面性能](/dashboard/performance)
+→ 监控中心 / [页面性能](/guide/performance)

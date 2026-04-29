@@ -2,17 +2,7 @@
 
 `apiPlugin` **默认启用**，自动拦截 `fetch` 与 `XMLHttpRequest`。
 
-## 采集字段
-
-| 字段 | 说明 |
-|---|---|
-| `url` | 请求地址 |
-| `method` | GET / POST / … |
-| `status` | HTTP 状态码 |
-| `duration` | 耗时（毫秒） |
-| `requestSize` | 请求体字节数（仅 Content-Length 有值时） |
-| `responseSize` | 响应体字节数 |
-| `errorType` | `network` / `timeout` / `cors` / `abort` |
+> 采集字段、错误分类、TTFB 构成等口径见 [接口说明 · API 监控指标](/reference/api-metrics)。
 
 ## 黑名单
 
@@ -57,4 +47,4 @@ apiPlugin({
 
 ## 查看数据
 
-→ 监控中心 / [API 监控](/dashboard/api)
+→ 监控中心 / [API 监控](/guide/api)

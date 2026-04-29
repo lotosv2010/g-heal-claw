@@ -30,10 +30,6 @@ Issue 详情右上角 → 「标记已解决」。下次再出现时会重新激
 Issue 详情右上角 → 「创建告警」。支持：
 - 新增事件 / 次数超阈值 / 用户数超阈值
 
-## Sourcemap 未生效排查
+## Sourcemap 未生效
 
-| 症状 | 原因 | 解决 |
-|---|---|---|
-| 堆栈仍是压缩代码 | 未上传 Sourcemap | 见 [SDK · Sourcemap 上传](/sdk/sourcemap) |
-| `release` 不匹配 | SDK 与上传时 release 不一致 | 检查 `init({ release })` 与上传参数 |
-| 文件找不到 | 源路径映射错误 | 检查 `sourceMappingURL` 注释是否指向公共可访问地址 |
+堆栈仍是压缩代码时，请参考 [SDK · Sourcemap 上传 · 排查](/sdk/sourcemap#排查) 逐项核对。

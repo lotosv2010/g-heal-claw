@@ -35,7 +35,6 @@ export default defineConfig({
           text: "快速开始",
           items: [
             { text: "5 分钟上手", link: "/quickstart/" },
-            { text: "创建项目", link: "/quickstart/create-project" },
           ],
         },
       ],
@@ -68,6 +67,7 @@ export default defineConfig({
             { text: "导航瀑布图时间节点", link: "/reference/navigation-timing" },
             { text: "异常分析指标", link: "/reference/error-metrics" },
             { text: "API 监控指标", link: "/reference/api-metrics" },
+            { text: "访问分析指标", link: "/reference/visits-metrics" },
           ],
         },
       ],

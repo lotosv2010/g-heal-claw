@@ -2,7 +2,7 @@
 
 本章节收录 Dashboard 所有模块出现的指标定义、计算方式和推荐阈值，作为**唯一权威口径**。前端页面上的缩写、卡片标题、列头均可在此回查。
 
-## 四张表
+## 五张表
 
 | 分类 | 链接 | 内容 |
 |---|---|---|
@@ -10,6 +10,7 @@
 | 导航时序 | [Navigation Timing 瀑布图节点](/reference/navigation-timing) | 瀑布图上 12 个时间节点（domainLookup / connect / response / domInteractive 等）的定义与计算 |
 | 异常分析 | [异常分析指标](/reference/error-metrics) | Issue / Events / Users / First Seen / Last Seen / 严重度 |
 | API 监控 | [API 监控指标](/reference/api-metrics) | 请求耗时、错误率、状态码桶、慢请求阈值、TTFB |
+| 访问分析 | [访问分析指标](/reference/visits-metrics) | UV / PV / 停留时长 / 跳出率 / 新旧用户判定 / 会话规则 |
 
 ## 统一约定
 

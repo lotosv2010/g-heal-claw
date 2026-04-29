@@ -1,6 +1,550 @@
-/* 首页特性卡片：强制大屏一行 4 个（Rspress 默认 span=4 在大屏是 33.33% 即 3 列） */
+/* ============ Hero 外层两栏容器 ============ */
+.ghc-home-hero__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+  padding-top: 110px;
+}
+
 @media (width >= 960px) {
-  [class*="grid-4_"] {
-    width: 25% !important;
+  .ghc-home-hero__content {
+    text-align: left;
+    max-width: 480px;
+    flex: 0 0 480px;
   }
+}
+
+.ghc-home-hero__visual {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (width >= 960px) {
+  .ghc-home-hero__visual {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.ghc-home-hero__title {
+  margin: 0 0 0.5rem;
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+@media (width >= 960px) {
+  .ghc-home-hero__title {
+    font-size: 4.5rem;
+  }
+}
+
+/* ============ Hero 左侧：品牌渐变标题 / 副标 / tagline / 按钮 ============ */
+.ghc-home-hero__brand {
+  background: linear-gradient(120deg, #0a84ff 0%, #0040a0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.3;
+}
+
+.ghc-home-hero__subtitle {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0;
+}
+
+@media (width >= 960px) {
+  .ghc-home-hero__subtitle {
+    font-size: 2.75rem;
+  }
+}
+
+.ghc-home-hero__tagline {
+  margin: 0;
+  padding-top: 1.25rem;
+  color: var(--rp-c-text-2);
+  font-weight: 500;
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+@media (width >= 960px) {
+  .ghc-home-hero__tagline {
+    font-size: 1.375rem;
+  }
+}
+
+.ghc-home-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 1.75rem;
+  justify-content: center;
+}
+
+@media (width >= 960px) {
+  .ghc-home-hero__actions {
+    justify-content: flex-start;
+  }
+}
+
+/* 主题无关按钮 */
+.ghc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 22px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none !important;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease,
+    color 0.2s ease;
+  white-space: nowrap;
+}
+
+.ghc-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ghc-btn--brand {
+  background: linear-gradient(120deg, #0a84ff, #0040a0);
+  color: #fff !important;
+  box-shadow: 0 6px 18px rgba(10, 132, 255, 0.35);
+}
+
+.ghc-btn--brand:hover {
+  box-shadow: 0 10px 24px rgba(10, 132, 255, 0.45);
+}
+
+.ghc-btn--alt {
+  background: var(--rp-c-bg-soft);
+  color: var(--rp-c-text-1) !important;
+  border: 1px solid var(--rp-c-divider);
+}
+
+.ghc-btn--alt:hover {
+  background: var(--rp-c-bg-mute);
+}
+
+/* ============ Hero 左下方：包管理器安装 Tab ============ */
+.ghc-install {
+  margin-top: 1.75rem;
+  width: 100%;
+  max-width: 460px;
+  border-radius: 10px;
+  background: var(--rp-c-bg-soft);
+  border: 1px solid var(--rp-c-divider);
+  overflow: hidden;
+  align-self: center;
+}
+
+@media (width >= 960px) {
+  .ghc-install {
+    align-self: flex-start;
+  }
+}
+
+.ghc-install__tabs {
+  display: flex;
+  gap: 0;
+  padding: 6px 8px 0;
+  border-bottom: 1px solid var(--rp-c-divider-light);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ghc-install__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.ghc-install__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--rp-c-text-2);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: color 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+
+.ghc-install__tab:hover {
+  color: var(--rp-c-text-1);
+}
+
+.ghc-install__tab--active {
+  color: var(--rp-c-brand);
+  background: var(--rp-c-bg);
+  border-bottom: 2px solid var(--rp-c-brand);
+  margin-bottom: -1px;
+}
+
+.ghc-install__panel {
+  position: relative;
+  padding: 14px 48px 14px 16px;
+  font-family: var(--rp-font-family-mono);
+  font-size: 14px;
+  color: var(--rp-c-text-1);
+  background: var(--rp-c-bg);
+}
+
+.ghc-install__cmd {
+  display: block;
+  white-space: pre;
+  overflow-x: auto;
+  color: var(--rp-c-text-1);
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+
+.ghc-install__bin {
+  color: #ae8eeb;
+}
+
+.ghc-install__args {
+  color: #f9a86e;
+}
+
+.ghc-install__copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rp-c-text-3);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ghc-install__copy:hover {
+  color: var(--rp-c-text-1);
+  background: var(--rp-c-bg-mute);
+}
+
+/* ============ Hero 右侧：Logo + 光晕 + 伪浏览器窗口 ============ */
+.ghc-hero-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  min-height: 320px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 60px;
+}
+
+.ghc-hero-glow {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ghc-hero-glow--left {
+  top: 10%;
+  left: -40px;
+  background: radial-gradient(circle, rgba(10, 132, 255, 0.55), transparent 70%);
+  animation: ghc-glow 8s ease-in-out infinite;
+}
+
+.ghc-hero-glow--right {
+  bottom: 0;
+  right: -40px;
+  background: radial-gradient(circle, rgba(0, 64, 160, 0.45), transparent 70%);
+  animation: ghc-glow 9s ease-in-out infinite reverse;
+}
+
+/* 伪浏览器窗口：缩小到 400 × 365，整体旋转 2.5deg 并右移 */
+.ghc-hero-browser {
+  position: relative;
+  width: 400px;
+  height: 365px;
+  max-width: 100%;
+  background: var(--rp-c-bg);
+  border: 1px solid var(--rp-c-divider);
+  border-radius: 12px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 1;
+  transform: rotate(2.5deg) translateX(50px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Logo 钉在浏览器窗口左下角，200 × 200，稍微超出边界营造悬浮感 */
+.ghc-hero-logo {
+  position: absolute;
+  left: -50px;
+  bottom: -50px;
+  width: 200px;
+  height: 200px;
+  filter: drop-shadow(0 12px 32px rgba(10, 132, 255, 0.45));
+  animation: ghc-float 6s ease-in-out infinite;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.ghc-hero-nav {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rp-c-divider-light);
+  background: var(--rp-c-bg-soft);
+}
+
+.ghc-hero-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rp-c-text-1);
+}
+
+.ghc-hero-nav-left img {
+  width: 18px;
+  height: 18px;
+}
+
+.ghc-hero-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--rp-c-text-3);
+}
+
+.ghc-hero-fake-search {
+  width: 80px;
+  height: 22px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  background: var(--rp-c-bg-mute);
+  border: 1px solid var(--rp-c-divider-light);
+  border-radius: 11px;
+}
+
+.ghc-hero-nav-item {
+  font-size: 11px;
+  color: var(--rp-c-text-3);
+}
+
+.ghc-hero-nav-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ghc-hero-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.ghc-hero-sidebar {
+  width: 130px;
+  flex-shrink: 0;
+  padding: 14px 12px;
+  border-right: 1px solid var(--rp-c-divider-light);
+  background: var(--rp-c-bg-soft);
+}
+
+.ghc-hero-sidebar-header {
+  height: 8px;
+  background: var(--rp-c-text-3);
+  opacity: 0.4;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.ghc-hero-sidebar-item {
+  display: block;
+  padding: 5px 0;
+}
+
+.ghc-hero-sidebar-item > div {
+  height: 6px;
+  background: var(--rp-c-text-3);
+  opacity: 0.25;
+  border-radius: 3px;
+}
+
+.ghc-hero-sidebar-active > div {
+  opacity: 1;
+  background: var(--rp-c-brand);
+}
+
+.ghc-hero-main {
+  flex: 1;
+  padding: 16px 18px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ghc-hero-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--rp-c-text-1);
+  margin-bottom: 10px;
+}
+
+.ghc-hero-skel {
+  height: 6px;
+  background: var(--rp-c-text-3);
+  opacity: 0.2;
+  border-radius: 3px;
+  margin-bottom: 6px;
+}
+
+.ghc-hero-skel:nth-of-type(2) {
+  width: 85%;
+}
+
+.ghc-hero-skel:nth-of-type(3) {
+  width: 65%;
+  margin-bottom: 12px;
+}
+
+.ghc-hero-code {
+  margin-top: auto;
+  border-radius: 6px;
+  background: #0d1117;
+  overflow: hidden;
+  font-family: var(--rp-font-family-mono);
+}
+
+.ghc-hero-code-title {
+  padding: 6px 12px;
+  background: #161b22;
+  color: #7d8590;
+  font-size: 11px;
+}
+
+.ghc-hero-code-body {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #e6edf3;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.ghc-hero-code-line {
+  display: inline;
+}
+
+.ghc-k { color: #ff7b72; }
+.ghc-v { color: #79c0ff; }
+.ghc-s { color: #a5d6ff; }
+.ghc-f { color: #d2a8ff; }
+.ghc-p { color: #8b949e; }
+
+/* ============ 动画 ============ */
+@keyframes ghc-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes ghc-glow {
+  0%, 100% { transform: scale(1); opacity: 0.55; }
+  50% { transform: scale(1.15); opacity: 0.75; }
+}
+
+/* ============ 特性网格：一行三个 ============ */
+.ghc-home-features {
+  padding: 3rem 1.5rem 1rem;
+  gap: 1.25rem;
+}
+
+@media (width >= 960px) {
+  .ghc-home-features {
+    padding: 3rem 4rem 1rem;
+  }
+}
+
+.ghc-feature-cell {
+  flex: 1 1 100%;
+  max-width: 100%;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+@media (width >= 640px) {
+  .ghc-feature-cell {
+    flex: 1 1 calc(50% - 1.25rem);
+    max-width: calc(50% - 1.25rem);
+  }
+}
+
+@media (width >= 960px) {
+  .ghc-feature-cell {
+    flex: 1 1 calc(33.333% - 1.25rem);
+    max-width: calc(33.333% - 1.25rem);
+  }
+}
+
+.ghc-feature-card {
+  height: 100%;
+  padding: 22px 20px;
+  background: var(--rp-c-bg-soft);
+  border: 1px solid var(--rp-c-divider-light);
+  border-radius: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ghc-feature-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--rp-c-brand);
+  box-shadow: 0 10px 24px rgba(10, 132, 255, 0.12);
+}
+
+.ghc-feature-icon {
+  font-size: 28px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.ghc-feature-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--rp-c-text-1);
+}
+
+.ghc-feature-details {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--rp-c-text-2);
 }

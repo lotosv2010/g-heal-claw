@@ -1,0 +1,30 @@
+---
+pageType: custom
+---
+
+import { HomeHeroImage } from "../components/HomeHeroImage";
+import { HomeFeatures } from "../components/HomeFeatures";
+import { InstallTabs } from "../components/InstallTabs";
+
+<div className="m-auto pt-0 px-6 pb-12 sm:pt-10 sm:px-16 md:pt-16 md:px-16 md:pb-16 relative ghc-home-hero">
+  <div className="m-auto flex flex-col md:flex-row max-w-6xl min-h-[50vh] mt-12 sm:mt-0 gap-12 md:gap-16 md:items-start">
+    <div className="ghc-home-hero__content order-2 md:order-1">
+      <h1 className="ghc-home-hero__title">
+        <span className="ghc-home-hero__brand">g-heal-claw</span>
+      </h1>
+      <p className="ghc-home-hero__subtitle">前端监控</p>
+      <p className="ghc-home-hero__subtitle">自愈平台</p>
+      <p className="ghc-home-hero__tagline">自动看见问题，自动修复问题</p>
+      <div className="ghc-home-hero__actions">
+        <a href="/guide/introduction" className="ghc-btn ghc-btn--brand">介绍</a>
+        <a href="/quickstart/" className="ghc-btn ghc-btn--alt">快速开始</a>
+      </div>
+      <InstallTabs />
+    </div>
+    <div className="order-1 md:order-2 ghc-home-hero__visual">
+      <HomeHeroImage />
+    </div>
+  </div>
+</div>
+
+<HomeFeatures />
