@@ -240,6 +240,47 @@ init(
 
 更多 API 细节见 [docs/sdk/tracking](/sdk/tracking)。
 
+### 7.4 静态资源采集（resourcePlugin · ADR-0022）
+
+`resourcePlugin` 基于 `PerformanceObserver('resource')` 采集浏览器加载的全量静态资源样本，驱动后台「监控中心 → 静态资源」大盘：
+
+```typescript
+import { init, resourcePlugin } from "@g-heal-claw/sdk";
+
+init(
+  { dsn, environment: "production", release: "v0.1.0" },
+  {
+    plugins: [
+      resourcePlugin({
+        slowThresholdMs: 1000,        // 慢资源判定阈值（默认 1000ms）
+        maxSamplesPerSession: 500,    // 单会话样本上限，防上报风暴（默认 500）
+        flushIntervalMs: 2000,        // 批量上报节流（默认 2s）
+        maxBatch: 30,                 // 单批次样本上限（默认 30）
+        ignoreUrls: [/analytics/],    // URL 过滤正则
+      }),
+    ],
+  },
+);
+```
+
+**六类固定分类**：`script` / `stylesheet` / `image` / `font` / `media` / `other`。CSS 里引入的字体文件会根据 URL 后缀（`.woff2 / .ttf / .otf / .eot`）归入 `font`。
+
+**明确排除**：`initiatorType ∈ { fetch, xmlhttprequest, beacon }` 的样本完全跳过 —— 这些请求由 `apiPlugin`（成功 + 失败全量，`type='api'`）和 `httpPlugin`（仅失败，`type='error'`）覆盖，三插件**互斥采集**，大盘统计不会重复。
+
+**失败判定**：`transferSize=decodedSize=responseStart=0` 或 `duration=0` 视为加载失败，标记 `failed=true`；`transfer=0 && decoded>0` 时 `cache=hit`。
+
+**数据流**：`resourcePlugin` → `/ingest/v1/events`（`type='resource'`） → `resource_events_raw` 表 → `/dashboard/v1/resources/overview` → Web `/monitor/resources` 大盘（5 汇总卡 + 6 分类桶 + 趋势图 + Top 慢资源 + Top 失败 Host）。
+
+**本地联调**：
+
+1. 启动基础设施与应用：`docker compose up -d && pnpm dev`
+2. 访问 demo 首页 `http://localhost:3002`，点击「静态资源」分组：
+   - `/resources/slow-script` —— 动态注入慢 JS 驱动 Top 慢资源
+   - `/resources/image-gallery` —— 批量加载图片驱动分类桶计数与失败 Host
+3. 访问 `http://localhost:3000/monitor/resources` 查看聚合大盘
+
+更多 API 细节见 [docs/sdk/resources](/sdk/resources)。
+
 ---
 
 ## 8. Sourcemap 上传（还原堆栈）

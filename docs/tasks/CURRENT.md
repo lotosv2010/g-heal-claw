@@ -311,13 +311,20 @@
   - 交付：`web/lib/api/api.ts`（契约 + getApiOverview + source 降级）+ 4 个页面组件（`summary-cards` / `status-buckets` / `trend-chart`（AntV Line 三折线）/ `top-slow-table`）+ 页面装配
 - [x] **TM.1.A.6** 测试 + demo：`apiPlugin` 单测 12 case（TM.1.A.1 已交付）+ `api-monitor.service.spec.ts` 聚合单测 10 case + demo 注册 `apiPlugin`（slowThresholdMs=300）— 0.2d（完成 2026-04-29）
 
-### Tier 1.B｜静态资源监控（`/resources` 菜单，~3d）
+### Tier 1.B｜静态资源监控（`/monitor/resources` 菜单，~3d，ADR-0022）
 
-- [ ] **TM.1.B.1** SDK `resourcePlugin`：`PerformanceResourceTiming` observer + 分类（script/stylesheet/image/font/xhr/other）+ `slow / failed` 判定 — 0.8d
-- [ ] **TM.1.B.2** `resource_events_raw` 表 + drizzle 迁移 — 0.3d
-- [ ] **TM.1.B.3** `ResourceMonitorModule` + 聚合（按 `host + type` 聚合 + 失败率 + 慢资源 Top）— 0.7d
-- [ ] **TM.1.B.4** Dashboard API + Web `/resources` 页面（CategoryCards = 类型分布 / DimensionTabs = host/cdn / RankingTable = failure_rate 倒序 / StackChart = 类型堆叠）— 0.9d
-- [ ] **TM.1.B.5** 测试 + demo — 0.3d
+- [x] **TM.1.B.1** SDK `resourcePlugin` — 0.8d（完成 2026-04-29）
+  - 交付：`packages/shared/src/events/resource.ts` 扩展（category/host/slow/failed/startTime/cache 等）+ `packages/sdk/src/plugins/resource.ts` + 导出；16 case 单测（分类 / 失败判定 / SSR 降级 / 幂等 / fetch-xhr-beacon 排除 / cache 推导）
+- [x] **TM.1.B.2** `resource_events_raw` 表 + 迁移 — 0.3d（完成 2026-04-29）
+  - 交付：`schema/resource-events-raw.ts` + `drizzle/0006_resource_events_raw.sql` + `ddl.ts` `RESOURCE_DDL` 块；5 枚索引到位
+- [x] **TM.1.B.3** `ResourceMonitorModule` + `ResourceMonitorService` + GatewayService 分流 — 0.7d（完成 2026-04-29）
+  - 交付：`resource-monitor/{module,service}.ts`（saveBatch 幂等 + 5 聚合方法）+ `GatewayService.isResource` 分流 + `app.module.ts` 注册；13 case 单测（db=null 短路 / Number 强转 / 6 类占位 / Date&ISO 归一 / failureRatio）
+- [x] **TM.1.B.4** Dashboard API `GET /dashboard/v1/resources/overview` — 0.4d（完成 2026-04-29）
+  - 交付：`dashboard/{resources.controller.ts,resources.service.ts,dto/resources-overview.dto.ts}` + `DashboardModule` 注册；6 case 装配层单测（summary delta 双维度 / 空窗口 6 占位 / round2/round4 透传）
+- [x] **TM.1.B.5** Web `/monitor/resources` 页面 live 化 — 0.5d（完成 2026-04-29）
+  - 交付：`apps/web/lib/api/resources.ts` 契约（三态 source） + 5 组件（summary-cards / category-buckets / trend-chart AntV 切换 / top-slow-table / failing-hosts-table） + `nav.ts` placeholder=null；`pnpm -F @g-heal-claw/web build` 23 页全绿，`/monitor/resources` 标记 ƒ Dynamic
+- [x] **TM.1.B.6** Demo 场景 + 文档 — 0.3d（完成 2026-04-29）
+  - 交付：`examples/nextjs-demo/app/ghc-provider.tsx` 注册 `resourcePlugin({ slowThresholdMs: 500 })` + 新增 `(demo)/resources/{slow-script,image-gallery}/page.tsx` 2 页 + `demo-scenarios.ts` `resources` 分组追加 2 条 RT 样本路由（保留既有 4xx 错误路由）+ `GETTING_STARTED.md §7.4` 资源监控接入示例 + 新建 `apps/docs/docs/sdk/resources.md`（SDK 端详解 + 三链路互斥表 + 6 类分类 + Demo 对照）+ `apps/docs/docs/guide/resources.md`（大盘使用说明 + 边界矩阵）+ `rspress.config.ts` `/sdk/` 与 `/guide/` 双侧边栏注册 + `docs/ARCHITECTURE.md §5.1 / §3.1 / §8.1.1 / BullMQ 队列清单` 四处同步 + ADR-0022「后续」章节引用已交付路径（双向可追溯）
 
 ### Tier 1.C｜自定义上报 + 日志（`/custom` + `/logs` 合并切片，~4d）
 
@@ -586,9 +593,9 @@
 
 > 每周同步更新本节。
 
-- 进行中：**TM.1.B Tier 1.B 静态资源监控**（待启动，~3d）
-- 阶段主题切换：**菜单完整化**（ADR-0020）— 本阶段不再纵深挖单模块，先把 `/api` `/resources` `/custom` `/logs` 4 个 Tier 1 菜单推到 live；Tier 1.A 已完成，Tier 1.B / 1.C 待启动
-- 下一步候选（本 Tier）：①TM.1.B.1 resourcePlugin（PerformanceResourceTiming observer + 6 类资源分类）②TM.1.B.2 resource_events_raw ③TM.1.B.3/4 ResourceMonitorModule + Dashboard/Web ④TM.1.C custom/logs 合并切片
+- ✅ 刚完成：**TM.1.B Tier 1.B 静态资源监控**（B.1~B.6 全部完成 2026-04-29）
+- 阶段主题：**菜单完整化**（ADR-0020）— Tier 1.A（API 监控）与 Tier 1.B（静态资源监控）已闭环；Tier 1 剩 `/custom` + `/logs` 菜单
+- 下一步候选：①TM.1.C 自定义事件/日志合并切片 ②T2.1.8 P0.1 SI 后端核实（~0.3d 小切片） ③T1.4.4 DLQ 告警收尾
 - 并行候选（不阻塞菜单推进）：T1.4.4 DLQ 告警（已完 90%）；T2.1.8 P0.1 SI 后端核实（~0.3d 小切片）
 - 最近完成（2026-04-29）：**Tier 1.A API 监控菜单 live 化（TM.1.A 全 6 子任务）** —— SDK `apiPlugin`（独立 `__ghcApiPatched` 标记与 `httpPlugin` 并存，共享 `http-capture.ts` 纯函数；12 case 单测）；`api_events_raw` 表 + drizzle 0004 迁移；`ApiMonitorService`（saveBatch + 4 聚合方法，10 case 单测）；`DashboardApiService` + `/dashboard/v1/api/overview`（summary + 5 状态码桶 + 小时趋势 + Top 慢请求 + 环比）；Web `/api` 页面 4 模块组件（summary-cards / status-buckets / trend-chart AntV 三折线 / top-slow-table）；demo `ghc-provider.tsx` 注册 `apiPlugin({ slowThresholdMs: 300 })`；全量 typecheck 7/7 + server 单元 15 files 123 tests + e2e 6 tests 全绿
 - 最近完成（2026-04-29）：**ADR-0020 菜单完整化交付路线图注册** —— `docs/decisions/0020-menu-delivery-roadmap.md` 三 Tier 分层（Tier 1: api/resources/custom/logs ~10d；Tier 2: visits/projects/realtime ~17d；Tier 3: overview 2d）；关键设计决策：`apiPlugin`（type='api' 采集成功请求）与现有 `httpPlugin`（type='error' 异常分流）并存 + raw 表统一设计 + 前端页面模板化复用 `errors` 结构；`docs/decisions/README.md` 索引更新；`docs/tasks/CURRENT.md` 注入 TM.1.A ~ TM.3.A 子任务树

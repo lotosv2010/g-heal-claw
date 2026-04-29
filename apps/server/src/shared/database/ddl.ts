@@ -427,6 +427,76 @@ export const TRACK_DDL: readonly string[] = [
 ];
 
 // ============================================================
+// 事件流切片：resource_events_raw（ADR-0022 §2）
+// ============================================================
+
+export const CREATE_RESOURCE_EVENTS_RAW = `
+CREATE TABLE IF NOT EXISTS resource_events_raw (
+  id                bigserial PRIMARY KEY,
+  event_id          uuid NOT NULL UNIQUE,
+  project_id        varchar(64) NOT NULL,
+  public_key        varchar(64) NOT NULL,
+  session_id        varchar(64) NOT NULL,
+  ts_ms             bigint NOT NULL,
+  category          varchar(16) NOT NULL,
+  initiator_type    varchar(32) NOT NULL,
+  host              varchar(128) NOT NULL,
+  url               text NOT NULL,
+  duration_ms       double precision NOT NULL,
+  transfer_size     integer,
+  encoded_size      integer,
+  decoded_size      integer,
+  protocol          varchar(32),
+  cache             varchar(16) NOT NULL DEFAULT 'unknown',
+  slow              boolean NOT NULL DEFAULT false,
+  failed            boolean NOT NULL DEFAULT false,
+  page_url          text NOT NULL,
+  page_path         text NOT NULL,
+  ua                text,
+  browser           varchar(64),
+  os                varchar(64),
+  device_type       varchar(16),
+  release           varchar(64),
+  environment       varchar(32),
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+`.trim();
+
+export const CREATE_IDX_RES_PROJECT_TS = `
+CREATE INDEX IF NOT EXISTS idx_res_project_ts
+  ON resource_events_raw (project_id, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_RES_PROJECT_CATEGORY_TS = `
+CREATE INDEX IF NOT EXISTS idx_res_project_category_ts
+  ON resource_events_raw (project_id, category, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_RES_PROJECT_HOST_TS = `
+CREATE INDEX IF NOT EXISTS idx_res_project_host_ts
+  ON resource_events_raw (project_id, host, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_RES_PROJECT_FAILED_TS = `
+CREATE INDEX IF NOT EXISTS idx_res_project_failed_ts
+  ON resource_events_raw (project_id, failed, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_RES_PROJECT_SLOW_TS = `
+CREATE INDEX IF NOT EXISTS idx_res_project_slow_ts
+  ON resource_events_raw (project_id, slow, ts_ms DESC);
+`.trim();
+
+export const RESOURCE_DDL: readonly string[] = [
+  CREATE_RESOURCE_EVENTS_RAW,
+  CREATE_IDX_RES_PROJECT_TS,
+  CREATE_IDX_RES_PROJECT_CATEGORY_TS,
+  CREATE_IDX_RES_PROJECT_HOST_TS,
+  CREATE_IDX_RES_PROJECT_FAILED_TS,
+  CREATE_IDX_RES_PROJECT_SLOW_TS,
+];
+
+// ============================================================
 // 事件流：events_raw 分区父表（ADR-0017 §3.8）
 // ============================================================
 // 本期仅建骨架，Gateway 不写入；T1.4.1 完整 Processor 切入后启用。
@@ -575,6 +645,7 @@ export const ALL_DDL: readonly string[] = [
   ...ERROR_DDL,
   ...API_DDL,
   ...TRACK_DDL,
+  ...RESOURCE_DDL,
   ...EVENTS_RAW_DDL,
   ...DLQ_DDL,
 ];

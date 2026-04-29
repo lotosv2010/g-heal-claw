@@ -44,6 +44,10 @@ export {
 } from "./plugins/http.js";
 export { apiPlugin, type ApiPluginOptions } from "./plugins/api.js";
 export {
+  resourcePlugin,
+  type ResourcePluginOptions,
+} from "./plugins/resource.js";
+export {
   trackPlugin,
   track,
   type TrackPluginOptions,
@@ -66,6 +70,7 @@ import { speedIndexPlugin as _speedIndexPlugin } from "./plugins/speed-index.js"
 import { fspPlugin as _fspPlugin } from "./plugins/fsp.js";
 import { httpPlugin as _httpPlugin } from "./plugins/http.js";
 import { apiPlugin as _apiPlugin } from "./plugins/api.js";
+import { resourcePlugin as _resourcePlugin } from "./plugins/resource.js";
 import {
   trackPlugin as _trackPlugin,
   track as _track,
@@ -102,6 +107,7 @@ export const GHealClaw = {
   fspPlugin: _fspPlugin,
   httpPlugin: _httpPlugin,
   apiPlugin: _apiPlugin,
+  resourcePlugin: _resourcePlugin,
   trackPlugin: _trackPlugin,
   track: (name: string, properties?: Record<string, unknown>) =>
     _track(name, properties),

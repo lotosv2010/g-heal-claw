@@ -8,6 +8,7 @@ import { DashboardModule } from "./dashboard/dashboard.module.js";
 import { ErrorsModule } from "./errors/errors.module.js";
 import { ApiMonitorModule } from "./api-monitor/api-monitor.module.js";
 import { TrackingModule } from "./tracking/tracking.module.js";
+import { ResourceMonitorModule } from "./resource-monitor/resource-monitor.module.js";
 
 @Module({})
 export class AppModule {
@@ -22,6 +23,7 @@ export class AppModule {
         ErrorsModule,
         ApiMonitorModule,
         TrackingModule,
+        ResourceMonitorModule,
         DashboardModule,
       ],
     };

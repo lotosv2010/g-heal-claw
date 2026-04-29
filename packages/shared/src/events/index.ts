@@ -36,7 +36,12 @@ export {
   classifyLongTaskTier,
 } from "./long-task.js";
 export { ApiEventSchema, type ApiEvent } from "./api.js";
-export { ResourceEventSchema, type ResourceEvent } from "./resource.js";
+export {
+  ResourceEventSchema,
+  type ResourceEvent,
+  ResourceCategorySchema,
+  type ResourceCategory,
+} from "./resource.js";
 export { PageViewEventSchema, type PageViewEvent } from "./page-view.js";
 export { PageDurationEventSchema, type PageDurationEvent } from "./page-duration.js";
 export { CustomEventSchema, type CustomEvent } from "./custom-event.js";

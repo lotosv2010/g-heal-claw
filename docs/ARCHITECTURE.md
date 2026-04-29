@@ -98,6 +98,7 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `ErrorsModule` | 异常事件切片存储与聚合（ADR-0016 + ADR-0019）：`error_events_raw` 幂等落库（新增 Ajax/API code 列）+ 9 类目 `categoryCards` / `stackBuckets` / `ranking` / `dimensions` 聚合方法，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `PerformanceModule` | 性能事件切片存储与聚合（ADR-0013）：`perf_events_raw` 落库 + p75 / 趋势 / 瀑布 / 慢页面 Top N 聚合 | 进程内 Service | DB |
 | `ApiMonitorModule` | API 事件切片存储与聚合（ADR-0020 Tier 1）：`api_events_raw` 幂等落库 + summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
+| `ResourceMonitorModule` | 静态资源事件切片存储与聚合（ADR-0022 TM.1.B）：`resource_events_raw` 幂等落库 + summary / categoryBuckets（6 类固定占位）/ trend / topSlow / topFailingHosts 聚合，供 GatewayService 与 DashboardModule 调用；与 apiPlugin/errorPlugin 的三链路互斥（排除 fetch/xhr/beacon） | 进程内 Service | DB |
 | `TrackingModule` | 埋点事件切片存储与聚合（P0-3）：`track_events_raw` 幂等落库 + summary / typeBuckets / trend / topEvents / topPages 聚合，覆盖 click / expose / submit / code 4 类事件，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `OpenApiModule` | 面向外部系统的 API Token 开放接口 | HTTP `/open/v1/*` | DB |
 | `HealModule` | 触发自愈流程，产出/回写 heal_job | HTTP + BullMQ `heal-jobs` | DB → ai-agent |
@@ -134,7 +135,7 @@ apps/server/src/gateway/
 | `events-error` | Gateway | Processor/Error | 🟡 过渡期：Gateway 直调 ErrorsService；队列保留 | 异常事件 |
 | `events-performance` | Gateway | Processor/Performance | 🟡 过渡期：Gateway 直调 PerformanceService；队列保留（T2.1.4 切换） | 性能事件（Web Vitals、navigation） |
 | `events-api` | Gateway | Processor/Api | 🟡 过渡期：Gateway 直调 ApiMonitorService | API 请求事件（ADR-0020） |
-| `events-resource` | Gateway | Processor/Resource | ⚪ 规划 | 静态资源事件 |
+| `events-resource` | Gateway | Processor/Resource | 🟡 过渡期：Gateway 直调 ResourceMonitorService（ADR-0022 TM.1.B），队列保留 | 静态资源事件 |
 | `events-visit` | Gateway | Processor/Visit | ⚪ 规划 | 页面访问 + 会话 |
 | `events-custom` | Gateway | Processor/Custom | ⚪ 规划 | 自定义事件 / 指标 / 日志（`custom_event`、`custom_metric`、`custom_log`） |
 | `events-track` | Gateway | Processor/Track | 🟡 过渡期：Gateway 直调 TrackingService（P0-3 切片），队列保留 | 代码/全埋点/曝光（`track` 事件） |
@@ -298,7 +299,7 @@ apps/web/app/
 │   │   ├── performance/               # 页面性能（Web Vitals / 瀑布图） ✅ 首版
 │   │   ├── api/                       # API 监控（summary / trend / topSlow） ✅ ADR-0020 Tier 1
 │   │   ├── visits/                    # 页面访问（PV/UV/会话，规划 Phase 2）
-│   │   ├── resources/                 # 静态资源（规划 Phase 3）
+│   │   ├── resources/                 # 静态资源 ✅ ADR-0022 TM.1.B（resourcePlugin + resource_events_raw + 5 模块聚合）
 │   │   └── logs/                      # 日志查询（规划 Phase 3）
 │   ├── tracking/
 │   │   ├── events/                    # 事件分析 ✅ P0-3（click / expose / submit / code）
@@ -403,11 +404,12 @@ apps/web/app/
 - `releases` — 发布版本（rel_xxx），(project_id, version) UNIQUE
 - `issues` — 异常聚合（iss_xxx），(project_id, fingerprint) UNIQUE；**本期仅建表不写入**（ADR-0016 分组仍走 `error_events_raw.message_head`，T1.4.2 指纹落地后切换）
 
-**事件流表（5 张，bigserial 或复合主键）**：
+**事件流表（6 张，bigserial 或复合主键）**：
 - `perf_events_raw` — 性能切片（ADR-0013），PerformanceProcessor 直写，支撑性能大盘 p75 / 趋势 / 瀑布
 - `error_events_raw` — 异常切片（ADR-0016 + ADR-0019），ErrorProcessor 直写，支撑 9 类目大盘与 `(sub_type, message_head)` 字面排行
 - `api_events_raw` — API 切片（ADR-0020 Tier 1），ApiMonitorService 幂等落库，支撑 summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合
 - `track_events_raw` — 埋点切片（P0-3），TrackingService 幂等落库，支撑埋点大盘 summary / typeBuckets / trend / topEvents / topPages 聚合，覆盖 click / expose / submit / code 4 类事件
+- `resource_events_raw` — 静态资源切片（ADR-0022 TM.1.B），ResourceMonitorService 幂等落库，支撑资源大盘 summary / categoryBuckets（6 类固定）/ trend / topSlow / topFailingHosts 聚合；仅收 PerformanceResourceTiming 样本，明确排除 fetch/xhr/beacon
 - `events_raw` — 通用归档父表，`PARTITION BY RANGE (ingested_at)` + 4 张周分区骨架（2026w17 ~ 2026w20）；**定位为 Tier 2 归档层**，当前 Gateway 不写入，待通用 Processor / 长期留存策略启用后再接入
 
 **迁移管理（双路径）**：

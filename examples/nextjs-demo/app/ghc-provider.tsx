@@ -9,6 +9,7 @@ import {
   init,
   longTaskPlugin,
   performancePlugin,
+  resourcePlugin,
   speedIndexPlugin,
   trackPlugin,
 } from "@g-heal-claw/sdk";
@@ -29,6 +30,7 @@ import {
  * - HttpPlugin：捕获 fetch / XHR 的 ajax 失败 + 业务 code 异常（type='error'）
  * - ApiPlugin：采集 fetch / XHR 全量请求明细（含成功，type='api'），驱动 API 大盘
  * - TrackPlugin：采集 4 类埋点事件（click / submit / expose / code，type='track'），驱动事件分析大盘
+ * - ResourcePlugin：采集 PerformanceResourceTiming 全量静态资源样本（type='resource'），驱动静态资源大盘；明确排除 fetch/xhr/beacon
  */
 export function GhcProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -63,6 +65,10 @@ export function GhcProvider({ children }: { children: ReactNode }) {
           trackPlugin({
             // demo 曝光停留 300ms，便于快速演示
             exposeDwellMs: 300,
+          }),
+          resourcePlugin({
+            // demo 降至 500ms 便于本地演示慢资源
+            slowThresholdMs: 500,
           }),
         ],
       },

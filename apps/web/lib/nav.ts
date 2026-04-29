@@ -75,7 +75,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { slug: "monitor/performance", label: "页面性能", icon: Activity, placeholder: null },
       { slug: "monitor/api", label: "API 监控", icon: Network, placeholder: null },
       { slug: "monitor/visits", label: "页面访问", icon: Users, placeholder: "Phase 2 交付" },
-      { slug: "monitor/resources", label: "静态资源", icon: Box, placeholder: "Phase 3 交付" },
+      { slug: "monitor/resources", label: "静态资源", icon: Box, placeholder: null },
       { slug: "monitor/logs", label: "日志查询", icon: FileText, placeholder: "Phase 3 交付" },
     ],
   },

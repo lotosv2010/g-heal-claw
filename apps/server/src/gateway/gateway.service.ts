@@ -1,11 +1,17 @@
 import { Injectable, Logger } from "@nestjs/common";
-import type { ApiEvent, ErrorEvent, TrackEvent } from "@g-heal-claw/shared";
+import type {
+  ApiEvent,
+  ErrorEvent,
+  ResourceEvent,
+  TrackEvent,
+} from "@g-heal-claw/shared";
 import { ApiMonitorService } from "../api-monitor/api-monitor.service.js";
 import { ErrorsService } from "../errors/errors.service.js";
 import {
   PerformanceService,
   type PerfOrLongTaskEvent,
 } from "../performance/performance.service.js";
+import { ResourceMonitorService } from "../resource-monitor/resource-monitor.service.js";
 import { TrackingService } from "../tracking/tracking.service.js";
 import type { GatewayAuthContext } from "./dsn-auth.guard.js";
 import { IdempotencyService } from "./idempotency.service.js";
@@ -32,6 +38,7 @@ export class GatewayService {
     private readonly errors: ErrorsService,
     private readonly apiMonitor: ApiMonitorService,
     private readonly tracking: TrackingService,
+    private readonly resourceMonitor: ResourceMonitorService,
     private readonly idempotency: IdempotencyService,
   ) {}
 
@@ -51,21 +58,34 @@ export class GatewayService {
     const errorEvents = first.filter(isError);
     const apiEvents = first.filter(isApi);
     const trackEvents = first.filter(isTrack);
+    const resourceEvents = first.filter(isResource);
 
-    const [perfPersisted, errorPersisted, apiPersisted, trackPersisted] =
-      await Promise.all([
-        perfEvents.length ? this.performance.saveBatch(perfEvents) : 0,
-        errorEvents.length ? this.errors.saveBatch(errorEvents) : 0,
-        apiEvents.length ? this.apiMonitor.saveBatch(apiEvents) : 0,
-        trackEvents.length ? this.tracking.saveBatch(trackEvents) : 0,
-      ]);
+    const [
+      perfPersisted,
+      errorPersisted,
+      apiPersisted,
+      trackPersisted,
+      resourcePersisted,
+    ] = await Promise.all([
+      perfEvents.length ? this.performance.saveBatch(perfEvents) : 0,
+      errorEvents.length ? this.errors.saveBatch(errorEvents) : 0,
+      apiEvents.length ? this.apiMonitor.saveBatch(apiEvents) : 0,
+      trackEvents.length ? this.tracking.saveBatch(trackEvents) : 0,
+      resourceEvents.length
+        ? this.resourceMonitor.saveBatch(resourceEvents)
+        : 0,
+    ]);
     const persisted =
-      perfPersisted + errorPersisted + apiPersisted + trackPersisted;
+      perfPersisted +
+      errorPersisted +
+      apiPersisted +
+      trackPersisted +
+      resourcePersisted;
 
     this.logger.log(
       `accepted=${total} deduped=${duplicates.length} perf=${perfEvents.length} ` +
         `errors=${errorEvents.length} apis=${apiEvents.length} tracks=${trackEvents.length} ` +
-        `persisted=${persisted} ` +
+        `resources=${resourceEvents.length} persisted=${persisted} ` +
         `types=[${payload.events.map((e) => e.type).join(",")}] ` +
         `projectId=${auth?.projectId ?? "-"} publicKey=${auth?.publicKey ?? "-"}`,
     );
@@ -91,4 +111,10 @@ function isTrack(
   event: IngestRequest["events"][number],
 ): event is TrackEvent {
   return event.type === "track";
+}
+
+function isResource(
+  event: IngestRequest["events"][number],
+): event is ResourceEvent {
+  return event.type === "resource";
 }

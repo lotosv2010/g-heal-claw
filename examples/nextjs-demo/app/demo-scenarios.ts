@@ -75,9 +75,20 @@ export const SCENARIO_GROUPS: readonly ScenarioGroup[] = [
   {
     key: "resources",
     title: "静态资源",
-    description: "JS / CSS / 图片 / 媒体加载失败 · 映射到大盘「静态资源」",
+    description:
+      "JS / CSS / 图片 / 媒体加载（含全量 RT 样本 + 加载失败 2 种上报路径） · 映射到大盘「静态资源」",
     accent: "teal",
     routes: [
+      {
+        href: "/resources/slow-script",
+        label: "慢脚本（RT 样本）",
+        hint: "动态注入慢 JS，驱动 Top 慢资源 / 资源分类",
+      },
+      {
+        href: "/resources/image-gallery",
+        label: "图片批量（RT 样本）",
+        hint: "一次加载多张随机图，观察 image 桶与 Top 慢资源",
+      },
       { href: "/errors/js-load", label: "JS 加载异常", hint: "404 的 <script>" },
       { href: "/errors/image-load", label: "图片加载异常", hint: "404 的 <img>" },
       { href: "/errors/css-load", label: "CSS 加载异常", hint: "404 的 <link stylesheet>" },
