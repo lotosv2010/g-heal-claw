@@ -2,11 +2,13 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 function Card({ className, ...props }: React.ComponentProps<"div">) {
+  // 苹果化卡片：更大圆角（2xl=16px）+ 柔和大散射阴影 + 几乎隐形的边框
   return (
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-2xl border border-black/[0.04] py-6",
+        "shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.04)] dark:border-white/[0.06] dark:shadow-none",
         className,
       )}
       {...props}

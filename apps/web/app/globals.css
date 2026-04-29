@@ -1,99 +1,121 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* shadcn/ui new-york · neutral base · Tailwind v4 · @theme inline 映射 CSS 变量 → Tailwind token */
+/**
+ * 视觉风格：Apple HIG / macOS + apple.com
+ *  - 字体：SF Pro（-apple-system 回退），中文 PingFang SC
+ *  - 主背景：#f5f5f7（苹果官网灰白底，降低对比刺眼）；Card 纯白浮层承载内容
+ *  - 主色：#0071e3（苹果系统蓝 · 浅色）/ #0a84ff（iOS Dark Blue · 深色）
+ *  - 圆角：10px 基础，卡片 rounded-2xl (16px)，按钮 8px —— 比 AntD 显著加大
+ *  - 阴影：极淡、大散射 —— Card 采用 0 1px 2px + 0 8px 24px / 0.04 柔和层
+ *  - 边框：弱化至 #d2d2d7，很多地方用背景分层代替硬边框
+ *  - 深色：苹果 iOS Dark，#000 layout + #1c1c1e 卡片
+ */
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Ant Design 默认圆角 6px */
-  --radius: 0.375rem;
-  /* Ant Design colorBgLayout = #f5f5f5；主内容区仍用 #fff（由 Card 承载） */
-  --background: #ffffff;
-  /* AntD colorText = rgba(0,0,0,0.88) */
-  --foreground: rgba(0, 0, 0, 0.88);
-  --card: #ffffff;
-  --card-foreground: rgba(0, 0, 0, 0.88);
-  --popover: #ffffff;
-  --popover-foreground: rgba(0, 0, 0, 0.88);
-  /* primary 对齐 AntD colorPrimary = #1677ff（Daybreak Blue-6） */
-  --primary: #1677ff;
-  --primary-foreground: #ffffff;
-  --secondary: #f5f5f5;
-  --secondary-foreground: rgba(0, 0, 0, 0.88);
-  --muted: #fafafa;
-  /* colorTextSecondary = rgba(0,0,0,0.65) */
-  --muted-foreground: rgba(0, 0, 0, 0.65);
-  --accent: #e6f4ff; /* AntD colorPrimaryBg */
-  --accent-foreground: #1677ff;
-  /* AntD colorError = #ff4d4f */
-  --destructive: #ff4d4f;
-  --destructive-foreground: #ffffff;
-  /* AntD colorBorder = #d9d9d9；colorBorderSecondary = #f0f0f0 */
-  --border: #d9d9d9;
-  --input: #d9d9d9;
-  --ring: #1677ff;
+  /* 基础圆角 10px（Apple HIG 控件圆角中值） */
+  --radius: 0.625rem;
 
-  /* Web Vitals 阈值语义色 ← AntD success / warning / primary */
-  --good: #52c41a;
+  /* 层次背景：主页面略灰，卡片纯白，sidebar 微差 —— Finder 式三段分层 */
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;            /* 苹果官网主标题黑 */
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
+
+  /* 主色：apple.com 蓝（iOS System Blue 的桌面化变体） */
+  --primary: #0071e3;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f5f5f7;
+  --secondary-foreground: #1d1d1f;
+
+  /* 次级文字 / 背景：苹果 secondary label */
+  --muted: #f5f5f7;
+  --muted-foreground: #6e6e73;
+
+  /* Accent：浅蓝背景（菜单激活态） */
+  --accent: #e8f1fd;
+  --accent-foreground: #0071e3;
+
+  /* 系统红（iOS red 稍深于 AntD） */
+  --destructive: #ff3b30;
+  --destructive-foreground: #ffffff;
+
+  /* 极弱边框（苹果极少使用硬边框） */
+  --border: #d2d2d7;
+  --input: #d2d2d7;
+  --ring: #0071e3;
+
+  /* 语义色（Web Vitals / 状态） */
+  --good: #34c759;                  /* iOS System Green */
   --good-foreground: #ffffff;
-  --warn: #faad14;
+  --warn: #ff9500;                  /* iOS System Orange */
   --warn-foreground: #ffffff;
-  --brand: #1677ff;
+  --brand: #0071e3;
   --brand-foreground: #ffffff;
 
-  /* Sidebar：AntD Pro 深色侧边默认 #001529；此处保持浅色壳匹配当前菜单实现 */
-  --sidebar: #ffffff;
-  --sidebar-foreground: rgba(0, 0, 0, 0.88);
-  --sidebar-primary: #1677ff;
+  /* Sidebar：Finder 侧栏感 —— 背景更冷，比主背景略深一档，边框隐形 */
+  --sidebar: #f2f2f5;
+  --sidebar-foreground: #1d1d1f;
+  --sidebar-primary: #0071e3;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e6f4ff;
-  --sidebar-accent-foreground: #1677ff;
-  --sidebar-border: #f0f0f0;
-  --sidebar-ring: #1677ff;
+  --sidebar-accent: rgba(0, 113, 227, 0.08);
+  --sidebar-accent-foreground: #0071e3;
+  --sidebar-border: rgba(0, 0, 0, 0.06);
+  --sidebar-ring: #0071e3;
 }
 
 .dark {
-  /* AntD DarkAlgorithm：colorBgLayout = #000，颜色分层偏移 */
-  --background: #141414;
-  --foreground: rgba(255, 255, 255, 0.85);
-  --card: #1f1f1f;
-  --card-foreground: rgba(255, 255, 255, 0.85);
-  --popover: #1f1f1f;
-  --popover-foreground: rgba(255, 255, 255, 0.85);
-  /* 深色下 primary 微亮 = Daybreak Blue-5 */
-  --primary: #4096ff;
-  --primary-foreground: #ffffff;
-  --secondary: #262626;
-  --secondary-foreground: rgba(255, 255, 255, 0.85);
-  --muted: #262626;
-  --muted-foreground: rgba(255, 255, 255, 0.65);
-  --accent: #111a2c; /* AntD DarkAlgorithm colorPrimaryBg */
-  --accent-foreground: #4096ff;
-  --destructive: #ff4d4f;
-  --destructive-foreground: #ffffff;
-  --border: #303030;
-  --input: #303030;
-  --ring: #4096ff;
+  /* iOS / macOS Dark：系统背景 #000，Card 用 #1c1c1e 抬高层级 */
+  --background: #000000;
+  --foreground: #f5f5f7;
+  --card: #1c1c1e;
+  --card-foreground: #f5f5f7;
+  --popover: #1c1c1e;
+  --popover-foreground: #f5f5f7;
 
-  --good: #52c41a;
+  --primary: #0a84ff;               /* iOS Dark Blue */
+  --primary-foreground: #ffffff;
+
+  --secondary: #1c1c1e;
+  --secondary-foreground: #f5f5f7;
+
+  --muted: #1c1c1e;
+  --muted-foreground: #8e8e93;      /* iOS tertiary label */
+
+  --accent: rgba(10, 132, 255, 0.16);
+  --accent-foreground: #0a84ff;
+
+  --destructive: #ff453a;
+  --destructive-foreground: #ffffff;
+
+  --border: #38383a;                /* iOS separator dark */
+  --input: #38383a;
+  --ring: #0a84ff;
+
+  --good: #30d158;
   --good-foreground: #ffffff;
-  --warn: #faad14;
-  --warn-foreground: rgba(0, 0, 0, 0.88);
-  --brand: #4096ff;
+  --warn: #ff9f0a;
+  --warn-foreground: #000000;
+  --brand: #0a84ff;
   --brand-foreground: #ffffff;
 
-  --sidebar: #001529; /* AntD Pro 经典深色 Sider */
-  --sidebar-foreground: rgba(255, 255, 255, 0.85);
-  --sidebar-primary: #1677ff;
+  --sidebar: #0c0c0d;
+  --sidebar-foreground: #f5f5f7;
+  --sidebar-primary: #0a84ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1677ff;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #1d1d1d;
-  --sidebar-ring: #4096ff;
+  --sidebar-accent: rgba(10, 132, 255, 0.18);
+  --sidebar-accent-foreground: #0a84ff;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #0a84ff;
 }
 
 @theme inline {
+  /* Apple 圆角梯度：6 / 8 / 10 / 14 */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -134,16 +156,66 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* 苹果化柔和阴影：供 Card / Popover 等浮层使用 */
+  --shadow-apple-sm: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.03);
+  --shadow-apple-md: 0 2px 6px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.05);
+  --shadow-apple-lg: 0 4px 12px rgb(0 0 0 / 0.05), 0 20px 48px rgb(0 0 0 / 0.08);
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
   }
+
+  /**
+   * 可点击元素统一 cursor: pointer
+   * —— Tailwind v4 把 button 默认重置为 cursor: default；这里覆盖回设计偏好
+   * 覆盖范围：原生 button / a[href] / summary / label[for] / select /
+   * 以及所有 ARIA 交互角色（button/tab/menuitem/option/switch/checkbox/radio/link）
+   * 禁用态降级为 not-allowed
+   */
+  button:not(:disabled),
+  a[href],
+  summary,
+  label[for],
+  select:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="menuitemcheckbox"]:not([aria-disabled="true"]),
+  [role="menuitemradio"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="checkbox"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]),
+  [role="link"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  html {
+    /* 开启苹果字体抗锯齿 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC",
-      "Hiragino Sans GB", sans-serif;
+    /* SF Pro 优先（macOS / iOS 原生），回退 system-ui；中文 PingFang */
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+      "SF Pro Display", "Helvetica Neue", system-ui, "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    letter-spacing: -0.003em;         /* SF Pro 推荐的微负字距 */
+  }
+  /* 标题级别略收紧字距（苹果官网风格） */
+  h1, h2, h3 {
+    letter-spacing: -0.015em;
   }
 }

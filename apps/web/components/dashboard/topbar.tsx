@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { DateRange } from "react-day-picker";
 import { ChevronDown, Clock, RefreshCw } from "lucide-react";
+import { GithubIcon } from "@/components/dashboard/github-icon";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { findNav } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import {
@@ -111,13 +113,14 @@ export function Topbar() {
     selection.kind === "preset" ? selection.preset : null;
 
   return (
-    <header className="bg-card sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between border-b px-6">
+    // Topbar：磨砂半透明背景（macOS 窗口 toolbar 风），极弱底部分割
+    <header className="bg-background/75 sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between border-b border-black/[0.04] px-8 backdrop-blur-xl dark:border-white/[0.06]">
       {/* 左：页面名 + 项目/DNS/环境（占位） */}
       <div className="flex min-w-0 items-center gap-4">
-        <h1 className="text-foreground truncate text-base font-semibold">
+        <h1 className="text-foreground truncate text-[15px] font-semibold tracking-tight">
           {pageTitle}
         </h1>
-        <span className="bg-border h-5 w-px" aria-hidden />
+        <span className="bg-border/70 h-4 w-px" aria-hidden />
         <Button
           variant="outline"
           size="sm"
@@ -253,6 +256,22 @@ export function Topbar() {
         <Button variant="outline" size="icon" aria-label="刷新">
           <RefreshCw className="size-4" aria-hidden />
         </Button>
+        <Button
+          asChild
+          variant="outline"
+          size="icon"
+          aria-label="GitHub 仓库"
+          title="GitHub 仓库"
+        >
+          <a
+            href="https://github.com/lotosv2010/g-heal-claw"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <GithubIcon className="size-4" aria-hidden />
+          </a>
+        </Button>
+        <ThemeToggle />
       </div>
     </header>
   );

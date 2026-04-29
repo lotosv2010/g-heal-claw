@@ -20,18 +20,18 @@ export default function DashboardLayout({
   return (
     <div className="bg-background min-h-screen">
       <Sidebar />
-      <div className="flex h-screen flex-col md:pl-56">
+      <div className="flex h-screen flex-col md:pl-60">
         <Suspense
           fallback={
             <div
-              className="bg-card sticky top-0 z-20 h-14 shrink-0 border-b"
+              className="bg-background/80 sticky top-0 z-20 h-14 shrink-0 border-b border-black/[0.04] backdrop-blur-xl dark:border-white/[0.06]"
               aria-hidden
             />
           }
         >
           <Topbar />
         </Suspense>
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto px-8 py-6">{children}</main>
       </div>
     </div>
   );
