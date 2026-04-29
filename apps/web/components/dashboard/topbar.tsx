@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
-import { findNav } from "@/lib/nav";
+import { findNavByPathname } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_PRESET,
@@ -35,8 +35,7 @@ export function Topbar() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageTitle = useMemo(() => {
-    const slug = pathname.split("/").filter(Boolean)[0];
-    return findNav(slug ?? "")?.label ?? "控制台";
+    return findNavByPathname(pathname)?.label ?? "控制台";
   }, [pathname]);
 
   const selection = useMemo(
