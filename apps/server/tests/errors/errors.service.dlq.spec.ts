@@ -1,9 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import { ErrorsService } from "../../src/errors/errors.service.js";
 import type { IssuesService } from "../../src/errors/issues.service.js";
+import type { IssueUserHllService } from "../../src/errors/hll.service.js";
 import type { DeadLetterService } from "../../src/dlq/dead-letter.service.js";
 import type { DatabaseService } from "../../src/shared/database/database.service.js";
 import { buildErrorEvent } from "../fixtures.js";
+
+function createHll(): IssueUserHllService {
+  return {
+    pfAdd: vi.fn(async () => undefined),
+    pfCount: vi.fn(async () => null),
+  } as unknown as IssueUserHllService;
+}
 
 /**
  * ErrorsService DLQ 集成路径单测（T1.4.4 / ADR-0016 §5）
@@ -55,7 +63,7 @@ describe("ErrorsService DLQ 兜底", () => {
     const db = createDb({ rawInsertThrows: true });
     const issues = createIssues(false);
     const { svc: dlq, enqueueEvents } = createDlq();
-    const service = new ErrorsService(db, issues, dlq);
+    const service = new ErrorsService(db, issues, dlq, createHll());
 
     const events = [buildErrorEvent({ message: "A" })];
     const result = await service.saveBatch(events);
@@ -74,7 +82,7 @@ describe("ErrorsService DLQ 兜底", () => {
     const db = createDb({ rawInsertReturn: [{ id: 1 }, { id: 2 }] });
     const issues = createIssues(true);
     const { svc: dlq, enqueueEvents } = createDlq();
-    const service = new ErrorsService(db, issues, dlq);
+    const service = new ErrorsService(db, issues, dlq, createHll());
 
     const events = [
       buildErrorEvent({ message: "A" }),
@@ -97,7 +105,7 @@ describe("ErrorsService DLQ 兜底", () => {
     const db = createDb({ rawInsertReturn: [{ id: 1 }] });
     const issues = createIssues(false);
     const { svc: dlq, enqueueEvents } = createDlq();
-    const service = new ErrorsService(db, issues, dlq);
+    const service = new ErrorsService(db, issues, dlq, createHll());
 
     const events = [buildErrorEvent()];
     await service.saveBatch(events);
@@ -109,7 +117,7 @@ describe("ErrorsService DLQ 兜底", () => {
     const db = { db: null } as unknown as DatabaseService;
     const issues = createIssues(false);
     const { svc: dlq, enqueueEvents } = createDlq();
-    const service = new ErrorsService(db, issues, dlq);
+    const service = new ErrorsService(db, issues, dlq, createHll());
 
     const result = await service.saveBatch([buildErrorEvent()]);
 
@@ -122,7 +130,7 @@ describe("ErrorsService DLQ 兜底", () => {
     const db = createDb({ rawInsertReturn: [] });
     const issues = createIssues(false);
     const { svc: dlq, enqueueEvents } = createDlq();
-    const service = new ErrorsService(db, issues, dlq);
+    const service = new ErrorsService(db, issues, dlq, createHll());
 
     const result = await service.saveBatch([]);
 

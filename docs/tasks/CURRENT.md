@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-04-29（T1.3.5 幂等 + T1.4.4 DLQ + T1.3.3 限流 三切片落地：server 单元 99/99 + e2e 6/6 全绿；typecheck 7/7 + build 5/5 保持）
+> 最后更新: 2026-04-29（T1.3.6 k6 压测脚本 + T1.4.3 HLL 用户数估算 + 回写 cron；server 单元 113/113 + e2e 6/6 全绿；typecheck 7/7 + build 5/5 保持）
 
 ## 状态说明
 
@@ -262,13 +262,13 @@
 - [x] **T1.3.3** 项目级限流（Redis 令牌桶 Lua）— 2d（完成 2026-04-29；`RateLimitService` + `RateLimitGuard` + 9 单测全绿）
 - [ ] **T1.3.4** 事件 Zod 校验 Pipe + 批量分发到各队列 — 2d
 - [x] **T1.3.5** 幂等去重（eventId Redis SETNX）— 1d（完成 2026-04-29；`IdempotencyService` + `RedisService` + 8 单测全绿）
-- [ ] **T1.3.6** Gateway 压测基线（k6，目标 5000 events/s）— 2d
+- [~] **T1.3.6** Gateway 压测基线（k6，目标 5000 events/s）— 2d（完成 2026-04-29：`apps/server/bench/ingest.k6.js` + README；压测数字待在目标硬件执行后粘回本条目）
 
 ### M1.4 ProcessorModule：异常消费
 
 - [x] **T1.4.1** ErrorProcessor（Issue UPSERT + events_raw 写入，切片方案，未引入 BullMQ）— 3d（完成 2026-04-28，commit `35a029e`）
 - [x] **T1.4.2** 指纹计算（normalize message + top-frame + sha1） — 2d（完成 2026-04-28，随 T1.4.1 交付）
-- [ ] **T1.4.3** Issue 用户数 HLL 估算 + 分钟级批量回写 — 2d
+- [x] **T1.4.3** Issue 用户数 HLL 估算 + 分钟级批量回写 — 2d（完成 2026-04-29；`IssueUserHllService` 写入路径 `PFADD` + `IssueHllBackfillService` cron 定时 `PFCOUNT` 回写 `issues.impacted_sessions`；ENV 开关 `ISSUE_HLL_BACKFILL_INTERVAL_MS`（0 禁用）；5+6 单测全绿）
 - [x] **T1.4.4** DLQ 死信队列 + 失败告警 — 1d（完成 2026-04-29；`events_dlq` 表 + `DeadLetterService` + ErrorsService 双路径兜底 + 10 单测全绿）
 
 ### M1.5 Sourcemap 服务

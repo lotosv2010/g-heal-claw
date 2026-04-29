@@ -28,6 +28,11 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   GATEWAY_RATE_LIMIT_BURST: z.coerce.number().int().positive().default(200),
   SERVER_DEFAULT_SAMPLE_RATE: sampleRate.default(1),
 
+  // -------- Issue HLL 回写 cron（T1.4.3）--------
+  // 0 表示禁用（测试 / 无 Redis 环境）；默认 60s 扫描一次，仅更新 last_seen 最近 30min 的活跃 Issue
+  ISSUE_HLL_BACKFILL_INTERVAL_MS: z.coerce.number().int().nonnegative().default(60_000),
+  ISSUE_HLL_BACKFILL_BATCH: z.coerce.number().int().positive().default(500),
+
   // -------- 邮件（告警通知）--------
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),

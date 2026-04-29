@@ -7,6 +7,7 @@ import {
   errorEventsRaw,
   type NewErrorEventRow,
 } from "../shared/database/schema.js";
+import { IssueUserHllService } from "./hll.service.js";
 import { IssuesService } from "./issues.service.js";
 
 /** 窗口参数（与 PerformanceService 同构） */
@@ -91,6 +92,7 @@ export class ErrorsService {
     private readonly database: DatabaseService,
     private readonly issues: IssuesService,
     private readonly dlq: DeadLetterService,
+    private readonly hll: IssueUserHllService,
   ) {}
 
   /**
@@ -115,6 +117,8 @@ export class ErrorsService {
         .returning({ id: errorEventsRaw.id });
       // 仅对实际入库的事件做聚合，避免重复 UPSERT（ADR-0016 §3 幂等原则）
       if (inserted.length > 0) {
+        // T1.4.3：sessionId → HLL；失败不抛，回写 cron 下轮补偿
+        await this.hll.pfAdd(events);
         try {
           const result = await this.issues.upsertBatch(events);
           this.logger.debug(
