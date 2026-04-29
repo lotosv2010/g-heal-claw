@@ -111,8 +111,9 @@ pnpm dev
 Turborepo 并行拉起：
 
 - `apps/server` — NestJS (Fastify adapter)，监听 `3000`（API） / `3001`（metrics）
-- `apps/web` — Next.js (App Router)，监听 `3002`（Dashboard）
+- `apps/web` — Next.js (App Router)，监听 `3000`（Dashboard，端口见 `apps/web/package.json`）
 - `apps/ai-agent` — LangChain Worker，消费 `ai-diagnosis` / `ai-heal-fix` 队列
+- `examples/nextjs-demo` — SDK 演练沙盘（端口 `3100`），测试场景按 Dashboard 菜单分组：**性能（Web Vitals 7 项） · 错误（同步/runtime/promise/白屏） · 接口（ajax 失败/业务码） · 资源（JS/图片/CSS/媒体/通用 404）**
 
 ### 5.2 单独启动某个应用
 

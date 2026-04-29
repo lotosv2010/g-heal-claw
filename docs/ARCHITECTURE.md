@@ -28,9 +28,9 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
                             │         ▼                └────────────────┬───────────────┘│
                             │ ┌───────────────────────────────────────────┴────────────┐ │
                             │ │ ProcessorModule                                         │ │
-                            │ │ · ErrorProcessor    · PerformanceProcessor             │ │
-                            │ │ · ApiProcessor      · ResourceProcessor                │ │
-                            │ │ · VisitProcessor    · CustomProcessor · TrackProcessor │ │
+                            │ │ · ErrorProcessor ✅ · PerformanceProcessor ✅           │ │
+                            │ │ · ApiProcessor ✅（切片）  · ResourceProcessor（规划）  │ │
+                            │ │ · VisitProcessor · CustomProcessor · TrackProcessor（规划）│ │
                             │ └──────────┬─────────────────────────────┬────────────────┘ │
                             │            │ metrics / issues              │ realtime feed   │
                             │            ▼                              ▼                 │
@@ -61,8 +61,8 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
                               ┌────────────────────────┐    ┌──────────────────────────────┐
                               │  apps/web (Next.js)     │    │ apps/ai-agent (LangChain)    │
                               │  · App Router SSR       │    │  · 诊断 Agent                 │
-                              │  · Shadcn/ui            │    │  · 修复 Agent（沙箱 + Git PR） │
-                              │  · ECharts 大盘 / 实时   │◀───│  回写 heal_job + 通知         │
+                              │  · Shadcn/ui · Apple HIG │    │  · 修复 Agent（沙箱 + Git PR） │
+                              │  · @ant-design/plots 大盘│◀───│  回写 heal_job + 通知         │
                               └────────────────────────┘    └──────────────────────────────┘
 
 基础设施：PostgreSQL 17 · Redis 7 · MinIO / S3 · Docker Compose（本地）/ K8s（生产）
@@ -97,6 +97,7 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `DashboardModule` | 面向 Web 的只读聚合 API（首版 ADR-0015 性能大盘直查 `perf_events_raw` + p75；首版 ADR-0016/0019 异常大盘直查 `error_events_raw` 按 9 类目 `category` 聚合 + `(sub_type, message_head)` 字面排行；T1.1.7 后并入 JWT + ProjectGuard） | HTTP `/dashboard/v1/*` → Phase 6 迁移至 `/api/v1/*` | DB、PerformanceService、ErrorsService |
 | `ErrorsModule` | 异常事件切片存储与聚合（ADR-0016 + ADR-0019）：`error_events_raw` 幂等落库（新增 Ajax/API code 列）+ 9 类目 `categoryCards` / `stackBuckets` / `ranking` / `dimensions` 聚合方法，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `PerformanceModule` | 性能事件切片存储与聚合（ADR-0013）：`perf_events_raw` 落库 + p75 / 趋势 / 瀑布 / 慢页面 Top N 聚合 | 进程内 Service | DB |
+| `ApiMonitorModule` | API 事件切片存储与聚合（ADR-0020 Tier 1）：`api_events_raw` 幂等落库 + summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `OpenApiModule` | 面向外部系统的 API Token 开放接口 | HTTP `/open/v1/*` | DB |
 | `HealModule` | 触发自愈流程，产出/回写 heal_job | HTTP + BullMQ `heal-jobs` | DB → ai-agent |
 | `ProjectModule` | 项目/成员/环境/Release/Key 管理 | 被 Dashboard/Open 调用 | DB |
@@ -127,22 +128,24 @@ apps/server/src/gateway/
 
 ### 3.4 BullMQ 队列清单
 
-| 队列名 | 生产者 | 消费者 | 用途 |
-|---|---|---|---|
-| `events-error` | Gateway | Processor/Error | 异常事件 |
-| `events-performance` | Gateway | Processor/Performance | 性能事件（Web Vitals、navigation） |
-| `events-api` | Gateway | Processor/Api | API 请求事件 |
-| `events-resource` | Gateway | Processor/Resource | 静态资源事件 |
-| `events-visit` | Gateway | Processor/Visit | 页面访问 + 会话 |
-| `events-custom` | Gateway | Processor/Custom | 自定义事件 / 指标 / 日志（`custom_event`、`custom_metric`、`custom_log`） |
-| `events-track` | Gateway | Processor/Track | 代码/全埋点/曝光/停留时长（`track` 事件） |
-| `alert-evaluator` | `AlertModule` 定时器 | Alert Evaluator | 告警规则评估 |
-| `notifications` | Alert/Heal | Notification | 外部通知 |
-| `ai-diagnosis` | HealModule | ai-agent | AI 诊断 |
-| `ai-heal-fix` | ai-agent（自触发） | ai-agent | 生成 patch + 沙箱验证 + 创建 PR |
-| `sourcemap-warmup` | ReleaseUpload | Sourcemap | 预热堆栈还原 |
+| 队列名 | 生产者 | 消费者 | 状态 | 用途 |
+|---|---|---|---|---|
+| `events-error` | Gateway | Processor/Error | 🟡 过渡期：Gateway 直调 ErrorsService；队列保留 | 异常事件 |
+| `events-performance` | Gateway | Processor/Performance | 🟡 过渡期：Gateway 直调 PerformanceService；队列保留（T2.1.4 切换） | 性能事件（Web Vitals、navigation） |
+| `events-api` | Gateway | Processor/Api | 🟡 过渡期：Gateway 直调 ApiMonitorService | API 请求事件（ADR-0020） |
+| `events-resource` | Gateway | Processor/Resource | ⚪ 规划 | 静态资源事件 |
+| `events-visit` | Gateway | Processor/Visit | ⚪ 规划 | 页面访问 + 会话 |
+| `events-custom` | Gateway | Processor/Custom | ⚪ 规划 | 自定义事件 / 指标 / 日志（`custom_event`、`custom_metric`、`custom_log`） |
+| `events-track` | Gateway | Processor/Track | ⚪ 规划 | 代码/全埋点/曝光/停留时长（`track` 事件） |
+| `alert-evaluator` | `AlertModule` 定时器 | Alert Evaluator | ⚪ 规划 | 告警规则评估 |
+| `notifications` | Alert/Heal | Notification | ⚪ 规划 | 外部通知 |
+| `ai-diagnosis` | HealModule | ai-agent | ⚪ 规划 | AI 诊断 |
+| `ai-heal-fix` | ai-agent（自触发） | ai-agent | ⚪ 规划 | 生成 patch + 沙箱验证 + 创建 PR |
+| `sourcemap-warmup` | ReleaseUpload | Sourcemap | ⚪ 规划 | 预热堆栈还原 |
 
-**重试策略**：默认 3 次指数退避；失败事件进入 `*-dlq` 死信队列，由监控告警通知。
+**状态说明**：✅ 已落地 · 🟡 过渡期（队列已声明但首版走进程内直调，后续 Processor 完整化时切换） · ⚪ 规划中（队列名常量先于实现定义在 `packages/shared`）。
+
+**重试策略**：默认 3 次指数退避；失败事件进入 `*-dlq` 死信队列，由 DLQ 模块监控告警。
 
 ---
 
@@ -282,19 +285,19 @@ User 点击「一键自愈」 ──POST /heal/issues/:id──▶ HealModule
 
 ```
 apps/web/app/
-├── (auth)/                      # 登录、注册、忘记密码
+├── (auth)/                      # 登录、注册、忘记密码（规划）
 ├── (dashboard)/
-│   ├── projects/                # 项目切换与管理
-│   ├── overview/                # 总览仪表盘（核心指标卡 + 趋势）
-│   ├── performance/             # 性能分析（Web Vitals / 瀑布图 / Apdex）
-│   ├── errors/                  # 异常 Issue 列表与详情
-│   ├── api/                     # API 监控
-│   ├── resources/               # 静态资源分析
-│   ├── visits/                  # 访问分析（PV/UV/会话）
-│   ├── custom/                  # 自定义事件/日志/埋点分析
-│   ├── alerts/                  # 告警规则与历史
-│   ├── heal/                    # 自愈任务中心
-│   ├── settings/                # 项目/成员/环境/通知渠道/Token
+│   ├── projects/                # 项目切换与管理（规划）
+│   ├── overview/                # 总览仪表盘（核心指标卡 + 趋势，规划）
+│   ├── performance/             # 性能分析（Web Vitals / 瀑布图 / Apdex） ✅ 首版
+│   ├── errors/                  # 异常 Issue 列表与详情 ✅ 首版
+│   ├── api/                     # API 监控（summary / trend / topSlow） ✅ ADR-0020 Tier 1
+│   ├── resources/               # 静态资源分析（规划）
+│   ├── visits/                  # 访问分析（PV/UV/会话，规划）
+│   ├── custom/                  # 自定义事件/日志/埋点分析（规划）
+│   ├── alerts/                  # 告警规则与历史（规划）
+│   ├── heal/                    # 自愈任务中心（规划）
+│   ├── settings/                # 项目/成员/环境/通知渠道/Token（规划）
 │   └── layout.tsx
 └── layout.tsx
 ```
@@ -384,10 +387,11 @@ apps/web/app/
 - `releases` — 发布版本（rel_xxx），(project_id, version) UNIQUE
 - `issues` — 异常聚合（iss_xxx），(project_id, fingerprint) UNIQUE；**本期仅建表不写入**（ADR-0016 分组仍走 `error_events_raw.message_head`，T1.4.2 指纹落地后切换）
 
-**事件流表（3 张，bigserial 或复合主键）**：
-- `perf_events_raw` — 性能切片（ADR-0013）
-- `error_events_raw` — 异常切片（ADR-0016）
-- `events_raw` — 通用归档父表，`PARTITION BY RANGE (ingested_at)` + 4 张周分区骨架（2026w17 ~ 2026w20）；**本期 Gateway 不写入**，T1.4.1 完整 Processor 启用
+**事件流表（4 张，bigserial 或复合主键）**：
+- `perf_events_raw` — 性能切片（ADR-0013），PerformanceProcessor 直写，支撑性能大盘 p75 / 趋势 / 瀑布
+- `error_events_raw` — 异常切片（ADR-0016 + ADR-0019），ErrorProcessor 直写，支撑 9 类目大盘与 `(sub_type, message_head)` 字面排行
+- `api_events_raw` — API 切片（ADR-0020 Tier 1），ApiMonitorService 幂等落库，支撑 summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合
+- `events_raw` — 通用归档父表，`PARTITION BY RANGE (ingested_at)` + 4 张周分区骨架（2026w17 ~ 2026w20）；**定位为 Tier 2 归档层**，当前 Gateway 不写入，待通用 Processor / 长期留存策略启用后再接入
 
 **迁移管理（双路径）**：
 - `src/shared/database/ddl.ts` 手写 `ALL_DDL` 幂等 `CREATE IF NOT EXISTS` —— dev / test 零配置

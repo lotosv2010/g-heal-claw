@@ -23,7 +23,7 @@
 | ORM | Drizzle | Prisma、TypeORM | 类型安全 + SQL-first、无运行时客户端、PG 17 特性支持好 |
 | 队列 | BullMQ | Kafka、RabbitMQ、NATS | Redis 已在栈内；MVP 不需要 Kafka 级吞吐；轻量、类型友好 |
 | 校验 | Zod | Yup、io-ts、Valibot | 一次定义 Schema，DTO / env / API 响应复用；`z.infer` 推导类型 |
-| UI 体系 | Shadcn/ui + TailwindCSS v4 | Ant Design、MUI | 代码可拥有、定制自由、与 RSC 友好；Tailwind v4 零配置 |
+| UI 体系 | Shadcn/ui + TailwindCSS v4 · Apple HIG 风格 | Ant Design、MUI | 代码可拥有、定制自由、与 RSC 友好；Tailwind v4 零配置；采用 Apple HIG（SF Pro / iOS System 色板 / Finder 侧栏 / 柔和大散射阴影）降低对比刺眼 |
 | 图表 | `@ant-design/plots` (AntV G2) 首版 / ECharts 保留 | Chart.js、Recharts、D3 | AntV G2 React 适配零样板、SSR 友好；重度定制场景保留 ECharts（T2.1.7 评估） |
 | 时间库 | dayjs | date-fns、Moment | 体积 2KB、链式 API 与 Moment 一致、本地时区自动识别，统一所有 UTC→本地格式化 |
 | 对象存储 | MinIO / S3 | Cloudflare R2、阿里 OSS | S3 协议通用，本地 MinIO 无依赖；后续切云厂家零代码变更 |

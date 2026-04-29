@@ -70,9 +70,9 @@ g-heal-claw/
 | 数据库 | PostgreSQL 17 + Drizzle ORM |
 | 缓存 / 队列 | Redis 7 |
 | 对象存储 | MinIO（开发） / S3（生产） |
-| 前端 | Next.js (App Router) + Shadcn/ui + TailwindCSS v4 |
+| 前端 | Next.js 16 (App Router) + Shadcn/ui + TailwindCSS v4 · Apple HIG 风格 |
 | AI | LangChain Agent + Claude Opus 4.7（主） / GPT-4.x（备） |
-| 图表 | ECharts |
+| 图表 | @ant-design/plots（AntV G2）· dayjs 时间格式化 |
 
 选型理由见 [`docs/DESIGN.md §2`](docs/DESIGN.md)。
 
