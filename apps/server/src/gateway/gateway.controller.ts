@@ -16,6 +16,7 @@ import {
 } from "./dsn-auth.guard.js";
 import { GatewayService } from "./gateway.service.js";
 import { IngestRequestSchema, type IngestRequest } from "./ingest.dto.js";
+import { RateLimitGuard } from "./rate-limit.guard.js";
 
 type AuthedRequest = FastifyRequest & { auth?: GatewayAuthContext };
 
@@ -26,7 +27,8 @@ export class GatewayController {
 
   @Post("events")
   @HttpCode(200)
-  @UseGuards(DsnAuthGuard)
+  // Guard 顺序依赖 req.auth：DsnAuthGuard 必须先执行注入 auth
+  @UseGuards(DsnAuthGuard, RateLimitGuard)
   @UsePipes(new ZodValidationPipe(IngestRequestSchema))
   @ApiOperation({ summary: "SDK 批量事件上报入口（DSN 鉴权 + Zod 校验）" })
   @ApiBody({
@@ -43,7 +45,7 @@ export class GatewayController {
   public ingest(
     @Body() body: IngestRequest,
     @Req() req: AuthedRequest,
-  ): Promise<{ accepted: number; persisted: number }> {
+  ): Promise<{ accepted: number; persisted: number; duplicates: number }> {
     return this.gateway.ingest(body, req.auth);
   }
 }

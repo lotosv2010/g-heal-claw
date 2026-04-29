@@ -93,8 +93,9 @@ describe("Gateway e2e", () => {
         events: [buildCustomLogEvent()],
       })
       .expect(200);
-    // NODE_ENV=test 下 DatabaseService 不建连接，persisted 恒为 0
-    expect(res.body).toEqual({ accepted: 1, persisted: 0 });
+    // NODE_ENV=test 下 DatabaseService / RedisService 均不建连接
+    // Redis 缺席时幂等放行，persisted 仍为 0（DB 未建连）；duplicates 恒为 0
+    expect(res.body).toEqual({ accepted: 1, persisted: 0, duplicates: 0 });
   });
 
   it("POST /ingest/v1/events — 非法 payload（events 空）返回 400", async () => {

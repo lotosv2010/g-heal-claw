@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
 import type { ErrorEvent } from "@g-heal-claw/shared";
+import { DeadLetterService } from "../dlq/dead-letter.service.js";
 import { DatabaseService } from "../shared/database/database.service.js";
 import {
   errorEventsRaw,
@@ -89,6 +90,7 @@ export class ErrorsService {
   public constructor(
     private readonly database: DatabaseService,
     private readonly issues: IssuesService,
+    private readonly dlq: DeadLetterService,
   ) {}
 
   /**
@@ -122,6 +124,12 @@ export class ErrorsService {
           this.logger.warn(
             `issues upsert 失败但 raw 已入库：${(err as Error).message}`,
           );
+          // T1.4.4：聚合失败 → 进 DLQ，便于后续补偿重跑（raw 已入库不影响数据完整性）
+          await this.dlq.enqueueEvents(
+            events,
+            "issues-upsert",
+            (err as Error).message,
+          );
         }
       }
       return inserted.length;
@@ -129,6 +137,12 @@ export class ErrorsService {
       this.logger.error(
         `错误事件写入失败：${(err as Error).message}`,
         (err as Error).stack,
+      );
+      // T1.4.4：raw 写入失败 → 全批入 DLQ；不影响 HTTP 返回语义
+      await this.dlq.enqueueEvents(
+        events,
+        "error-raw-insert",
+        (err as Error).message,
       );
       return 0;
     }

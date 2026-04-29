@@ -53,6 +53,9 @@ importers:
       fastify:
         specifier: ^5.8.5
         version: 5.8.5
+      ioredis:
+        specifier: ^5.10.1
+        version: 5.10.1
       nanoid:
         specifier: ^5.0.9
         version: 5.1.9
@@ -107,7 +110,7 @@ importers:
         version: 1.5.9(@swc/core@1.15.30)(rollup@4.60.2)
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@types/node@25.6.0)(jsdom@29.1.0(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.19.12)(jiti@2.6.1)(terser@5.46.2))
+        version: 4.1.5(@types/node@25.6.0)(jsdom@29.1.0(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.2))
 
   apps/web:
     dependencies:
@@ -254,7 +257,7 @@ importers:
         version: 4.5.4(@types/node@25.6.0)(rollup@4.60.2)(typescript@6.0.3)(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.2))
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@types/node@25.6.0)(jsdom@29.1.0(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.19.12)(jiti@2.6.1)(terser@5.46.2))
+        version: 4.1.5(@types/node@25.6.0)(jsdom@29.1.0(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.2))
 
   packages/shared:
     dependencies:
@@ -273,7 +276,7 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@types/node@25.6.0)(jsdom@29.1.0(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.19.12)(jiti@2.6.1)(terser@5.46.2))
+        version: 4.1.5(@types/node@25.6.0)(jsdom@29.1.0(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.2))
 
 packages:
 
@@ -1095,6 +1098,9 @@ packages:
     peerDependenciesMeta:
       '@types/node':
         optional: true
+
+  '@ioredis/commands@1.5.1':
+    resolution: {integrity: sha512-JH8ZL/ywcJyR9MmJ5BNqZllXNZQqQbnVZOqpPQqE1vHiFgAw4NHbvE0FOduNU8IX9babitBT46571OnPTT0Zcw==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -2615,6 +2621,10 @@ packages:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
 
+  cluster-key-slot@1.1.2:
+    resolution: {integrity: sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA==}
+    engines: {node: '>=0.10.0'}
+
   color-convert@2.0.1:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
     engines: {node: '>=7.0.0'}
@@ -2840,6 +2850,10 @@ packages:
   delayed-stream@1.0.0:
     resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
     engines: {node: '>=0.4.0'}
+
+  denque@2.1.0:
+    resolution: {integrity: sha512-HVQE3AAb/pxF8fQAoiqpvg9i3evqug3hoiwakOyZAwJm+6vZehbkYXZ0l4JxS+I3QxM97v5aaRNhj8v5oBhekw==}
+    engines: {node: '>=0.10'}
 
   depd@2.0.0:
     resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
@@ -3268,6 +3282,10 @@ packages:
     resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
     engines: {node: '>=12'}
 
+  ioredis@5.10.1:
+    resolution: {integrity: sha512-HuEDBTI70aYdx1v6U97SbNx9F1+svQKBDo30o0b9fw055LMepzpOOd0Ccg9Q6tbqmBSJaMuY0fB7yw9/vjBYCA==}
+    engines: {node: '>=12.22.0'}
+
   ipaddr.js@2.3.0:
     resolution: {integrity: sha512-Zv/pA+ciVFbCSBBjGfaKUya/CcGmUHzTydLMaTwrUUEM2DIEO3iZvueGxmacvmN50fGpGVKeTXpb2LcYQxeVdg==}
     engines: {node: '>= 10'}
@@ -3456,6 +3474,12 @@ packages:
   local-pkg@1.1.2:
     resolution: {integrity: sha512-arhlxbFRmoQHl33a0Zkle/YWlmNwoyt6QNZEIJcqNbdrsix5Lvc4HyyI3EnwxTYlZYc32EbYrQ8SzEZ7dqgg9A==}
     engines: {node: '>=14'}
+
+  lodash.defaults@4.2.0:
+    resolution: {integrity: sha512-qjxPLHd3r5DnsdGacqOMU6pb/avJzdh9tFX2ymgoZE27BmjXrNy/y4LoaiTeAb+O3gL8AfpJGtqfX/ae2leYYQ==}
+
+  lodash.isarguments@3.1.0:
+    resolution: {integrity: sha512-chi4NHZlZqZD18a0imDHnZPrDeBbTtVN7GXMwuGdRH9qotxAjYs3aVLKc7zNOG9eddR5Ksd8rvFEBc9SsggPpg==}
 
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
@@ -3776,6 +3800,14 @@ packages:
     resolution: {integrity: sha512-57frrGM/OCTLqLOAh0mhVA9VBMHd+9U7Zb2THMGdBUoZVOtGbJzjxsYGDJ3A9AYYCP4hn6y1TVbaOfzWtm5GFg==}
     engines: {node: '>= 12.13.0'}
 
+  redis-errors@1.2.0:
+    resolution: {integrity: sha512-1qny3OExCf0UvUV/5wpYKf2YwPcOqXzkwKKSmKHiE6ZMQs5heeE/c8eXK+PNllPvmjgAbfnsbpkGZWy8cBpn9w==}
+    engines: {node: '>=4'}
+
+  redis-parser@3.0.0:
+    resolution: {integrity: sha512-DJnGAeenTdpMEH6uAJRK/uiyEIH9WVsUmoLwzudwGJUwZPp80PDBWPHXSAGNPwNvIXAbe7MSUB1zQFugFml66A==}
+    engines: {node: '>=4'}
+
   reflect-metadata@0.2.2:
     resolution: {integrity: sha512-urBwgfrvVP/eAyXx4hluJivBKzuEbSQs9rKWCrCkbSxNv8mxPcUZKeuoF3Uy4mJl3Lwprp6yy5/39VWigZ4K6Q==}
 
@@ -3941,6 +3973,9 @@ packages:
 
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
+
+  standard-as-callback@2.1.0:
+    resolution: {integrity: sha512-qoRRSyROncaz1z0mvYqIE4lCd9p2R90i6GxW3uZv5ucSu8tU7B5HXUP1gG8pVZsYNVaXjk8ClXHPttLyxAL48A==}
 
   statuses@2.0.1:
     resolution: {integrity: sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==}
@@ -5143,6 +5178,8 @@ snapshots:
     optionalDependencies:
       '@types/node': 25.6.0
 
+  '@ioredis/commands@1.5.1': {}
+
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -6158,7 +6195,7 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.0
 
-  '@vitest/mocker@4.1.5(vite@8.0.10(@types/node@25.6.0)(esbuild@0.19.12)(jiti@2.6.1)(terser@5.46.2))':
+  '@vitest/mocker@4.1.5(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.2))':
     dependencies:
       '@vitest/spy': 4.1.5
       estree-walker: 3.0.3
@@ -6502,6 +6539,8 @@ snapshots:
 
   clsx@2.1.1: {}
 
+  cluster-key-slot@1.1.2: {}
+
   color-convert@2.0.1:
     dependencies:
       color-name: 1.1.4
@@ -6691,6 +6730,8 @@ snapshots:
       clone: 1.0.4
 
   delayed-stream@1.0.0: {}
+
+  denque@2.1.0: {}
 
   depd@2.0.0: {}
 
@@ -7104,6 +7145,20 @@ snapshots:
 
   internmap@2.0.3: {}
 
+  ioredis@5.10.1:
+    dependencies:
+      '@ioredis/commands': 1.5.1
+      cluster-key-slot: 1.1.2
+      debug: 4.4.3
+      denque: 2.1.0
+      lodash.defaults: 4.2.0
+      lodash.isarguments: 3.1.0
+      redis-errors: 1.2.0
+      redis-parser: 3.0.0
+      standard-as-callback: 2.1.0
+    transitivePeerDependencies:
+      - supports-color
+
   ipaddr.js@2.3.0: {}
 
   is-arrayish@0.2.1: {}
@@ -7264,6 +7319,10 @@ snapshots:
       mlly: 1.8.2
       pkg-types: 2.3.0
       quansync: 0.2.11
+
+  lodash.defaults@4.2.0: {}
+
+  lodash.isarguments@3.1.0: {}
 
   lodash@4.18.1: {}
 
@@ -7559,6 +7618,12 @@ snapshots:
 
   real-require@0.2.0: {}
 
+  redis-errors@1.2.0: {}
+
+  redis-parser@3.0.0:
+    dependencies:
+      redis-errors: 1.2.0
+
   reflect-metadata@0.2.2: {}
 
   require-from-string@2.0.2: {}
@@ -7782,6 +7847,8 @@ snapshots:
   sprintf-js@1.0.3: {}
 
   stackback@0.0.2: {}
+
+  standard-as-callback@2.1.0: {}
 
   statuses@2.0.1: {}
 
@@ -8069,10 +8136,10 @@ snapshots:
       jiti: 2.6.1
       terser: 5.46.2
 
-  vitest@4.1.5(@types/node@25.6.0)(jsdom@29.1.0(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.19.12)(jiti@2.6.1)(terser@5.46.2)):
+  vitest@4.1.5(@types/node@25.6.0)(jsdom@29.1.0(@noble/hashes@1.8.0))(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.2)):
     dependencies:
       '@vitest/expect': 4.1.5
-      '@vitest/mocker': 4.1.5(vite@8.0.10(@types/node@25.6.0)(esbuild@0.19.12)(jiti@2.6.1)(terser@5.46.2))
+      '@vitest/mocker': 4.1.5(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.2))
       '@vitest/pretty-format': 4.1.5
       '@vitest/runner': 4.1.5
       '@vitest/snapshot': 4.1.5

@@ -6,6 +6,7 @@ import {
   type PerfOrLongTaskEvent,
 } from "../performance/performance.service.js";
 import type { GatewayAuthContext } from "./dsn-auth.guard.js";
+import { IdempotencyService } from "./idempotency.service.js";
 import type { IngestRequest } from "./ingest.dto.js";
 
 /**
@@ -27,15 +28,23 @@ export class GatewayService {
   public constructor(
     private readonly performance: PerformanceService,
     private readonly errors: ErrorsService,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
   public async ingest(
     payload: IngestRequest,
     auth?: GatewayAuthContext,
-  ): Promise<{ accepted: number; persisted: number }> {
+  ): Promise<{
+    accepted: number;
+    persisted: number;
+    duplicates: number;
+  }> {
     const total = payload.events.length;
-    const perfEvents = payload.events.filter(isPerfOrLongTask);
-    const errorEvents = payload.events.filter(isError);
+    // T1.3.5：按 eventId Redis SETNX 去重；Redis 不可用时放行（raw UNIQUE 兜底）
+    const { first, duplicates } = await this.idempotency.dedup(payload.events);
+
+    const perfEvents = first.filter(isPerfOrLongTask);
+    const errorEvents = first.filter(isError);
 
     const [perfPersisted, errorPersisted] = await Promise.all([
       perfEvents.length ? this.performance.saveBatch(perfEvents) : 0,
@@ -44,13 +53,12 @@ export class GatewayService {
     const persisted = perfPersisted + errorPersisted;
 
     this.logger.log(
-      `accepted=${total} perf=${perfEvents.length} errors=${errorEvents.length} ` +
-        `persisted=${persisted} types=[${payload.events
-          .map((e) => e.type)
-          .join(",")}] projectId=${auth?.projectId ?? "-"} ` +
-        `publicKey=${auth?.publicKey ?? "-"}`,
+      `accepted=${total} deduped=${duplicates.length} perf=${perfEvents.length} ` +
+        `errors=${errorEvents.length} persisted=${persisted} ` +
+        `types=[${payload.events.map((e) => e.type).join(",")}] ` +
+        `projectId=${auth?.projectId ?? "-"} publicKey=${auth?.publicKey ?? "-"}`,
     );
-    return { accepted: total, persisted };
+    return { accepted: total, persisted, duplicates: duplicates.length };
   }
 }
 

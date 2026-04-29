@@ -31,6 +31,7 @@
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.8.5",
+    "ioredis": "^5.10.1",
     "nanoid": "^5.0.9",
     "postgres": "^3.4.9",
     "reflect-metadata": "^0.2.2",

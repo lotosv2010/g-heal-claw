@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-04-28（T1.6.2.0.8 `tests/` 目录核心路径单测补齐：shared 17/17 + sdk 19/19 + server 7 单元 + 4 e2e 全绿；typecheck 7/7 + build 5/5 保持）
+> 最后更新: 2026-04-29（T1.3.5 幂等 + T1.4.4 DLQ + T1.3.3 限流 三切片落地：server 单元 99/99 + e2e 6/6 全绿；typecheck 7/7 + build 5/5 保持）
 
 ## 状态说明
 
@@ -258,18 +258,18 @@
 ### M1.3 Gateway 入口
 
 - [ ] **T1.3.1** GatewayModule 骨架 + `/ingest/v1/events`、`/ingest/v1/beacon` 端点 — 2d
-- [ ] **T1.3.2** DSN 鉴权 Guard + 项目缓存 — 2d
-- [ ] **T1.3.3** 项目级限流（Redis 令牌桶 Lua）— 2d
+- [x] **T1.3.2** DSN 鉴权 Guard + 项目缓存 — 2d（完成 2026-04-28，commit `8a167d7`）
+- [x] **T1.3.3** 项目级限流（Redis 令牌桶 Lua）— 2d（完成 2026-04-29；`RateLimitService` + `RateLimitGuard` + 9 单测全绿）
 - [ ] **T1.3.4** 事件 Zod 校验 Pipe + 批量分发到各队列 — 2d
-- [ ] **T1.3.5** 幂等去重（eventId Redis SETNX）— 1d
+- [x] **T1.3.5** 幂等去重（eventId Redis SETNX）— 1d（完成 2026-04-29；`IdempotencyService` + `RedisService` + 8 单测全绿）
 - [ ] **T1.3.6** Gateway 压测基线（k6，目标 5000 events/s）— 2d
 
 ### M1.4 ProcessorModule：异常消费
 
-- [ ] **T1.4.1** ErrorProcessor（消费 `events-error` → Issue UPSERT + events_raw 写入）— 3d
-- [ ] **T1.4.2** 指纹计算（normalize message + top-frame + sha1） — 2d
+- [x] **T1.4.1** ErrorProcessor（Issue UPSERT + events_raw 写入，切片方案，未引入 BullMQ）— 3d（完成 2026-04-28，commit `35a029e`）
+- [x] **T1.4.2** 指纹计算（normalize message + top-frame + sha1） — 2d（完成 2026-04-28，随 T1.4.1 交付）
 - [ ] **T1.4.3** Issue 用户数 HLL 估算 + 分钟级批量回写 — 2d
-- [ ] **T1.4.4** DLQ 死信队列 + 失败告警 — 1d
+- [x] **T1.4.4** DLQ 死信队列 + 失败告警 — 1d（完成 2026-04-29；`events_dlq` 表 + `DeadLetterService` + ErrorsService 双路径兜底 + 10 单测全绿）
 
 ### M1.5 Sourcemap 服务
 

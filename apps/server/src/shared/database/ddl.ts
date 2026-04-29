@@ -342,6 +342,44 @@ CREATE INDEX IF NOT EXISTS idx_events_raw_event_id ON events_raw (event_id);
 `.trim();
 
 // ============================================================
+// 死信队列：events_dlq（ADR-0016 §5 / T1.4.4）
+// ============================================================
+// 作用：当 raw 事件落库失败、或 IssuesService upsert 失败时，将事件原文 + 失败原因入库，
+// 由 Dashboard / alert 后续消费，避免数据静默丢失。
+// 不分区：量级远低于主事件流（正常 < 1% 失败率），单表足够 12 个月。
+
+export const CREATE_EVENTS_DLQ = `
+CREATE TABLE IF NOT EXISTS events_dlq (
+  id              bigserial PRIMARY KEY,
+  event_id        uuid,
+  project_id      varchar(64),
+  event_type      varchar(32) NOT NULL,
+  stage           varchar(32) NOT NULL,
+  reason          text NOT NULL,
+  payload         jsonb NOT NULL,
+  retry_count     integer NOT NULL DEFAULT 0,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  last_attempt_at timestamptz NOT NULL DEFAULT now()
+);
+`.trim();
+
+export const CREATE_IDX_DLQ_PROJECT_CREATED = `
+CREATE INDEX IF NOT EXISTS idx_dlq_project_created
+  ON events_dlq (project_id, created_at DESC);
+`.trim();
+
+export const CREATE_IDX_DLQ_STAGE_CREATED = `
+CREATE INDEX IF NOT EXISTS idx_dlq_stage_created
+  ON events_dlq (stage, created_at DESC);
+`.trim();
+
+export const DLQ_DDL: readonly string[] = [
+  CREATE_EVENTS_DLQ,
+  CREATE_IDX_DLQ_PROJECT_CREATED,
+  CREATE_IDX_DLQ_STAGE_CREATED,
+];
+
+// ============================================================
 // 汇总
 // ============================================================
 
@@ -397,4 +435,5 @@ export const ALL_DDL: readonly string[] = [
   ...PERFORMANCE_DDL,
   ...ERROR_DDL,
   ...EVENTS_RAW_DDL,
+  ...DLQ_DDL,
 ];

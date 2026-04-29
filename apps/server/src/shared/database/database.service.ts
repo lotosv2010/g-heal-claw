@@ -9,6 +9,7 @@ import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres, { type Sql } from "postgres";
 import { SERVER_ENV, type ServerEnv } from "../../config/env.js";
 import { ALL_DDL } from "./ddl.js";
+import { DEV_SEED_SQL } from "./dev-seed.js";
 import * as schema from "./schema.js";
 
 export type Database = PostgresJsDatabase<typeof schema>;
@@ -45,6 +46,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     this._db = drizzle(this.sql, { schema });
     try {
       await this.applyDdl();
+      await this.applyDevSeed();
     } catch (err) {
       this.reportFatal(err);
       // 连接/建表失败视为启动期配置问题；与 loadServerEnv 保持一致的退出语义
@@ -112,6 +114,23 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       await this.sql.unsafe(stmt);
     }
     this.logger.log(`DDL 执行完成（${ALL_DDL.length} 条语句）`);
+  }
+
+  /**
+   * 注入 dev 种子数据（仅 NODE_ENV !== production）
+   *
+   * 对齐 `examples/nextjs-demo` 的 DSN `http://publicKey@localhost:3001/demo`，
+   * 避免开发者手工建库建 key。全部 ON CONFLICT DO NOTHING，重启零副作用。
+   */
+  private async applyDevSeed(): Promise<void> {
+    if (!this.sql) return;
+    if (this.env.NODE_ENV === "production") return;
+    for (const stmt of DEV_SEED_SQL) {
+      await this.sql.unsafe(stmt);
+    }
+    this.logger.log(
+      `Dev 种子已注入（${DEV_SEED_SQL.length} 条，project=demo / publicKey）`,
+    );
   }
 
   /** 屏蔽密码，仅用于启动日志 */
