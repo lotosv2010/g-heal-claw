@@ -63,6 +63,18 @@
 - [ ] `src/**/*.{test,spec}.{ts,tsx}` 不存在（散落即违规）
 - [ ] `tests/` 目录结构镜像 `src/`，命名保留 `.test.ts` / `.spec.ts` 后缀
 
+### 9. Demo 场景 + 使用文档（需求级交付强制项）
+
+> 每完成一个**用户可感知的需求**（新增 SDK 能力 / 新增接口 / 新增页面 / 新增通知渠道等），必须同步补齐以下两项；纯内部重构 / 文档勘误可豁免。
+
+- [ ] **Demo 场景**：在 `examples/nextjs-demo/` 对应分组（`performance` / `errors` / `api` / `resources`）下补一个**最小可触发**的用例，并接入 `demo-scenarios.ts` 单一数据源，让开发者可在 `pnpm dev:demo` 中一键复现
+- [ ] **使用说明**：在 `docs/` 中补一段 How-to（落点视需求而定）：
+  - SDK 能力 → `GETTING_STARTED.md §7 SDK 接入` 子节
+  - 后端 API → `docs/SPEC.md` 接口章节 + 示例 curl
+  - 后台页面 → `docs/ARCHITECTURE.md §5.1` 路由清单加 ✅ 标记 + 字段含义段
+  - 新模块 / 队列 / 数据表 → `docs/ARCHITECTURE.md` 对应清单 + ADR 后续小节
+- [ ] **双向可追溯**：ADR 的「后续」章节引用了 demo 路径与文档落点；demo README 或页面文案引用了 ADR / 文档链接
+
 ## 常见问题速查
 
 | 问题 | 修复方式 |
@@ -75,3 +87,5 @@
 | NestJS Controller 缺少 Swagger | 添加 `@ApiTags` + `@ApiOperation` + `@ApiResponse` 装饰器 |
 | 模块间直接导入 Controller | 改为导入 Service，通过 Module exports 暴露 |
 | 测试文件放在 `src/` 下 | 迁移到 `<package>/tests/`，保留镜像路径和 `.test.ts` / `.spec.ts` 后缀 |
+| 新需求交付后没有 demo 场景 | 在 `examples/nextjs-demo/app/demo-scenarios.ts` 对应分组补最小用例，确保 `pnpm dev:demo` 可一键触发 |
+| 新需求交付后文档缺使用说明 | 按能力落点补：SDK → `GETTING_STARTED §7`；接口 → `docs/SPEC.md`；页面 → `docs/ARCHITECTURE.md §5.1`；模块 → ARCHITECTURE 模块清单 + ADR 后续 |

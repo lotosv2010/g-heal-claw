@@ -227,9 +227,14 @@ Phase 1: 需求理解 ──→ Phase 2: 方案设计（ADR）──→ Phase 3:
 
 5. **自检**：逐条对照 `.claude/rules/review.md` 中的 Checklist。
 
-6. **收尾**：将 `CURRENT.md` 中对应任务从 `[~]` 改为 `[x]`，附完成日期；更新"当前焦点（Now）"下一步。
+6. **Demo 场景 + 使用文档**（用户可感知的需求必做，纯内部重构可豁免）：
+   - 在 `examples/nextjs-demo/app/demo-scenarios.ts` 对应分组（performance / errors / api / resources）补最小可触发用例，确保 `pnpm dev:demo` 可一键复现
+   - 按能力落点补使用说明：SDK → `GETTING_STARTED.md §7`；接口 → `docs/SPEC.md`；后台页面 → `docs/ARCHITECTURE.md §5.1` 路由清单 + ✅ 标记；新模块/队列/数据表 → `docs/ARCHITECTURE.md` 对应清单
+   - ADR「后续」章节引用 demo 路径与文档落点，形成双向可追溯
 
-7. **简要报告任务完成情况**，然后继续下一个任务。
+7. **收尾**：将 `CURRENT.md` 中对应任务从 `[~]` 改为 `[x]`，附完成日期；更新"当前焦点（Now）"下一步。
+
+8. **简要报告任务完成情况**，然后继续下一个任务。
 
 **流转规则：**
 
@@ -258,6 +263,15 @@ Phase 1: 需求理解 ──→ Phase 2: 方案设计（ADR）──→ Phase 3:
 - SPEC：[是否更新、更新了哪些章节]
 - ARCHITECTURE：[是否更新]
 - DESIGN：[是否更新]
+
+**Demo 场景**：
+- 分组：[performance / errors / api / resources]
+- 路径：[examples/nextjs-demo/app/... 或 demo-scenarios.ts 条目]
+- 触发方式：[pnpm dev:demo 后点击/访问什么能看到效果]
+
+**使用文档**：
+- 落点：[GETTING_STARTED §7 / docs/SPEC.md §X / docs/ARCHITECTURE.md §5.1 / ...]
+- 摘要：[一句话说明用户该怎么用]
 
 **验证状态**：
 - typecheck: PASS / FAIL
