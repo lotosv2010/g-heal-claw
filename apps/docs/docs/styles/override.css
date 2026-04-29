@@ -1,0 +1,6 @@
+/* 首页特性卡片：强制大屏一行 4 个（Rspress 默认 span=4 在大屏是 33.33% 即 3 列） */
+@media (width >= 960px) {
+  [class*="grid-4_"] {
+    width: 25% !important;
+  }
+}

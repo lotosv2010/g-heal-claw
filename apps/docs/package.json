@@ -1,0 +1,40 @@
+{
+  "name": "@g-heal-claw/docs",
+  "version": "0.0.1",
+  "private": true,
+  "description": "g-heal-claw 文档站点 — Rspress 驱动，面向用户的 SDK 接入、API 契约与 Dashboard 使用手册。",
+  "author": {
+    "name": "Robin",
+    "url": "https://github.com/lotosv2010"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/lotosv2010/g-heal-claw/tree/main/apps/docs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lotosv2010/g-heal-claw.git",
+    "directory": "apps/docs"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "rspress dev --port 4000",
+    "build": "rspress build",
+    "preview": "rspress preview --port 4000",
+    "clean": "rimraf doc_build .rspress",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "rspress": "^1.46.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "rimraf": "^6.0.1",
+    "typescript": "~6.0.3"
+  }
+}
