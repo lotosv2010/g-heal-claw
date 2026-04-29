@@ -6,6 +6,7 @@ import {
   errorEventsRaw,
   type NewErrorEventRow,
 } from "../shared/database/schema.js";
+import { IssuesService } from "./issues.service.js";
 
 /** 窗口参数（与 PerformanceService 同构） */
 export interface ErrorWindowParams {
@@ -85,12 +86,19 @@ const MESSAGE_HEAD_MAX = 128;
 export class ErrorsService {
   private readonly logger = new Logger(ErrorsService.name);
 
-  public constructor(private readonly database: DatabaseService) {}
+  public constructor(
+    private readonly database: DatabaseService,
+    private readonly issues: IssuesService,
+  ) {}
 
   /**
-   * 批量写入错误事件
+   * 批量写入错误事件 + Issue 聚合 UPSERT（T1.4.1）
    *
-   * 返回实际插入行数（幂等冲突不计入）
+   * 顺序：先写 error_events_raw（幂等，UNIQUE event_id），再按指纹 UPSERT issues。
+   * raw 写失败时不触发 issues UPSERT，保持一致性；issues UPSERT 失败降级为告警日志，
+   * raw 事件已落库便于后续补偿任务。
+   *
+   * 返回实际插入 raw 行数（冲突不计；issues 统计通过日志暴露，不进返回值以免破坏现有契约）
    */
   public async saveBatch(events: readonly ErrorEvent[]): Promise<number> {
     if (events.length === 0) return 0;
@@ -103,6 +111,19 @@ export class ErrorsService {
         .values(rows)
         .onConflictDoNothing({ target: errorEventsRaw.eventId })
         .returning({ id: errorEventsRaw.id });
+      // 仅对实际入库的事件做聚合，避免重复 UPSERT（ADR-0016 §3 幂等原则）
+      if (inserted.length > 0) {
+        try {
+          const result = await this.issues.upsertBatch(events);
+          this.logger.debug(
+            `issues upsert: inserted=${result.inserted} updated=${result.updated} reopened=${result.reopened}`,
+          );
+        } catch (err) {
+          this.logger.warn(
+            `issues upsert 失败但 raw 已入库：${(err as Error).message}`,
+          );
+        }
+      }
       return inserted.length;
     } catch (err) {
       this.logger.error(
