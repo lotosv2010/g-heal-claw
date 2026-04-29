@@ -2,7 +2,38 @@
   "name": "g-heal-claw",
   "version": "0.0.1",
   "private": true,
-  "description": "Self-healing production monitoring system",
+  "description": "Self-healing production monitoring platform — web vitals, error tracking, API performance, and AI-assisted auto-fix for modern web apps.",
+  "author": {
+    "name": "Robin",
+    "url": "https://github.com/lotosv2010"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/lotosv2010/g-heal-claw#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lotosv2010/g-heal-claw.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lotosv2010/g-heal-claw/issues"
+  },
+  "keywords": [
+    "monitoring",
+    "observability",
+    "frontend-monitoring",
+    "web-vitals",
+    "error-tracking",
+    "apm",
+    "rum",
+    "real-user-monitoring",
+    "sentry-alternative",
+    "self-healing",
+    "ai-agent",
+    "typescript",
+    "nestjs",
+    "nextjs",
+    "drizzle",
+    "monorepo"
+  ],
   "scripts": {
     "dev": "turbo dev",
     "dev:demo": "turbo dev --filter=nextjs-demo...",
@@ -21,7 +52,8 @@
   },
   "packageManager": "pnpm@10.33.2",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.0.0",
+    "pnpm": ">=10"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

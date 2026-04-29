@@ -2,7 +2,30 @@
   "name": "@g-heal-claw/shared",
   "version": "0.0.1",
   "private": true,
-  "description": "g-heal-claw 共享契约：事件 Schema、队列名常量、环境变量校验",
+  "description": "Shared contracts for g-heal-claw — Zod event schemas, BullMQ queue name constants, and environment validation used by SDK, server, and ai-agent.",
+  "author": {
+    "name": "Robin",
+    "url": "https://github.com/lotosv2010"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/lotosv2010/g-heal-claw/tree/main/packages/shared#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lotosv2010/g-heal-claw.git",
+    "directory": "packages/shared"
+  },
+  "bugs": {
+    "url": "https://github.com/lotosv2010/g-heal-claw/issues"
+  },
+  "keywords": [
+    "g-heal-claw",
+    "shared",
+    "contracts",
+    "zod",
+    "schema",
+    "monitoring",
+    "typescript"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -32,6 +55,10 @@
     "dist",
     "src"
   ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "build": "tsc --build",
     "clean": "rimraf dist .turbo",

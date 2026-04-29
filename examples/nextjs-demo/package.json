@@ -2,7 +2,34 @@
   "name": "nextjs-demo",
   "version": "0.0.1",
   "private": true,
-  "description": "g-heal-claw SDK 接入演示（Next.js 15 App Router）",
+  "description": "Next.js 16 App Router demo showcasing every g-heal-claw SDK capture scenario (web vitals, runtime errors, API failures, resource 404).",
+  "author": {
+    "name": "Robin",
+    "url": "https://github.com/lotosv2010"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/lotosv2010/g-heal-claw/tree/main/examples/nextjs-demo#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lotosv2010/g-heal-claw.git",
+    "directory": "examples/nextjs-demo"
+  },
+  "bugs": {
+    "url": "https://github.com/lotosv2010/g-heal-claw/issues"
+  },
+  "keywords": [
+    "g-heal-claw",
+    "demo",
+    "example",
+    "nextjs",
+    "sdk",
+    "monitoring",
+    "web-vitals",
+    "error-tracking"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev --turbopack -p 3100",
     "build": "next build",

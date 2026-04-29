@@ -2,9 +2,38 @@
   "name": "@g-heal-claw/server",
   "version": "0.0.1",
   "private": true,
-  "description": "g-heal-claw 后端（NestJS + Fastify，模块化单体）",
+  "description": "g-heal-claw backend — NestJS + Fastify modular monolith (ingest gateway, processor, dashboard API, sourcemap store, notification).",
+  "author": {
+    "name": "Robin",
+    "url": "https://github.com/lotosv2010"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/lotosv2010/g-heal-claw/tree/main/apps/server#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lotosv2010/g-heal-claw.git",
+    "directory": "apps/server"
+  },
+  "bugs": {
+    "url": "https://github.com/lotosv2010/g-heal-claw/issues"
+  },
+  "keywords": [
+    "g-heal-claw",
+    "nestjs",
+    "fastify",
+    "drizzle",
+    "postgresql",
+    "bullmq",
+    "monitoring",
+    "observability",
+    "ingest-gateway",
+    "typescript"
+  ],
   "type": "module",
   "main": "dist/main.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "build": "nest build",
     "clean": "rimraf dist .turbo",

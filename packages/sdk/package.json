@@ -1,8 +1,39 @@
 {
   "name": "@g-heal-claw/sdk",
   "version": "0.0.1",
-  "description": "g-heal-claw 浏览器端 SDK：前端监控数据采集与上报",
+  "description": "Browser SDK for g-heal-claw — capture web vitals, JS errors, resource failures, and API performance in zero-config fashion (<10KB gzip).",
   "private": true,
+  "author": {
+    "name": "Robin",
+    "url": "https://github.com/lotosv2010"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/lotosv2010/g-heal-claw/tree/main/packages/sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lotosv2010/g-heal-claw.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/lotosv2010/g-heal-claw/issues"
+  },
+  "keywords": [
+    "frontend-monitoring",
+    "web-vitals",
+    "error-tracking",
+    "api-monitoring",
+    "rum",
+    "apm",
+    "browser-sdk",
+    "performance",
+    "sentry-alternative",
+    "observability",
+    "typescript",
+    "lcp",
+    "cls",
+    "inp",
+    "tbt"
+  ],
   "type": "module",
   "main": "./dist/sdk.umd.cjs",
   "module": "./dist/sdk.esm.js",
@@ -18,9 +49,18 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.spec.ts"
   ],
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "build": "vite build",
     "clean": "rimraf dist .turbo",

@@ -2,8 +2,37 @@
   "name": "@g-heal-claw/web",
   "version": "0.0.1",
   "private": true,
-  "description": "g-heal-claw 管理后台（Next.js 16 App Router + shadcn/ui）",
+  "description": "g-heal-claw admin dashboard — Next.js 16 App Router + shadcn/ui + Ant Design Plots, with Apple-style UI.",
+  "author": {
+    "name": "Robin",
+    "url": "https://github.com/lotosv2010"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/lotosv2010/g-heal-claw/tree/main/apps/web#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lotosv2010/g-heal-claw.git",
+    "directory": "apps/web"
+  },
+  "bugs": {
+    "url": "https://github.com/lotosv2010/g-heal-claw/issues"
+  },
+  "keywords": [
+    "g-heal-claw",
+    "dashboard",
+    "nextjs",
+    "app-router",
+    "react",
+    "shadcn-ui",
+    "tailwindcss",
+    "monitoring",
+    "admin",
+    "typescript"
+  ],
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev --turbopack -p 3000",
     "build": "next build",
