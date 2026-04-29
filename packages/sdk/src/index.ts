@@ -42,6 +42,7 @@ export {
   type HttpCaptureOptions,
   type ApiCodeContext,
 } from "./plugins/http.js";
+export { apiPlugin, type ApiPluginOptions } from "./plugins/api.js";
 
 // 便于 UMD 脚本接入：提供一个扁平 namespace 对象
 import { init as _init } from "./init.js";
@@ -58,6 +59,7 @@ import { longTaskPlugin as _longTaskPlugin } from "./plugins/long-task.js";
 import { speedIndexPlugin as _speedIndexPlugin } from "./plugins/speed-index.js";
 import { fspPlugin as _fspPlugin } from "./plugins/fsp.js";
 import { httpPlugin as _httpPlugin } from "./plugins/http.js";
+import { apiPlugin as _apiPlugin } from "./plugins/api.js";
 import type { Breadcrumb } from "@g-heal-claw/shared";
 import type { GHealClawOptions } from "./options.js";
 
@@ -89,6 +91,7 @@ export const GHealClaw = {
   speedIndexPlugin: _speedIndexPlugin,
   fspPlugin: _fspPlugin,
   httpPlugin: _httpPlugin,
+  apiPlugin: _apiPlugin,
 };
 
 export default GHealClaw;

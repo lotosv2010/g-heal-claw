@@ -11,7 +11,7 @@ import type { Transport } from "../../src/transport/types.js";
  *  - fetch：成功 2xx JSON 业务码成功/失败、非 2xx、异常抛错
  *  - XHR：onerror / 404 / 业务码异常
  *  - ignoreUrls、SDK 自身 ingest 过滤
- *  - 双重 patch 保护（__ghcPatched）
+ *  - 双重 patch 保护（__ghcHttpPatched）
  */
 
 interface StubFetch {
@@ -230,17 +230,17 @@ describe("httpPlugin / XHR", () => {
     } as typeof XMLHttpRequest.prototype.send;
     // 清除插件双重 patch 保护，允许每次测试重新 patch 到新的 hub
     const proto = XMLHttpRequest.prototype as unknown as {
-      __ghcPatched?: boolean;
+      __ghcHttpPatched?: boolean;
     };
-    delete proto.__ghcPatched;
+    delete proto.__ghcHttpPatched;
   });
 
   afterEach(() => {
     XMLHttpRequest.prototype.send = originalSend;
     const proto = XMLHttpRequest.prototype as unknown as {
-      __ghcPatched?: boolean;
+      __ghcHttpPatched?: boolean;
     };
-    delete proto.__ghcPatched;
+    delete proto.__ghcHttpPatched;
   });
 
   it("XHR 404 → 上报 ajax", async () => {

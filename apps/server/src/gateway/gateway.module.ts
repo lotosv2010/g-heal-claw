@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ApiMonitorModule } from "../api-monitor/api-monitor.module.js";
 import { ErrorsModule } from "../errors/errors.module.js";
 import { PerformanceModule } from "../performance/performance.module.js";
 import { DsnAuthGuard } from "./dsn-auth.guard.js";
@@ -10,7 +11,7 @@ import { RateLimitGuard } from "./rate-limit.guard.js";
 import { RateLimitService } from "./rate-limit.service.js";
 
 @Module({
-  imports: [PerformanceModule, ErrorsModule],
+  imports: [PerformanceModule, ErrorsModule, ApiMonitorModule],
   controllers: [GatewayController],
   providers: [
     GatewayService,

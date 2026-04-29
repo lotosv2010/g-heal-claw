@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-04-29（T1.3.6 k6 压测脚本 + T1.4.3 HLL 用户数估算 + 回写 cron；server 单元 113/113 + e2e 6/6 全绿；typecheck 7/7 + build 5/5 保持）
+> 最后更新: 2026-04-29（ADR-0020 菜单完整化交付路线图注册；下阶段主题切换为 "菜单完整性"，按 Tier 1/2/3 推进 8 个占位页 → live；T1.3.6 k6 + T1.4.3 HLL 保持）
 
 ## 状态说明
 
@@ -291,6 +291,64 @@
 
 ---
 
+## 菜单完整化交付（ADR-0020，跨 Phase 主题）
+
+**背景**：侧边栏 10 个菜单当前仅 `performance` / `errors` live，8 个仍为 PlaceholderPage。外部视角下产品形态长期不完整。
+**决策**：以"菜单完整性"为本阶段主题，按依赖复杂度分三 Tier 推进。每完成 1 个 Tier 可独立上线。
+
+### Tier 1.A｜API 监控（`/api` 菜单，~3d）
+
+- [x] **TM.1.A.1** SDK `apiPlugin` 采集（独立于现有 `httpPlugin`，type='api' 包含成功请求；抽 `sdk/src/plugins/http-capture.ts` 公共捕获纯函数）— 0.8d（完成 2026-04-29）
+  - 范围：fetch + XHR patch 复用，事件含 `method / url / status / duration / requestSize / responseSize / slow / failed / errorMessage`
+  - 非范围：TraceID 注入（T2.2.3）、请求体截断采样（T2.2.2）
+  - 交付：`packages/sdk/src/plugins/http-capture.ts`（共享纯函数）+ `api.ts`（新插件，独立 `__ghcApiPatched` 标记与 `httpPlugin` 并存）+ `tests/plugins/api.test.ts` 12 case；SDK 55/55 test 全绿；ESM 36.77KB / UMD 32.61KB gzip
+- [x] **TM.1.A.2** `api_events_raw` 表 + drizzle 迁移 `0004_api_events_raw.sql`（沿用 raw 表统一设计：`(project_id, ts_ms)` 索引 + `event_id UNIQUE`；5 个索引）— 0.3d（完成 2026-04-29）
+- [x] **TM.1.A.3** `apps/server/src/api-monitor/` 模块（`ApiMonitorModule` / `ApiMonitorService.saveBatch` + 4 聚合方法）+ GatewayService 分流（type='api' → apiMonitorService）— 0.8d（完成 2026-04-29）
+  - 交付：`api-monitor.service.ts`（saveBatch 幂等 / aggregateSummary / aggregateStatusBuckets / aggregateTrend / aggregateSlowApis）+ `api-monitor.module.ts` + AppModule / GatewayModule / GatewayService 接线；`tests/api-monitor/api-monitor.service.spec.ts` 10 case 全绿
+- [x] **TM.1.A.4** Dashboard API：`dashboard/api.controller` + `api.service` + Zod DTO（`/dashboard/v1/api/overview`：summary + 状态码桶 + 小时趋势 + Top 慢请求）— 0.4d（完成 2026-04-29）
+  - 交付：`dashboard/dto/api-overview.dto.ts`（Zod query 契约 + 响应 DTO）+ `dashboard/api.service.ts`（两窗口聚合 + 环比）+ `dashboard/api.controller.ts`（Swagger 装饰 + ZodValidationPipe）+ DashboardModule 注册
+- [x] **TM.1.A.5** Web `/api` 页面 live 化（替换 PlaceholderPage）— 0.5d（完成 2026-04-29）
+  - 交付：`web/lib/api/api.ts`（契约 + getApiOverview + source 降级）+ 4 个页面组件（`summary-cards` / `status-buckets` / `trend-chart`（AntV Line 三折线）/ `top-slow-table`）+ 页面装配
+- [x] **TM.1.A.6** 测试 + demo：`apiPlugin` 单测 12 case（TM.1.A.1 已交付）+ `api-monitor.service.spec.ts` 聚合单测 10 case + demo 注册 `apiPlugin`（slowThresholdMs=300）— 0.2d（完成 2026-04-29）
+
+### Tier 1.B｜静态资源监控（`/resources` 菜单，~3d）
+
+- [ ] **TM.1.B.1** SDK `resourcePlugin`：`PerformanceResourceTiming` observer + 分类（script/stylesheet/image/font/xhr/other）+ `slow / failed` 判定 — 0.8d
+- [ ] **TM.1.B.2** `resource_events_raw` 表 + drizzle 迁移 — 0.3d
+- [ ] **TM.1.B.3** `ResourceMonitorModule` + 聚合（按 `host + type` 聚合 + 失败率 + 慢资源 Top）— 0.7d
+- [ ] **TM.1.B.4** Dashboard API + Web `/resources` 页面（CategoryCards = 类型分布 / DimensionTabs = host/cdn / RankingTable = failure_rate 倒序 / StackChart = 类型堆叠）— 0.9d
+- [ ] **TM.1.B.5** 测试 + demo — 0.3d
+
+### Tier 1.C｜自定义上报 + 日志（`/custom` + `/logs` 合并切片，~4d）
+
+- [ ] **TM.1.C.1** SDK `trackPlugin` / `logPlugin`：公开 `track(name, props)` / `log(level, message)` API，映射到 `CustomEventSchema` / `CustomLogSchema` — 0.6d
+- [ ] **TM.1.C.2** `custom_events_raw` + `custom_logs_raw` 双表 drizzle 迁移（本轮合并到 `0003_menu_raws.sql`）— 0.4d
+- [ ] **TM.1.C.3** `CustomEventsModule` + `CustomLogsModule`（复用筛选框架，抽 `lib/dashboard-filter-form.tsx`）— 1d
+- [ ] **TM.1.C.4** Dashboard API（事件流 / 指标趋势 / 日志筛选 by level + message like）+ Web `/custom` 页面（3 列：eventName / sampleCount / lastSeen，过度扩展推迟）+ Web `/logs` 页面（时序表 + level 筛选）— 1.5d
+- [ ] **TM.1.C.5** 测试 + demo — 0.5d
+
+> **Tier 1 整体验收**：4 张 raw 表通过单一迁移 `0003_menu_raws.sql` 一次性加入；4 个菜单从 Placeholder → live；server 单元 ≥ 130；`pnpm typecheck` 7/7 + `pnpm build` 5/5 保持。
+
+### Tier 2｜访问/项目管理/实时通信（~17d，阻塞依赖先行）
+
+- [ ] **TM.2.A** `visits` 页面（PageViewPlugin + IP 地域 + `page_view_raw` + 会话聚合）— 5d
+  - 前置：GeoIP 库选型（MaxMind GeoLite2 许可证 + 运维 `GEOIP_DB_PATH`）
+- [ ] **TM.2.B** `projects` 应用管理（项目 CRUD + API Token + RBAC）— 7d
+  - **前置**：T1.1.7 JWT + RBAC 认证 MVP（4d）必须先行
+- [ ] **TM.2.C** `realtime` 通信监控（WebSocket/SSE 采集）— 5d
+  - **前置**：新 ADR（例如 ADR-0021）定协议范围 + 采集边界
+
+### Tier 3｜总览收口（~2d）
+
+- [ ] **TM.3.A** `overview` 数据总览：拼接前 9 个模块的汇总卡片 + 全站健康度 — 2d
+
+### 范围与非范围
+
+**纳入**：4 张 raw 表、4 个 SDK 插件、4 个 NestJS 模块、4 个前端页面 live 化、共享 filter/template 抽象
+**推迟**：API TraceID 注入（T2.2.3）、`metric_minute` 预聚合（T2.1.4，Tier 2 之后）、`AutoTrackPlugin`（T3.3.1，Phase 3 末）、资源 CDN 测速细分（Phase 3 补齐）
+
+---
+
 ## Phase 2：性能 + API + 访问
 
 **目标**：Web Vitals、页面加载瀑布图、API 监控、PV/UV/会话看板。
@@ -528,8 +586,13 @@
 
 > 每周同步更新本节。
 
-- 进行中：无（T1.6.2.0 切片全部完成）
-- 下一步候选：①T1.3.2 Gateway DSN 鉴权 Guard + 项目缓存 ②T1.3.3 项目级限流（Redis 令牌桶 Lua）③T1.4.1 ErrorProcessor 入队消费 + 指纹聚合 + BullMQ → `error_issues` ④T2.1.8 P0（SI 后端聚合核实 → 长任务分级 → FSP 插件）
+- 进行中：**TM.1.B Tier 1.B 静态资源监控**（待启动，~3d）
+- 阶段主题切换：**菜单完整化**（ADR-0020）— 本阶段不再纵深挖单模块，先把 `/api` `/resources` `/custom` `/logs` 4 个 Tier 1 菜单推到 live；Tier 1.A 已完成，Tier 1.B / 1.C 待启动
+- 下一步候选（本 Tier）：①TM.1.B.1 resourcePlugin（PerformanceResourceTiming observer + 6 类资源分类）②TM.1.B.2 resource_events_raw ③TM.1.B.3/4 ResourceMonitorModule + Dashboard/Web ④TM.1.C custom/logs 合并切片
+- 并行候选（不阻塞菜单推进）：T1.4.4 DLQ 告警（已完 90%）；T2.1.8 P0.1 SI 后端核实（~0.3d 小切片）
+- 最近完成（2026-04-29）：**Tier 1.A API 监控菜单 live 化（TM.1.A 全 6 子任务）** —— SDK `apiPlugin`（独立 `__ghcApiPatched` 标记与 `httpPlugin` 并存，共享 `http-capture.ts` 纯函数；12 case 单测）；`api_events_raw` 表 + drizzle 0004 迁移；`ApiMonitorService`（saveBatch + 4 聚合方法，10 case 单测）；`DashboardApiService` + `/dashboard/v1/api/overview`（summary + 5 状态码桶 + 小时趋势 + Top 慢请求 + 环比）；Web `/api` 页面 4 模块组件（summary-cards / status-buckets / trend-chart AntV 三折线 / top-slow-table）；demo `ghc-provider.tsx` 注册 `apiPlugin({ slowThresholdMs: 300 })`；全量 typecheck 7/7 + server 单元 15 files 123 tests + e2e 6 tests 全绿
+- 最近完成（2026-04-29）：**ADR-0020 菜单完整化交付路线图注册** —— `docs/decisions/0020-menu-delivery-roadmap.md` 三 Tier 分层（Tier 1: api/resources/custom/logs ~10d；Tier 2: visits/projects/realtime ~17d；Tier 3: overview 2d）；关键设计决策：`apiPlugin`（type='api' 采集成功请求）与现有 `httpPlugin`（type='error' 异常分流）并存 + raw 表统一设计 + 前端页面模板化复用 `errors` 结构；`docs/decisions/README.md` 索引更新；`docs/tasks/CURRENT.md` 注入 TM.1.A ~ TM.3.A 子任务树
+- 最近完成（2026-04-29）：**T1.3.6 Gateway k6 压测脚本 + T1.4.3 Issue HLL 用户数估算 + 回写 cron** —— `apps/server/bench/ingest.k6.js`（ramping-vus 0→100→0，阈值 p95<200ms / p99<500ms / 成功率>99%）+ README；`IssueUserHllService`（写入路径 PFADD 批内归并）+ `IssueHllBackfillService`（30 分钟窗口 PFCOUNT 回写，只增不减防回退）；server 单元 113/113 + e2e 6/6 + typecheck 7/7 + build 5/5 全绿
 - 最近完成（2026-04-28）：**T1.6.2.0.8 `tests/` 目录核心路径单测补齐（ADR-0019 放置规则）** —— `packages/shared/tests/events/error.test.ts` 8 case（9 subType + resource.kind 判别 + ajax/api_code request 字段 + 向后兼容）；`packages/sdk/tests/plugins/http.test.ts` 10 case（fetch 成功/api_code/非 2xx/抛错/非 JSON/ignoreUrls/self-ingest/双 patch + XHR 404/onerror）；`packages/sdk/tests/plugins/error.test.ts` 9 case（JS/Promise Error+字符串/资源 4 分类/WeakSet 冒泡+捕获去重/ignoreErrors 子串）；`apps/server/tests/dashboard/errors.service.spec.ts` 7 case（9 类目 ratio / resource.kind=null|other 兜底 js_load / delta up+down+flat / 空窗口 9 占位 / topGroups.category 映射）；同步修正 `packages/sdk/vitest.config.ts` include 为 `tests/**`；shared 17/17 + sdk 19/19 + server 7 单元 + 4 e2e 全绿
 - 最近完成（2026-04-28）：**T1.6.2.0.7 异常模块 9 类目扩展切片（ADR-0019）** —— SDK `httpPlugin`（Ajax + API code）+ `errorPlugin` 资源细分（js_load/image_load/css_load/media + 白屏心跳）；`ErrorEventSchema.category` 9 值；drizzle `0002_errors_ajax_columns.sql`；`ErrorsService` 9 类目聚合；Web `/errors` 重构为 category-cards / dimension-tabs / ranking-table / stack-chart（DualAxes 堆叠柱 + 全部日志 rose-600 折线）；demo 新增 7 异常演示路由（ajax-fail / api-code / css-load / image-load / js-load / media-load / white-screen）；`turbo` dev/build 顺序改为严格串行 shared→sdk→server→web→demo；清理 19 个散落 src/ 下的 `.test.ts|.spec.ts` 并强制放置于 `tests/`；`apps/web/(dashboard)/layout.tsx` Suspense 包裹 Topbar 修复 Next 16 `useSearchParams()` CSR bailout；`pnpm typecheck` 7/7 + `pnpm build` 5/5 全绿
 - 最近完成（2026-04-28）：**性能模块端到端 review + ADR-0018 + 文档一致性** —— 识别 4 P0 + 3 P1 + 2 P2 差距；T2.1.8 里程碑注册；SPEC §3.3.2/§4.2/§5.4.0/§6.3 同步补齐（10 指标 Rating 表 + long_task 3 级 tier + `PerformanceOverviewDto` 新增 longTasks/fmpPages/dimensions + 维度分阶段落地表）；ARCHITECTURE §4.2.1 同步（SDK plugins 四元组 + Dashboard 多聚合并发）

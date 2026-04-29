@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
-import type { ErrorEvent } from "@g-heal-claw/shared";
+import type { ApiEvent, ErrorEvent } from "@g-heal-claw/shared";
+import { ApiMonitorService } from "../api-monitor/api-monitor.service.js";
 import { ErrorsService } from "../errors/errors.service.js";
 import {
   PerformanceService,
@@ -28,6 +29,7 @@ export class GatewayService {
   public constructor(
     private readonly performance: PerformanceService,
     private readonly errors: ErrorsService,
+    private readonly apiMonitor: ApiMonitorService,
     private readonly idempotency: IdempotencyService,
   ) {}
 
@@ -45,16 +47,18 @@ export class GatewayService {
 
     const perfEvents = first.filter(isPerfOrLongTask);
     const errorEvents = first.filter(isError);
+    const apiEvents = first.filter(isApi);
 
-    const [perfPersisted, errorPersisted] = await Promise.all([
+    const [perfPersisted, errorPersisted, apiPersisted] = await Promise.all([
       perfEvents.length ? this.performance.saveBatch(perfEvents) : 0,
       errorEvents.length ? this.errors.saveBatch(errorEvents) : 0,
+      apiEvents.length ? this.apiMonitor.saveBatch(apiEvents) : 0,
     ]);
-    const persisted = perfPersisted + errorPersisted;
+    const persisted = perfPersisted + errorPersisted + apiPersisted;
 
     this.logger.log(
       `accepted=${total} deduped=${duplicates.length} perf=${perfEvents.length} ` +
-        `errors=${errorEvents.length} persisted=${persisted} ` +
+        `errors=${errorEvents.length} apis=${apiEvents.length} persisted=${persisted} ` +
         `types=[${payload.events.map((e) => e.type).join(",")}] ` +
         `projectId=${auth?.projectId ?? "-"} publicKey=${auth?.publicKey ?? "-"}`,
     );
@@ -70,4 +74,8 @@ function isPerfOrLongTask(
 
 function isError(event: IngestRequest["events"][number]): event is ErrorEvent {
   return event.type === "error";
+}
+
+function isApi(event: IngestRequest["events"][number]): event is ApiEvent {
+  return event.type === "api";
 }

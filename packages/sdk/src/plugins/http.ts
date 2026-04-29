@@ -1,11 +1,18 @@
 import type {
-  Breadcrumb,
   ErrorEvent as GhcErrorEvent,
   ErrorRequest,
 } from "@g-heal-claw/shared";
 import { createBaseEvent } from "../event.js";
 import type { Hub } from "../hub.js";
 import type { Plugin } from "../plugin.js";
+import {
+  isIgnored,
+  isInternal,
+  safeJson,
+  safeNow,
+  snapshotBreadcrumbs,
+  toUrl,
+} from "./http-capture.js";
 
 /**
  * HTTP 采集插件 —— fetch + XHR Monkey Patch
@@ -20,7 +27,7 @@ import type { Plugin } from "../plugin.js";
  *  - SDK 自身的 ingest 请求（DSN.ingestUrl 开头）始终忽略，避免上报风暴
  *
  * 设计约束：
- *  - 零副作用：多次 setup 不会重复 patch（用标记位 `__ghcPatched`）
+ *  - 零副作用：多次 setup 不会重复 patch（用标记位 `__ghcHttpPatched`）
  *  - 静默降级：非浏览器环境 / window.fetch 不存在 → 跳过
  */
 
@@ -47,8 +54,13 @@ export interface ApiCodeContext {
 }
 
 interface PatchMarker {
-  __ghcPatched?: boolean;
+  __ghcHttpPatched?: boolean;
 }
+
+/**
+ * 注：`httpPlugin` 与 `apiPlugin` 各自维护独立的 patch 标记
+ * （`__ghcHttpPatched` / `__ghcApiPatched`），允许两者同时启用并串联调用。
+ */
 
 /**
  * HttpPlugin 工厂
@@ -91,7 +103,7 @@ function patchFetch(hub: Hub, ctx: PatchContext): void {
   const original = (window as { fetch?: typeof fetch }).fetch;
   if (!original) return;
   const marker = original as PatchMarker & typeof fetch;
-  if (marker.__ghcPatched) return;
+  if (marker.__ghcHttpPatched) return;
 
   const wrapped = async function patched(
     this: unknown,
@@ -130,7 +142,7 @@ function patchFetch(hub: Hub, ctx: PatchContext): void {
       throw err;
     }
   };
-  (wrapped as PatchMarker).__ghcPatched = true;
+  (wrapped as PatchMarker).__ghcHttpPatched = true;
   (window as { fetch?: typeof fetch }).fetch = wrapped as typeof fetch;
 }
 
@@ -194,7 +206,7 @@ function patchXhr(hub: Hub, ctx: PatchContext): void {
   if (typeof XMLHttpRequest === "undefined") return;
   const proto = XMLHttpRequest.prototype as unknown as PatchMarker &
     XMLHttpRequest;
-  if (proto.__ghcPatched) return;
+  if (proto.__ghcHttpPatched) return;
 
   const originalOpen = proto.open;
   const originalSend = proto.send;
@@ -284,7 +296,7 @@ function patchXhr(hub: Hub, ctx: PatchContext): void {
     return originalSend.call(this, body);
   } as typeof proto.send;
 
-  proto.__ghcPatched = true;
+  proto.__ghcHttpPatched = true;
 }
 
 // ---- 分发 ----
@@ -382,47 +394,5 @@ function extractBizMessage(json: unknown): string | undefined {
   return undefined;
 }
 
-function toUrl(input: RequestInfo | URL): string {
-  if (typeof input === "string") return input;
-  if (input instanceof URL) return input.toString();
-  return input.url;
-}
-
-function isIgnored(
-  url: string,
-  patterns: ReadonlyArray<string | RegExp>,
-): boolean {
-  for (const p of patterns) {
-    if (typeof p === "string") {
-      if (url.includes(p)) return true;
-    } else if (p.test(url)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function isInternal(hub: Hub, url: string): boolean {
-  const ingest = hub.dsn.ingestUrl;
-  if (!ingest) return false;
-  return url.startsWith(ingest);
-}
-
-function safeJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
-
-function safeNow(): number {
-  if (typeof performance !== "undefined" && typeof performance.now === "function")
-    return performance.now();
-  return Date.now();
-}
-
-function snapshotBreadcrumbs(hub: Hub): Breadcrumb[] | undefined {
-  const arr = hub.scope.breadcrumbs;
-  return arr.length > 0 ? [...arr].slice(-50) : undefined;
-}
+// toUrl / isIgnored / isInternal / safeJson / safeNow / snapshotBreadcrumbs
+// 已抽到 ./http-capture.ts，本文件保留 SDK 专属工具即可。

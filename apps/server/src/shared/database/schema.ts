@@ -14,3 +14,4 @@ export * from "./schema/issues.js";
 export * from "./schema/events-raw.js";
 export * from "./schema/perf-events-raw.js";
 export * from "./schema/error-events-raw.js";
+export * from "./schema/api-events-raw.js";

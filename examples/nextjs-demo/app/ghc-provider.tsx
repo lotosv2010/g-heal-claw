@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import {
+  apiPlugin,
   errorPlugin,
   fspPlugin,
   httpPlugin,
@@ -24,7 +25,8 @@ import {
  * - SpeedIndexPlugin：近似采集 Speed Index（FP/FCP/LCP 三里程碑 AUC）
  * - FspPlugin：MutationObserver + rAF 采集首屏稳定时间（ADR-0018 P0.3）
  * - ErrorPlugin：捕获 window.error（JS + 资源）+ unhandledrejection
- * - HttpPlugin：捕获 fetch / XHR 的 ajax 失败 + 业务 code 异常
+ * - HttpPlugin：捕获 fetch / XHR 的 ajax 失败 + 业务 code 异常（type='error'）
+ * - ApiPlugin：采集 fetch / XHR 全量请求明细（含成功，type='api'），驱动 API 大盘
  */
 export function GhcProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -51,6 +53,10 @@ export function GhcProvider({ children }: { children: ReactNode }) {
           httpPlugin({
             // 默认兜底：响应 JSON 中 code ≠ 0 视为 api_code 异常
             // 可在业务接入时按需替换 apiCodeFilter
+          }),
+          apiPlugin({
+            // 默认 slowThresholdMs=1000；demo 降至 300 便于在本地演示慢请求
+            slowThresholdMs: 300,
           }),
         ],
       },

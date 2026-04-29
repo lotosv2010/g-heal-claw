@@ -288,6 +288,78 @@ CREATE INDEX IF NOT EXISTS idx_err_project_kind_ts
 `.trim();
 
 // ============================================================
+// 事件流切片：api_events_raw（ADR-0020 §4.2）
+// ============================================================
+
+export const CREATE_API_EVENTS_RAW = `
+CREATE TABLE IF NOT EXISTS api_events_raw (
+  id                bigserial PRIMARY KEY,
+  event_id          uuid NOT NULL UNIQUE,
+  project_id        varchar(64) NOT NULL,
+  public_key        varchar(64) NOT NULL,
+  session_id        varchar(64) NOT NULL,
+  ts_ms             bigint NOT NULL,
+  method            varchar(16) NOT NULL,
+  request_url       text NOT NULL,
+  host              varchar(128) NOT NULL,
+  path              text NOT NULL,
+  path_template     text NOT NULL,
+  status            integer NOT NULL,
+  duration_ms       double precision NOT NULL,
+  request_size      integer,
+  response_size     integer,
+  slow              boolean NOT NULL DEFAULT false,
+  failed            boolean NOT NULL DEFAULT false,
+  error_message     text,
+  trace_id          varchar(64),
+  breadcrumbs       jsonb,
+  page_url          text NOT NULL,
+  page_path         text NOT NULL,
+  ua                text,
+  browser           varchar(64),
+  os                varchar(64),
+  device_type       varchar(16),
+  release           varchar(64),
+  environment       varchar(32),
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+`.trim();
+
+export const CREATE_IDX_API_PROJECT_TS = `
+CREATE INDEX IF NOT EXISTS idx_api_project_ts
+  ON api_events_raw (project_id, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_API_PROJECT_HOST_TS = `
+CREATE INDEX IF NOT EXISTS idx_api_project_host_ts
+  ON api_events_raw (project_id, host, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_API_PROJECT_STATUS_TS = `
+CREATE INDEX IF NOT EXISTS idx_api_project_status_ts
+  ON api_events_raw (project_id, status, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_API_PROJECT_PATH_TS = `
+CREATE INDEX IF NOT EXISTS idx_api_project_path_ts
+  ON api_events_raw (project_id, path_template, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_API_PROJECT_FAILED_TS = `
+CREATE INDEX IF NOT EXISTS idx_api_project_failed_ts
+  ON api_events_raw (project_id, failed, ts_ms DESC);
+`.trim();
+
+export const API_DDL: readonly string[] = [
+  CREATE_API_EVENTS_RAW,
+  CREATE_IDX_API_PROJECT_TS,
+  CREATE_IDX_API_PROJECT_HOST_TS,
+  CREATE_IDX_API_PROJECT_STATUS_TS,
+  CREATE_IDX_API_PROJECT_PATH_TS,
+  CREATE_IDX_API_PROJECT_FAILED_TS,
+];
+
+// ============================================================
 // 事件流：events_raw 分区父表（ADR-0017 §3.8）
 // ============================================================
 // 本期仅建骨架，Gateway 不写入；T1.4.1 完整 Processor 切入后启用。
@@ -434,6 +506,7 @@ export const ALL_DDL: readonly string[] = [
   ...MAIN_DDL,
   ...PERFORMANCE_DDL,
   ...ERROR_DDL,
+  ...API_DDL,
   ...EVENTS_RAW_DDL,
   ...DLQ_DDL,
 ];
