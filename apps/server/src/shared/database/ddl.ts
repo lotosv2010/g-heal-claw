@@ -360,6 +360,73 @@ export const API_DDL: readonly string[] = [
 ];
 
 // ============================================================
+// 事件流切片：track_events_raw（P0-3 §1）
+// ============================================================
+
+export const CREATE_TRACK_EVENTS_RAW = `
+CREATE TABLE IF NOT EXISTS track_events_raw (
+  id                bigserial PRIMARY KEY,
+  event_id          uuid NOT NULL UNIQUE,
+  project_id        varchar(64) NOT NULL,
+  public_key        varchar(64) NOT NULL,
+  session_id        varchar(64) NOT NULL,
+  ts_ms             bigint NOT NULL,
+  track_type        varchar(16) NOT NULL,
+  event_name        varchar(128) NOT NULL,
+  target_tag        varchar(32),
+  target_id         varchar(128),
+  target_class      text,
+  target_selector   text,
+  target_text       text,
+  properties        jsonb,
+  user_id           varchar(64),
+  page_url          text NOT NULL,
+  page_path         text NOT NULL,
+  ua                text,
+  browser           varchar(64),
+  os                varchar(64),
+  device_type       varchar(16),
+  release           varchar(64),
+  environment       varchar(32),
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+`.trim();
+
+export const CREATE_IDX_TRACK_PROJECT_TS = `
+CREATE INDEX IF NOT EXISTS idx_track_project_ts
+  ON track_events_raw (project_id, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_TRACK_PROJECT_TYPE_TS = `
+CREATE INDEX IF NOT EXISTS idx_track_project_type_ts
+  ON track_events_raw (project_id, track_type, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_TRACK_PROJECT_NAME_TS = `
+CREATE INDEX IF NOT EXISTS idx_track_project_name_ts
+  ON track_events_raw (project_id, event_name, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_TRACK_PROJECT_PATH_TS = `
+CREATE INDEX IF NOT EXISTS idx_track_project_path_ts
+  ON track_events_raw (project_id, page_path, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_TRACK_PROJECT_SESSION_TS = `
+CREATE INDEX IF NOT EXISTS idx_track_project_session_ts
+  ON track_events_raw (project_id, session_id, ts_ms DESC);
+`.trim();
+
+export const TRACK_DDL: readonly string[] = [
+  CREATE_TRACK_EVENTS_RAW,
+  CREATE_IDX_TRACK_PROJECT_TS,
+  CREATE_IDX_TRACK_PROJECT_TYPE_TS,
+  CREATE_IDX_TRACK_PROJECT_NAME_TS,
+  CREATE_IDX_TRACK_PROJECT_PATH_TS,
+  CREATE_IDX_TRACK_PROJECT_SESSION_TS,
+];
+
+// ============================================================
 // 事件流：events_raw 分区父表（ADR-0017 §3.8）
 // ============================================================
 // 本期仅建骨架，Gateway 不写入；T1.4.1 完整 Processor 切入后启用。
@@ -507,6 +574,7 @@ export const ALL_DDL: readonly string[] = [
   ...PERFORMANCE_DDL,
   ...ERROR_DDL,
   ...API_DDL,
+  ...TRACK_DDL,
   ...EVENTS_RAW_DDL,
   ...DLQ_DDL,
 ];

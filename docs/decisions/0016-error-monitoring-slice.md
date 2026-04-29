@@ -187,14 +187,14 @@ GET /dashboard/v1/errors/overview
 
 ### 4. Web `/errors` 页面
 
-对偶 `/performance` 的三态（`live | empty | error`）+ 四个组件：
+对偶 `/monitor/performance` 的三态（`live | empty | error`）+ 四个组件（ADR-0021 菜单重组后实际路由位于 `(console)/monitor/errors/`）：
 
 ```
-apps/web/app/(dashboard)/errors/
+apps/web/app/(console)/monitor/errors/
 ├── page.tsx                       # 服务端组件 + force-dynamic
 ├── summary-cards.tsx              # 总事件数 / 影响会话数 / 环比（复用 Badge variant=tone）
 ├── sub-type-donut.tsx             # 子类型占比（纯 CSS ring：conic-gradient + flex 图例，不引图表库）
-├── trend-chart.tsx                # 复用 @ant-design/plots Line（与 /performance 同风格）
+├── trend-chart.tsx                # 复用 @ant-design/plots Line（与 /monitor/performance 同风格）
 └── top-groups-table.tsx           # shadcn Table + Badge 高亮 subType
 ```
 

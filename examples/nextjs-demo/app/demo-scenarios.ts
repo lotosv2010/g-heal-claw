@@ -10,7 +10,12 @@
  * 这样导航语义与 Web 后台菜单完全一致，便于联调时按大盘模块定位来源。
  */
 
-export type ScenarioGroupKey = "performance" | "errors" | "api" | "resources";
+export type ScenarioGroupKey =
+  | "performance"
+  | "errors"
+  | "api"
+  | "resources"
+  | "tracking";
 
 export interface ScenarioRoute {
   readonly href: string;
@@ -25,7 +30,7 @@ export interface ScenarioGroup {
   /** 首页区段副文 */
   readonly description: string;
   /** 视觉色（仅用于 demo 首页卡片微弱区分） */
-  readonly accent: "blue" | "indigo" | "teal" | "amber";
+  readonly accent: "blue" | "indigo" | "teal" | "amber" | "violet";
   readonly routes: readonly ScenarioRoute[];
 }
 
@@ -78,6 +83,39 @@ export const SCENARIO_GROUPS: readonly ScenarioGroup[] = [
       { href: "/errors/css-load", label: "CSS 加载异常", hint: "404 的 <link stylesheet>" },
       { href: "/errors/media-load", label: "音视频加载异常", hint: "404 的 <video> / <audio>" },
       { href: "/errors/resource", label: "Resource 404（综合）", hint: "静态资源加载失败样例" },
+    ],
+  },
+  {
+    key: "tracking",
+    title: "埋点分析",
+    description: "click / expose / submit / code 4 类埋点 · 映射到大盘「事件分析」",
+    accent: "violet",
+    routes: [
+      {
+        href: "/tracking/playground",
+        label: "埋点 Playground",
+        hint: "一页包含 4 类事件触发入口（速查）",
+      },
+      {
+        href: "/tracking/click",
+        label: "Click 全埋点",
+        hint: "data-track / data-track-id 点击采集",
+      },
+      {
+        href: "/tracking/submit",
+        label: "Submit 全埋点",
+        hint: "form 提交采集（capture 阶段）",
+      },
+      {
+        href: "/tracking/expose",
+        label: "Expose 曝光",
+        hint: "IntersectionObserver + 停留判定",
+      },
+      {
+        href: "/tracking/code",
+        label: "Code 代码埋点",
+        hint: "GHealClaw.track(name, props) 主动上报",
+      },
     ],
   },
 ] as const;

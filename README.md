@@ -41,15 +41,17 @@ g-heal-claw/
 ├── CLAUDE.md                # Claude Code 专属补充
 ├── docker-compose.yml       # PostgreSQL 17 + Redis 7 + MinIO
 ├── .env.example             # 环境变量模板
-├── packages/                # 公共库（待初始化）
-│   ├── sdk/                 #   @g-heal-claw/sdk — 浏览器 SDK
-│   ├── cli/                 #   @g-heal-claw/cli — Sourcemap 上传 CLI
-│   ├── shared/              #   @g-heal-claw/shared — Zod Schema / 队列名 / 工具
-│   └── vite-plugin/         #   @g-heal-claw/vite-plugin — 构建期上传钩子
-├── apps/                    # 应用（待初始化）
-│   ├── server/              #   NestJS 后端（模块化单体，Fastify）
-│   ├── web/                 #   Next.js 管理面板（App Router + SSR）
-│   └── ai-agent/            #   LangChain AI Agent（诊断 + 修复）
+├── packages/                # 公共库
+│   ├── shared/              #   @g-heal-claw/shared — Zod Schema / 队列名 / 工具（✅ 已初始化）
+│   ├── sdk/                 #   @g-heal-claw/sdk — 浏览器 SDK（✅ 已初始化）
+│   ├── cli/                 #   @g-heal-claw/cli — Sourcemap 上传 CLI（⚪ 规划）
+│   └── vite-plugin/         #   @g-heal-claw/vite-plugin — 构建期上传钩子（⚪ 规划）
+├── apps/                    # 应用
+│   ├── server/              #   NestJS 后端（模块化单体，Fastify）（✅ 已初始化）
+│   ├── web/                 #   Next.js 管理面板（App Router + SSR，4 分组菜单）（✅ 已初始化）
+│   └── ai-agent/            #   LangChain AI Agent（诊断 + 修复）（⚪ 规划）
+├── examples/
+│   └── nextjs-demo/         #   SDK 演练沙盘（性能 / 错误 / API / 资源 / 埋点 场景）
 ├── docs/
 │   ├── PRD.md
 │   ├── SPEC.md

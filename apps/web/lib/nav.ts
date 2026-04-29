@@ -88,7 +88,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         slug: "tracking/events",
         label: "事件分析",
         icon: MousePointerClick,
-        placeholder: "P0-3 交付",
+        placeholder: null,
       },
       {
         slug: "tracking/exposure",

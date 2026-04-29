@@ -97,12 +97,16 @@ apps/server/
 
 ```
 apps/web/
-├── app/                   # App Router
-│   ├── (auth)/            # 认证页面
-│   ├── (dashboard)/       # 管理面板
+├── app/                         # App Router
+│   ├── (auth)/                  # 认证页面
+│   ├── (console)/               # 管理面板（ADR-0021 四分组菜单）
+│   │   ├── dashboard/           # 仪表盘（overview / realtime）
+│   │   ├── monitor/             # 监控（performance / errors / api / resources / visits / logs）
+│   │   ├── tracking/            # 埋点（events / exposure / funnel / retention / custom）
+│   │   └── settings/            # 设置（projects / members / tokens / sourcemaps / alerts / channels / ai）
 │   └── layout.tsx
-├── components/            # UI 组件（Shadcn/ui）
-├── lib/                   # 工具函数
+├── components/                  # UI 组件（Shadcn/ui）
+├── lib/                         # 工具函数
 ├── package.json
 └── tsconfig.json
 ```

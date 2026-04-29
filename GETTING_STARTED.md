@@ -189,6 +189,57 @@ setTimeout(() => {
 
 登录 Dashboard → **Errors** 页，几秒内应看到该 Issue 聚合出现。
 
+### 7.3 埋点采集（trackPlugin · P0-3）
+
+`trackPlugin` 一次性采集 4 类事件并驱动后台「埋点分析 → 事件分析」大盘：
+
+```typescript
+import { init, trackPlugin, track } from "@g-heal-claw/sdk";
+
+init(
+  { dsn, environment: "production", release: "v0.1.0" },
+  {
+    plugins: [
+      trackPlugin({
+        captureClick: true,     // data-track / data-track-id 点击（默认 true）
+        captureSubmit: true,    // form 提交（默认 true）
+        captureExpose: true,    // [data-track-expose] 曝光（默认 true）
+        exposeDwellMs: 500,     // 曝光所需停留毫秒（默认 500）
+        throttleMs: 1000,       // 同 selector 节流窗口（默认 1000）
+      }),
+    ],
+  },
+);
+```
+
+**4 类事件触发方式**：
+
+| 类型 | DOM 标记 / 调用 | 触发条件 |
+|---|---|---|
+| `click` | `<el data-track-id="cta_primary">` 或 `<el data-track="...">` | 目标节点或祖先命中标记的点击 |
+| `submit` | `<form ...>`（推荐加 `data-track-id`） | 任意 form 提交 |
+| `expose` | `<el data-track-expose data-track-id="promo_hero">` | 元素进入视口 ≥ `exposeDwellMs`，<b>同节点仅一次</b> |
+| `code` | `track(name, properties)` | 业务代码显式调用 |
+
+**数据流**：`trackPlugin` → `/ingest/v1/events`（type='track'） → `track_events_raw` 表 → `/dashboard/v1/tracking/overview` → Web「事件分析」大盘。
+
+**本地联调**：
+
+1. 启动基础设施与应用：`docker compose up -d && pnpm dev`
+2. 访问 demo 首页 `http://localhost:3002`，点击「埋点分析」分组任一场景：
+   - `/tracking/click`、`/tracking/submit`、`/tracking/expose`、`/tracking/code` 四个专项场景
+   - `/tracking/playground` 一页速查
+3. DevTools → Network 观察 `/ingest/v1/events` 载荷中的 `trackType`
+4. 访问 `http://localhost:3000/tracking/events` 查看聚合大盘
+
+**Best Practice**：
+
+- 事件名采用 `<domain>_<action>`（如 `checkout_submit` 而非 `clickButton1`）
+- `data-track-*` 前缀的 dataset 自动进入 `properties`，业务字段统一通过这里暴露，避免手动转换
+- `form` 内的 `input.value` 不会自动采集，敏感值请通过 `data-track-*` 主动脱敏后暴露
+
+更多 API 细节见 [docs/sdk/tracking](/sdk/tracking)。
+
 ---
 
 ## 8. Sourcemap 上传（还原堆栈）

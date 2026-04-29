@@ -7,6 +7,7 @@ import { GatewayModule } from "./gateway/gateway.module.js";
 import { DashboardModule } from "./dashboard/dashboard.module.js";
 import { ErrorsModule } from "./errors/errors.module.js";
 import { ApiMonitorModule } from "./api-monitor/api-monitor.module.js";
+import { TrackingModule } from "./tracking/tracking.module.js";
 
 @Module({})
 export class AppModule {
@@ -20,6 +21,7 @@ export class AppModule {
         GatewayModule,
         ErrorsModule,
         ApiMonitorModule,
+        TrackingModule,
         DashboardModule,
       ],
     };

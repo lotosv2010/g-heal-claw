@@ -19,8 +19,8 @@
 |---|---|
 | 仓库结构 | Monorepo 脚手架已就绪（`pnpm-workspace.yaml` + `turbo.json` + `tsconfig.base.json`） |
 | 基础设施 | Docker Compose：PostgreSQL 17 + Redis 7 + MinIO 可用 |
-| 应用子目录 | `apps/server` 已初始化（ADR-0011）；`apps/web` 已初始化（ADR-0012，shadcn/ui + 10 页骨架 + 性能页完整）；`apps/ai-agent` 尚未初始化 |
-| 包子目录 | `packages/sdk` `packages/shared` `packages/cli` `packages/vite-plugin` 尚未初始化 |
+| 应用子目录 | `apps/server` 已初始化（ADR-0011）；`apps/web` 已初始化（ADR-0012，shadcn/ui + `(console)/` 4 分组菜单 + 性能 / 错误 / API / 资源 / 访问 / 埋点事件大盘 live）；`apps/ai-agent` 尚未初始化 |
+| 包子目录 | `packages/shared` `packages/sdk` 已初始化并构建；`packages/cli` `packages/vite-plugin` `packages/miniapp-sdk` 尚未初始化 |
 | 文档 | `docs/SPEC.md` `docs/ARCHITECTURE.md` `docs/DESIGN.md` 已对齐 `docs/PRD.md` v2 |
 
 ## 范围决策（MVP 取舍）
@@ -406,7 +406,7 @@
   - [x] **T2.1.6.3** DashboardService 装配：并发 5 次查询（含环比）→ 映射 `ThresholdTone` / `DeltaDirection` → 返回 `PerformanceOverviewDto`；空数据返回 5 卡占位 `sampleCount=0`（不报错）— 0.3d（完成 2026-04-27）
   - [x] **T2.1.6.4** Controller + Swagger 注解 + `ZodValidationPipe(query)` + `AppModule` 注册 — 0.1d（完成 2026-04-27）
   - [x] **T2.1.6.5** `apps/web/lib/api/performance.ts` 改为真实 fetch + `emptyOverview()` 降级 + `source` 三态；`apps/web/.env.example` 新增 `NEXT_PUBLIC_DEFAULT_PROJECT_ID=proj_demo`；移除 `lib/fixtures/performance.ts` — 0.2d（完成 2026-04-27）
-  - [x] **T2.1.6.6** `apps/web/app/(dashboard)/performance/page.tsx` 处理 live/empty/error 三态；`export const dynamic = "force-dynamic"` 避免 SSG 冻结 — 0.2d（完成 2026-04-27）
+  - [x] **T2.1.6.6** `apps/web/app/(console)/monitor/performance/page.tsx`（ADR-0021 菜单重组后路由迁移自 `(dashboard)/performance/`）处理 live/empty/error 三态；`export const dynamic = "force-dynamic"` 避免 SSG 冻结 — 0.2d（完成 2026-04-27）
   - [x] **T2.1.6.7** 端到端验证：server typecheck/build/test（5/5 全绿）；web typecheck/build（`/performance` 标记 ƒ Dynamic）— 0.4d（完成 2026-04-27）
 - [ ] **T2.1.7** web/performance 页面增强（环比切换 / 分页面瀑布图 / ECharts 深度定制）— 5d
 - [~] **T2.1.8** 性能模块完整性切片（ADR-0018；SDK 已落地 longTaskPlugin / speedIndexPlugin，本切片补齐 FSP + 长任务分级 + SI 趋势白名单 + 回归测试 + 面板润色）— 5d

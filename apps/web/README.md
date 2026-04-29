@@ -29,7 +29,7 @@ g-heal-claw 管理后台（Next.js 16 App Router）。
 ## 本地开发
 
 ```bash
-pnpm -F @g-heal-claw/web dev        # http://localhost:3000 → 重定向至 /performance
+pnpm -F @g-heal-claw/web dev        # http://localhost:3000 → 重定向至 /monitor/performance
 pnpm -F @g-heal-claw/web typecheck
 pnpm -F @g-heal-claw/web build
 ```
@@ -38,18 +38,20 @@ pnpm -F @g-heal-claw/web build
 
 ```
 app/
-  (dashboard)/         # 路由组：统一挂 Sidebar + Topbar
-    performance/       # ✅ 本期完整落地（ADR-0015）
-    errors/            # ✅ 本期完整落地（ADR-0016）
-    {8 个占位页}/
+  (console)/           # 路由组：统一挂 Sidebar + Topbar（ADR-0021 4 分组菜单）
+    dashboard/         # 仪表盘：overview / realtime
+    monitor/           # 监控：performance ✅ / errors ✅ / api ✅ / resources ✅ / visits ✅ / logs
+    tracking/          # 埋点：events ✅（P0-3）/ exposure / funnel / retention / custom
+    settings/          # 设置：projects / members / tokens / sourcemaps / alerts / channels / ai
+    layout.tsx         # 分组共享 layout
   layout.tsx           # 根 layout
-  page.tsx             # "/" → redirect("/performance")
+  page.tsx             # "/" → redirect("/monitor/performance")
   globals.css          # Tailwind v4 入口
 components/
   ui/                  # 手写 Shadcn 风格原语：Button / Card / Badge / Table / Tabs / Skeleton
   dashboard/           # Sidebar / Topbar / PageHeader / PlaceholderPage
 lib/
-  nav.ts               # 10 条菜单单一事实源
+  nav.ts               # 菜单单一事实源（4 分组 × 子项）
   cn.ts                # classname 合并
   api/                 # 后端 Dashboard API fetch 包装
 ```

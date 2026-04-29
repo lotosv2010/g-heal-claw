@@ -10,6 +10,7 @@ import {
   longTaskPlugin,
   performancePlugin,
   speedIndexPlugin,
+  trackPlugin,
 } from "@g-heal-claw/sdk";
 
 /**
@@ -27,6 +28,7 @@ import {
  * - ErrorPlugin：捕获 window.error（JS + 资源）+ unhandledrejection
  * - HttpPlugin：捕获 fetch / XHR 的 ajax 失败 + 业务 code 异常（type='error'）
  * - ApiPlugin：采集 fetch / XHR 全量请求明细（含成功，type='api'），驱动 API 大盘
+ * - TrackPlugin：采集 4 类埋点事件（click / submit / expose / code，type='track'），驱动事件分析大盘
  */
 export function GhcProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -57,6 +59,10 @@ export function GhcProvider({ children }: { children: ReactNode }) {
           apiPlugin({
             // 默认 slowThresholdMs=1000；demo 降至 300 便于在本地演示慢请求
             slowThresholdMs: 300,
+          }),
+          trackPlugin({
+            // demo 曝光停留 300ms，便于快速演示
+            exposeDwellMs: 300,
           }),
         ],
       },

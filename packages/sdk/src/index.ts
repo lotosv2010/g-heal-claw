@@ -43,6 +43,12 @@ export {
   type ApiCodeContext,
 } from "./plugins/http.js";
 export { apiPlugin, type ApiPluginOptions } from "./plugins/api.js";
+export {
+  trackPlugin,
+  track,
+  type TrackPluginOptions,
+  type TrackApi,
+} from "./plugins/track.js";
 
 // 便于 UMD 脚本接入：提供一个扁平 namespace 对象
 import { init as _init } from "./init.js";
@@ -60,6 +66,10 @@ import { speedIndexPlugin as _speedIndexPlugin } from "./plugins/speed-index.js"
 import { fspPlugin as _fspPlugin } from "./plugins/fsp.js";
 import { httpPlugin as _httpPlugin } from "./plugins/http.js";
 import { apiPlugin as _apiPlugin } from "./plugins/api.js";
+import {
+  trackPlugin as _trackPlugin,
+  track as _track,
+} from "./plugins/track.js";
 import type { Breadcrumb } from "@g-heal-claw/shared";
 import type { GHealClawOptions } from "./options.js";
 
@@ -92,6 +102,9 @@ export const GHealClaw = {
   fspPlugin: _fspPlugin,
   httpPlugin: _httpPlugin,
   apiPlugin: _apiPlugin,
+  trackPlugin: _trackPlugin,
+  track: (name: string, properties?: Record<string, unknown>) =>
+    _track(name, properties),
 };
 
 export default GHealClaw;
