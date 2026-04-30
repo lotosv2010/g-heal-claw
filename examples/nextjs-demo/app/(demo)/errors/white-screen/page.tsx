@@ -1,12 +1,14 @@
 "use client";
 
+import { GHealClaw } from "@g-heal-claw/sdk";
 import { useState } from "react";
 
 /**
  * 白屏（white_screen）场景
  *
  * 真实白屏通常由路由挂载失败 / 根节点未渲染触发，生产环境可通过健康探针检测。
- * Demo 侧采用"手动上报"路径模拟：调用 GHealClaw.captureException 并显式指定
+ * Demo 侧采用"手动上报"路径模拟：调用 <code>GHealClaw.captureException</code>
+ *（ESM 具名导入的命名空间对象，自动解析当前 Hub）并显式指定
  * subType = "white_screen"，触发一次 error 事件（category = white_screen）。
  */
 export default function WhiteScreenPage() {
@@ -14,15 +16,8 @@ export default function WhiteScreenPage() {
 
   const fireWhiteScreen = (): void => {
     setCount((n) => n + 1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sdk = (globalThis as any).GHealClaw;
     const err = new Error(`[demo] 白屏探针报告：根节点超时未渲染 #${count + 1}`);
-    if (sdk?.captureException) {
-      sdk.captureException(err, { subType: "white_screen" });
-    } else {
-      // eslint-disable-next-line no-console
-      console.warn("[demo] GHealClaw.captureException 未就绪：", err);
-    }
+    GHealClaw.captureException(err, { subType: "white_screen" });
   };
 
   return (

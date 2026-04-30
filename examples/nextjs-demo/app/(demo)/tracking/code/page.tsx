@@ -54,6 +54,12 @@ export default function TrackingCodePage() {
         >
           video_play_start
         </button>
+        {/*
+         * UMD 命名空间探测按钮 —— 刻意读取 window.GHealClaw，
+         * 模拟 CDN `<script src=".../sdk.umd.cjs">` 用户的调用姿势。
+         * window.GHealClaw 由 `app/ghc-provider.tsx` 主动挂载（仅本按钮使用）；
+         * 其余业务代码请用 ESM 具名导入（见本页顶部 `import { track } from ...`）。
+         */}
         <button
           type="button"
           onClick={() => {

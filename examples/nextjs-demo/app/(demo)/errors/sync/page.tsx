@@ -1,5 +1,6 @@
 "use client";
 
+import { GHealClaw } from "@g-heal-claw/sdk";
 import { useState } from "react";
 
 /**
@@ -7,7 +8,9 @@ import { useState } from "react";
  *
  * 在 React 事件回调中直接 throw，会冒泡到 React 的错误边界 / window.onerror。
  * 若 SDK 已注册 ErrorPlugin（T1.2.2），会由 window.onerror 捕获并上报；
- * 本页同时演示通过 GHealClaw.captureException 的手动上报路径。
+ * 本页同时演示通过 <code>GHealClaw.captureException</code> 的手动上报路径
+ *（ESM 具名导入的命名空间对象，自动解析当前 Hub；
+ *   UMD 用户可直接改写为 <code>window.GHealClaw.captureException(...)</code>）。
  */
 export default function SyncErrorPage() {
   const [count, setCount] = useState(0);
@@ -24,14 +27,7 @@ export default function SyncErrorPage() {
       const obj: { readonly value?: string } = {};
       if (!obj.value) throw new Error(`[demo] 手动 capture 的异常 #${count + 1}`);
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdk = (globalThis as any).GHealClaw;
-      if (sdk?.captureException) {
-        sdk.captureException(err);
-      } else {
-        // eslint-disable-next-line no-console
-        console.warn("[demo] GHealClaw.captureException 未就绪，错误仅打印：", err);
-      }
+      GHealClaw.captureException(err);
     }
   };
 

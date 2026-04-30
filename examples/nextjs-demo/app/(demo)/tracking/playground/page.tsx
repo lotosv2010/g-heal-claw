@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@g-heal-claw/sdk";
 import { useEffect, useRef, useState } from "react";
 
 /**
@@ -24,16 +25,10 @@ export default function TrackingPlaygroundPage() {
 
   const fireCodeTrack = () => {
     setCodeCount((n) => n + 1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sdk = (globalThis as any).GHealClaw;
-    if (sdk?.track) {
-      sdk.track("playground_code_click", {
-        from: "playground",
-        count: codeCount + 1,
-      });
-    } else {
-      console.warn("[demo] GHealClaw.track 未就绪");
-    }
+    track("playground_code_click", {
+      from: "playground",
+      count: codeCount + 1,
+    });
   };
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {

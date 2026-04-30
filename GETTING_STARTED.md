@@ -143,31 +143,56 @@ curl http://localhost:3000/readyz    # PG / Redis / Storage 可达性
 
 ## 7. SDK 接入你的前端应用
 
+### 7.0 SDK 四种引入方式（ADR-0010 / Vite Library Mode）
+
+`@g-heal-claw/sdk` 采用 Vite Library Mode 构建 ESM + UMD 双格式，`package.json` 暴露
+`main` / `module` / `types` / `unpkg` / `jsdelivr` / `exports` 条件导出。
+
+| # | 场景 | 引入方式 | 产物 | 备注 |
+|---|---|---|---|---|
+| ① | **Bundler（推荐）** | `import { init, trackCustom, time, log, captureException } from "@g-heal-claw/sdk"` | `dist/sdk.esm.js` | Next.js / Vite / Webpack / Rollup；tree-shake 友好、`sideEffects: false`、类型完整 |
+| ② | **Node.js / CommonJS** | `const { init } = require("@g-heal-claw/sdk")` | `dist/sdk.umd.cjs` | 老构建链 / SSR hybrid；通过 `exports.require` 命中 UMD 产物 |
+| ③ | **CDN `<script>`** | `<script src="https://unpkg.com/@g-heal-claw/sdk/dist/sdk.umd.cjs"></script>` → `window.GHealClaw.init(...)` | `dist/sdk.umd.cjs` | 无构建环境、Vue2/jQuery 老项目；UMD 自动挂 `window.GHealClaw` |
+| ④ | **TypeScript 类型** | 随 ①②③ 自动获得 | `dist/index.d.ts` | `vite-plugin-dts` rollup 单文件产出 |
+
+**架构红线**：
+
+- Bundler 用户**禁止**读取 `window.GHealClaw` —— 它是 UMD 产物的副作用，ESM 不会自动挂载；
+  读它等于把模块状态拆成「ESM 具名导入」+「window 全局」两条路径，状态迟早漂移。
+- 需要"一个入口对象"心智时，导入具名的 `GHealClaw` 命名空间即可：
+  `import { GHealClaw } from "@g-heal-claw/sdk"; GHealClaw.track("...")`。
+- `examples/nextjs-demo` 刻意把 `window.GHealClaw` 挂出来仅为**模拟 CDN 用户**的调用姿势
+  （见 `/tracking/code` 的"UMD 命名空间"按钮），其余 demo 页面全部走 ESM 具名导入。
+
 ### 7.1 Web / H5
 
-```html
-<script type="module">
-  import { init } from "https://cdn.example.com/@g-heal-claw/sdk@latest/dist/sdk.esm.js";
+**ESM（推荐 · bundler 构建）**：
 
-  init({
+```typescript
+// 方式 A：具名导入（tree-shake 最友好）
+import { init, trackCustom, time, log, captureException } from "@g-heal-claw/sdk";
+
+init({ dsn, environment: "development", release: "v0.1.0" });
+
+// 方式 B：命名空间对象（心智更接近 CDN UMD 姿势，但仍走 ESM 产物）
+import { GHealClaw } from "@g-heal-claw/sdk";
+GHealClaw.init({ dsn, environment: "development", release: "v0.1.0" });
+```
+
+**UMD CDN（无构建 / 遗留项目）**：
+
+```html
+<script src="https://unpkg.com/@g-heal-claw/sdk/dist/sdk.umd.cjs"></script>
+<script>
+  GHealClaw.init({
     dsn: "http://<publicKey>@localhost:3000/<projectId>",
     environment: "development",
     release: "v0.1.0",
     sampleRate: 1.0,
-    beforeSend(event) {
-      // 自定义脱敏 / 过滤
-      return event;
-    },
+    beforeSend(event) { return event; },
   });
+  GHealClaw.track("cta_click", { from: "home" });
 </script>
-```
-
-开发期可直接从 workspace 引用：
-
-```typescript
-import { init } from "@g-heal-claw/sdk";
-
-init({ dsn, environment: "development", release: "v0.1.0" });
 ```
 
 初始化完成后，SDK 自动捕获：
@@ -280,6 +305,63 @@ init(
 3. 访问 `http://localhost:3000/monitor/resources` 查看聚合大盘
 
 更多 API 细节见 [docs/sdk/resources](/sdk/resources)。
+
+### 7.5 自定义上报（customPlugin · ADR-0023）
+
+`customPlugin` 提供三个主动业务 API，与被动 DOM 采集的 `trackPlugin` 在 `type` 维度完全独立：
+
+| API | 事件类型 | 用途 | 大盘 |
+|---|---|---|---|
+| `GHealClaw.track(name, properties?)` | `custom_event` | 业务埋点（结算成功 / 分享点击 / 加入购物车） | 埋点分析 → 自定义上报（事件 Top） |
+| `GHealClaw.time(name, durationMs, properties?)` | `custom_metric` | 业务测速（结算耗时 / 编辑器冷启动 / 内部 API） | 埋点分析 → 自定义上报（p50/p75/p95 + avg） |
+| `GHealClaw.log(level, message, data?)` | `custom_log` | 分级日志（info / warn / error）主动上报 | 监控中心 → 自定义日志 |
+
+```typescript
+import { init, customPlugin } from "@g-heal-claw/sdk";
+
+init(
+  { dsn, environment: "production", release: "v0.1.0" },
+  {
+    plugins: [
+      customPlugin({
+        // 默认 true；禁用后 track / time / log 全部 no-op
+        enabled: true,
+        // 单会话 custom_log 上限（默认 200，防日志风暴）
+        maxLogsPerSession: 200,
+        // log.data JSON 字节上限（默认 8192，超出截断并追加 __truncated: true）
+        maxLogDataBytes: 8192,
+      }),
+    ],
+  },
+);
+
+// 业务埋点
+GHealClaw.track("cart_add", { sku: "SKU-A", price: 99.9 });
+
+// 业务测速（必须是有限非负数、≤ 24h，否则静默丢弃）
+const t0 = performance.now();
+await doCheckout();
+GHealClaw.time("checkout_duration", Math.round(performance.now() - t0));
+
+// 分级日志
+GHealClaw.log("warn", "payment retry", { orderId, attempt: 2 });
+```
+
+**数据流**：
+- `custom_event` → `custom_events_raw` → `/dashboard/v1/custom/overview` → `/tracking/custom`（事件 + 测速 + Top 页面 大盘）
+- `custom_metric` → `custom_metrics_raw` → 同上（p50/p75/p95 + avg 分位数）
+- `custom_log` → `custom_logs_raw` → `/dashboard/v1/logs/overview` → `/monitor/logs`（三级别分桶 + 趋势 + Top 消息）
+
+**与 trackPlugin 区别**：`trackPlugin` 监听 `[data-track]` 点击 / `[data-track-expose]` 曝光 / form submit 等 DOM 事件，产出 `type='track'` 事件驱动「事件分析」大盘；`customPlugin` 完全是主动 API，无任何 DOM 监听。两者互补，type 完全不重叠。
+
+**本地联调**：
+
+1. 启动基础设施与应用：`docker compose up -d && pnpm dev`
+2. 访问 demo 首页 `http://localhost:3002`，点击「自定义上报」分组：
+   - `/custom/track` —— 触发 custom_event（4 类业务埋点）
+   - `/custom/time` —— 触发 custom_metric（checkout 耗时、编辑器冷启动）
+   - `/custom/log` —— 触发 info / warn / error 三级别日志（含大 payload 截断演示）
+3. 访问 `http://localhost:3000/tracking/custom` 与 `/monitor/logs` 查看聚合大盘
 
 ---
 
