@@ -1,13 +1,19 @@
 import { Module } from "@nestjs/common";
 import { ApiMonitorModule } from "../api-monitor/api-monitor.module.js";
+import { CustomModule } from "../custom/custom.module.js";
 import { ErrorsModule } from "../errors/errors.module.js";
+import { LogsModule } from "../logs/logs.module.js";
 import { PerformanceModule } from "../performance/performance.module.js";
 import { ResourceMonitorModule } from "../resource-monitor/resource-monitor.module.js";
 import { TrackingModule } from "../tracking/tracking.module.js";
 import { DashboardApiController } from "./api.controller.js";
 import { DashboardApiService } from "./api.service.js";
+import { DashboardCustomController } from "./custom.controller.js";
+import { DashboardCustomService } from "./custom.service.js";
 import { DashboardErrorsController } from "./errors.controller.js";
 import { DashboardErrorsService } from "./errors.service.js";
+import { DashboardLogsController } from "./logs.controller.js";
+import { DashboardLogsService } from "./logs.service.js";
 import { DashboardPerformanceController } from "./performance.controller.js";
 import { DashboardPerformanceService } from "./performance.service.js";
 import { DashboardResourcesController } from "./resources.controller.js";
@@ -27,6 +33,8 @@ import { DashboardTrackingService } from "./tracking.service.js";
     ApiMonitorModule,
     TrackingModule,
     ResourceMonitorModule,
+    CustomModule,
+    LogsModule,
   ],
   controllers: [
     DashboardPerformanceController,
@@ -34,6 +42,8 @@ import { DashboardTrackingService } from "./tracking.service.js";
     DashboardApiController,
     DashboardTrackingController,
     DashboardResourcesController,
+    DashboardCustomController,
+    DashboardLogsController,
   ],
   providers: [
     DashboardPerformanceService,
@@ -41,6 +51,8 @@ import { DashboardTrackingService } from "./tracking.service.js";
     DashboardApiService,
     DashboardTrackingService,
     DashboardResourcesService,
+    DashboardCustomService,
+    DashboardLogsService,
   ],
 })
 export class DashboardModule {}

@@ -59,5 +59,6 @@
 | [ADR-0019](./0019-errors-module-taxonomy-and-test-placement.md) | 异常监控模块 9 类目扩展（category 字段 + httpPlugin + ErrorsService 9 rollup + Web `/errors` 重构）+ 测试文件统一放置规则（`tests/`，`src/**/*.{test,spec}.{ts,tsx}` 判为违规） | 采纳 |
 | [ADR-0020](./0020-menu-delivery-roadmap.md) | 菜单完整化交付路线图（8 个占位页 → live 分 Tier 推进）：Tier 1 api/resources/custom/logs；Tier 2 visits/projects/realtime（依赖 JWT+RBAC 与协议 ADR）；Tier 3 overview 收口 | 采纳 |
 | [ADR-0022](./0022-resource-monitoring-slice.md) | 静态资源监控切片（TM.1.B）：独立 `resourcePlugin`（PerformanceObserver 采全量 RT + 6 类分类）+ `resource_events_raw` + `ResourceMonitorModule` 聚合 + `/monitor/resources` 大盘；与 errorPlugin（DOM error）/ apiPlugin（fetch/XHR）三条链路边界清晰 | 采纳 |
+| [ADR-0023](./0023-custom-and-logs-slice.md) | 自定义上报 + 日志查询切片（TM.1.C）：`customPlugin` 主动业务 API（track/time/log/captureMessage）+ 3 张独立 raw 表 + `CustomModule` / `LogsModule` + `/tracking/custom` 与 `/monitor/logs` 双大盘；与 trackPlugin 被动 DOM 采集在 type 维度完全独立 | 采纳 |
 
 > 当你需要为某条决策补充详细背景或推翻旧决策时，请新增 `0001-xxx.md`（而非修改旧文件），并在此索引更新状态。

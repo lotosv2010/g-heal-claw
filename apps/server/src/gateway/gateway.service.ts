@@ -1,12 +1,18 @@
 import { Injectable, Logger } from "@nestjs/common";
 import type {
   ApiEvent,
+  CustomEvent,
+  CustomLog,
+  CustomMetric,
   ErrorEvent,
   ResourceEvent,
   TrackEvent,
 } from "@g-heal-claw/shared";
 import { ApiMonitorService } from "../api-monitor/api-monitor.service.js";
+import { CustomEventsService } from "../custom/custom-events.service.js";
+import { CustomMetricsService } from "../custom/custom-metrics.service.js";
 import { ErrorsService } from "../errors/errors.service.js";
+import { LogsService } from "../logs/logs.service.js";
 import {
   PerformanceService,
   type PerfOrLongTaskEvent,
@@ -39,6 +45,9 @@ export class GatewayService {
     private readonly apiMonitor: ApiMonitorService,
     private readonly tracking: TrackingService,
     private readonly resourceMonitor: ResourceMonitorService,
+    private readonly customEvents: CustomEventsService,
+    private readonly customMetrics: CustomMetricsService,
+    private readonly logs: LogsService,
     private readonly idempotency: IdempotencyService,
   ) {}
 
@@ -59,6 +68,9 @@ export class GatewayService {
     const apiEvents = first.filter(isApi);
     const trackEvents = first.filter(isTrack);
     const resourceEvents = first.filter(isResource);
+    const customEvents = first.filter(isCustomEvent);
+    const customMetrics = first.filter(isCustomMetric);
+    const customLogs = first.filter(isCustomLog);
 
     const [
       perfPersisted,
@@ -66,6 +78,9 @@ export class GatewayService {
       apiPersisted,
       trackPersisted,
       resourcePersisted,
+      customEventPersisted,
+      customMetricPersisted,
+      customLogPersisted,
     ] = await Promise.all([
       perfEvents.length ? this.performance.saveBatch(perfEvents) : 0,
       errorEvents.length ? this.errors.saveBatch(errorEvents) : 0,
@@ -74,18 +89,26 @@ export class GatewayService {
       resourceEvents.length
         ? this.resourceMonitor.saveBatch(resourceEvents)
         : 0,
+      customEvents.length ? this.customEvents.saveBatch(customEvents) : 0,
+      customMetrics.length ? this.customMetrics.saveBatch(customMetrics) : 0,
+      customLogs.length ? this.logs.saveBatch(customLogs) : 0,
     ]);
     const persisted =
       perfPersisted +
       errorPersisted +
       apiPersisted +
       trackPersisted +
-      resourcePersisted;
+      resourcePersisted +
+      customEventPersisted +
+      customMetricPersisted +
+      customLogPersisted;
 
     this.logger.log(
       `accepted=${total} deduped=${duplicates.length} perf=${perfEvents.length} ` +
         `errors=${errorEvents.length} apis=${apiEvents.length} tracks=${trackEvents.length} ` +
-        `resources=${resourceEvents.length} persisted=${persisted} ` +
+        `resources=${resourceEvents.length} customEvents=${customEvents.length} ` +
+        `customMetrics=${customMetrics.length} customLogs=${customLogs.length} ` +
+        `persisted=${persisted} ` +
         `types=[${payload.events.map((e) => e.type).join(",")}] ` +
         `projectId=${auth?.projectId ?? "-"} publicKey=${auth?.publicKey ?? "-"}`,
     );
@@ -117,4 +140,22 @@ function isResource(
   event: IngestRequest["events"][number],
 ): event is ResourceEvent {
   return event.type === "resource";
+}
+
+function isCustomEvent(
+  event: IngestRequest["events"][number],
+): event is CustomEvent {
+  return event.type === "custom_event";
+}
+
+function isCustomMetric(
+  event: IngestRequest["events"][number],
+): event is CustomMetric {
+  return event.type === "custom_metric";
+}
+
+function isCustomLog(
+  event: IngestRequest["events"][number],
+): event is CustomLog {
+  return event.type === "custom_log";
 }

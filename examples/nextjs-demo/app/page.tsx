@@ -40,6 +40,7 @@ const ACCENT_CLASS: Record<ScenarioGroup["accent"], string> = {
   teal: "hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-950",
   amber: "hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950",
   violet: "hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-950",
+  rose: "hover:border-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950",
 };
 
 function RouteSection({ group }: { readonly group: ScenarioGroup }) {

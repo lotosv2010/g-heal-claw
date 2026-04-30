@@ -497,6 +497,133 @@ export const RESOURCE_DDL: readonly string[] = [
 ];
 
 // ============================================================
+// 事件流切片：custom_events_raw / custom_metrics_raw / custom_logs_raw（ADR-0023 §3）
+// ============================================================
+
+export const CREATE_CUSTOM_EVENTS_RAW = `
+CREATE TABLE IF NOT EXISTS custom_events_raw (
+  id              bigserial PRIMARY KEY,
+  event_id        uuid NOT NULL UNIQUE,
+  project_id      varchar(64) NOT NULL,
+  public_key      varchar(64) NOT NULL,
+  session_id      varchar(64) NOT NULL,
+  ts_ms           bigint NOT NULL,
+  name            varchar(128) NOT NULL,
+  properties      jsonb NOT NULL DEFAULT '{}'::jsonb,
+  page_url        text NOT NULL,
+  page_path       text NOT NULL,
+  ua              text,
+  browser         varchar(64),
+  os              varchar(64),
+  device_type     varchar(16),
+  release         varchar(64),
+  environment     varchar(32),
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+`.trim();
+
+export const CREATE_IDX_CUSTOM_EVENT_PROJECT_TS = `
+CREATE INDEX IF NOT EXISTS idx_custom_event_project_ts
+  ON custom_events_raw (project_id, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_CUSTOM_EVENT_PROJECT_NAME_TS = `
+CREATE INDEX IF NOT EXISTS idx_custom_event_project_name_ts
+  ON custom_events_raw (project_id, name, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_CUSTOM_EVENT_PROJECT_PATH_TS = `
+CREATE INDEX IF NOT EXISTS idx_custom_event_project_path_ts
+  ON custom_events_raw (project_id, page_path, ts_ms DESC);
+`.trim();
+
+export const CREATE_CUSTOM_METRICS_RAW = `
+CREATE TABLE IF NOT EXISTS custom_metrics_raw (
+  id              bigserial PRIMARY KEY,
+  event_id        uuid NOT NULL UNIQUE,
+  project_id      varchar(64) NOT NULL,
+  public_key      varchar(64) NOT NULL,
+  session_id      varchar(64) NOT NULL,
+  ts_ms           bigint NOT NULL,
+  name            varchar(128) NOT NULL,
+  duration_ms     double precision NOT NULL,
+  properties      jsonb,
+  page_url        text NOT NULL,
+  page_path       text NOT NULL,
+  ua              text,
+  browser         varchar(64),
+  os              varchar(64),
+  device_type     varchar(16),
+  release         varchar(64),
+  environment     varchar(32),
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+`.trim();
+
+export const CREATE_IDX_CUSTOM_METRIC_PROJECT_TS = `
+CREATE INDEX IF NOT EXISTS idx_custom_metric_project_ts
+  ON custom_metrics_raw (project_id, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_CUSTOM_METRIC_PROJECT_NAME_TS = `
+CREATE INDEX IF NOT EXISTS idx_custom_metric_project_name_ts
+  ON custom_metrics_raw (project_id, name, ts_ms DESC);
+`.trim();
+
+export const CREATE_CUSTOM_LOGS_RAW = `
+CREATE TABLE IF NOT EXISTS custom_logs_raw (
+  id              bigserial PRIMARY KEY,
+  event_id        uuid NOT NULL UNIQUE,
+  project_id      varchar(64) NOT NULL,
+  public_key      varchar(64) NOT NULL,
+  session_id      varchar(64) NOT NULL,
+  ts_ms           bigint NOT NULL,
+  level           varchar(8) NOT NULL,
+  message         text NOT NULL,
+  message_head    varchar(128) NOT NULL,
+  data            jsonb,
+  page_url        text NOT NULL,
+  page_path       text NOT NULL,
+  ua              text,
+  browser         varchar(64),
+  os              varchar(64),
+  device_type     varchar(16),
+  release         varchar(64),
+  environment     varchar(32),
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+`.trim();
+
+export const CREATE_IDX_CUSTOM_LOG_PROJECT_TS = `
+CREATE INDEX IF NOT EXISTS idx_custom_log_project_ts
+  ON custom_logs_raw (project_id, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_CUSTOM_LOG_PROJECT_LEVEL_TS = `
+CREATE INDEX IF NOT EXISTS idx_custom_log_project_level_ts
+  ON custom_logs_raw (project_id, level, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_CUSTOM_LOG_PROJECT_LEVEL_HEAD_TS = `
+CREATE INDEX IF NOT EXISTS idx_custom_log_project_level_head_ts
+  ON custom_logs_raw (project_id, level, message_head, ts_ms DESC);
+`.trim();
+
+export const CUSTOM_DDL: readonly string[] = [
+  CREATE_CUSTOM_EVENTS_RAW,
+  CREATE_IDX_CUSTOM_EVENT_PROJECT_TS,
+  CREATE_IDX_CUSTOM_EVENT_PROJECT_NAME_TS,
+  CREATE_IDX_CUSTOM_EVENT_PROJECT_PATH_TS,
+  CREATE_CUSTOM_METRICS_RAW,
+  CREATE_IDX_CUSTOM_METRIC_PROJECT_TS,
+  CREATE_IDX_CUSTOM_METRIC_PROJECT_NAME_TS,
+  CREATE_CUSTOM_LOGS_RAW,
+  CREATE_IDX_CUSTOM_LOG_PROJECT_TS,
+  CREATE_IDX_CUSTOM_LOG_PROJECT_LEVEL_TS,
+  CREATE_IDX_CUSTOM_LOG_PROJECT_LEVEL_HEAD_TS,
+];
+
+// ============================================================
 // 事件流：events_raw 分区父表（ADR-0017 §3.8）
 // ============================================================
 // 本期仅建骨架，Gateway 不写入；T1.4.1 完整 Processor 切入后启用。
@@ -646,6 +773,7 @@ export const ALL_DDL: readonly string[] = [
   ...API_DDL,
   ...TRACK_DDL,
   ...RESOURCE_DDL,
+  ...CUSTOM_DDL,
   ...EVENTS_RAW_DDL,
   ...DLQ_DDL,
 ];

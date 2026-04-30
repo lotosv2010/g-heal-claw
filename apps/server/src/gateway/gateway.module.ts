@@ -4,6 +4,8 @@ import { ErrorsModule } from "../errors/errors.module.js";
 import { PerformanceModule } from "../performance/performance.module.js";
 import { TrackingModule } from "../tracking/tracking.module.js";
 import { ResourceMonitorModule } from "../resource-monitor/resource-monitor.module.js";
+import { CustomModule } from "../custom/custom.module.js";
+import { LogsModule } from "../logs/logs.module.js";
 import { DsnAuthGuard } from "./dsn-auth.guard.js";
 import { GatewayController } from "./gateway.controller.js";
 import { GatewayService } from "./gateway.service.js";
@@ -19,6 +21,8 @@ import { RateLimitService } from "./rate-limit.service.js";
     ApiMonitorModule,
     TrackingModule,
     ResourceMonitorModule,
+    CustomModule,
+    LogsModule,
   ],
   controllers: [GatewayController],
   providers: [

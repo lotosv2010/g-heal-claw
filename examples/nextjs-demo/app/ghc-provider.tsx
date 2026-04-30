@@ -3,8 +3,10 @@
 import { useEffect, type ReactNode } from "react";
 import {
   apiPlugin,
+  customPlugin,
   errorPlugin,
   fspPlugin,
+  GHealClaw,
   httpPlugin,
   init,
   longTaskPlugin,
@@ -13,6 +15,19 @@ import {
   speedIndexPlugin,
   trackPlugin,
 } from "@g-heal-claw/sdk";
+
+/**
+ * 注意：下方 useEffect 中会主动把 GHealClaw 挂到 window 上。
+ *
+ * 这**不是** bundler 用户的推荐姿势 —— ESM 用户应直接 `import { trackCustom, time, log, captureException }`，
+ * tree-shake 友好、类型完整、无副作用。
+ *
+ * demo 之所以挂载，仅用于**演示 UMD CDN 用户**的接入路径：
+ *  - `examples/nextjs-demo/app/(demo)/tracking/code/page.tsx` 的"UMD 命名空间"按钮
+ *  - 用户在 CDN `<script src=".../sdk.umd.cjs">` 场景下读 `window.GHealClaw.*`
+ *
+ * 换言之：window.GHealClaw 只是给 demo 模拟 CDN 环境，生产 bundler 项目请走 ESM 具名导入。
+ */
 
 /**
  * 浏览器端 SDK 初始化器
@@ -31,6 +46,7 @@ import {
  * - ApiPlugin：采集 fetch / XHR 全量请求明细（含成功，type='api'），驱动 API 大盘
  * - TrackPlugin：采集 4 类埋点事件（click / submit / expose / code，type='track'），驱动事件分析大盘
  * - ResourcePlugin：采集 PerformanceResourceTiming 全量静态资源样本（type='resource'），驱动静态资源大盘；明确排除 fetch/xhr/beacon
+ * - CustomPlugin：绑定主动业务 API（GHealClaw.track / time / log），驱动埋点分析「自定义上报」与监控「自定义日志」大盘
  */
 export function GhcProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -39,6 +55,13 @@ export function GhcProvider({ children }: { children: ReactNode }) {
       // 未配置 DSN 时静默跳过；SDK 同样会进入 no-op
       console.warn("[ghc-demo] NEXT_PUBLIC_GHC_DSN 未配置，SDK 未初始化");
       return;
+    }
+    // ESM bundler 构建不会自动挂 window.GHealClaw（UMD 才会），
+    // 但 demo 场景（custom/track · tracking/code 的 UMD 命名空间探测按钮）
+    // 依赖 globalThis.GHealClaw 主动调用 track/time/log —— 手动挂载一次，
+    // 保证被动 DOM 事件（trackPlugin）与主动业务埋点（customPlugin）都能演示。
+    if (typeof window !== "undefined") {
+      (window as unknown as { GHealClaw: typeof GHealClaw }).GHealClaw = GHealClaw;
     }
     init(
       {
@@ -70,6 +93,7 @@ export function GhcProvider({ children }: { children: ReactNode }) {
             // demo 降至 500ms 便于本地演示慢资源
             slowThresholdMs: 500,
           }),
+          customPlugin(),
         ],
       },
     );

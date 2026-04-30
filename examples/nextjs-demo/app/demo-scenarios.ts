@@ -15,7 +15,8 @@ export type ScenarioGroupKey =
   | "errors"
   | "api"
   | "resources"
-  | "tracking";
+  | "tracking"
+  | "custom";
 
 export interface ScenarioRoute {
   readonly href: string;
@@ -30,7 +31,7 @@ export interface ScenarioGroup {
   /** 首页区段副文 */
   readonly description: string;
   /** 视觉色（仅用于 demo 首页卡片微弱区分） */
-  readonly accent: "blue" | "indigo" | "teal" | "amber" | "violet";
+  readonly accent: "blue" | "indigo" | "teal" | "amber" | "violet" | "rose";
   readonly routes: readonly ScenarioRoute[];
 }
 
@@ -125,7 +126,31 @@ export const SCENARIO_GROUPS: readonly ScenarioGroup[] = [
       {
         href: "/tracking/code",
         label: "Code 代码埋点",
-        hint: "GHealClaw.track(name, props) 主动上报",
+        hint: "GHealClaw.track(name, props) 主动上报（旧版 trackPlugin）",
+      },
+    ],
+  },
+  {
+    key: "custom",
+    title: "自定义上报",
+    description:
+      "customPlugin 主动 API（track / time / log） · 映射到大盘「埋点分析 → 自定义上报」与「监控 → 自定义日志」",
+    accent: "rose",
+    routes: [
+      {
+        href: "/custom/track",
+        label: "Custom Track（custom_event）",
+        hint: "GHealClaw.track · 业务埋点 p50 大盘",
+      },
+      {
+        href: "/custom/time",
+        label: "Custom Time（custom_metric）",
+        hint: "GHealClaw.time · p50/p75/p95 分位数",
+      },
+      {
+        href: "/custom/log",
+        label: "Custom Log（custom_log）",
+        hint: "GHealClaw.log · info/warn/error 三级别",
       },
     ],
   },

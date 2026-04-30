@@ -17,3 +17,6 @@ export * from "./schema/error-events-raw.js";
 export * from "./schema/api-events-raw.js";
 export * from "./schema/track-events-raw.js";
 export * from "./schema/resource-events-raw.js";
+export * from "./schema/custom-events-raw.js";
+export * from "./schema/custom-metrics-raw.js";
+export * from "./schema/custom-logs-raw.js";

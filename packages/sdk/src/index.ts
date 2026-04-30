@@ -53,6 +53,13 @@ export {
   type TrackPluginOptions,
   type TrackApi,
 } from "./plugins/track.js";
+export {
+  customPlugin,
+  track as trackCustom,
+  time,
+  log,
+  type CustomPluginOptions,
+} from "./plugins/custom.js";
 
 // 便于 UMD 脚本接入：提供一个扁平 namespace 对象
 import { init as _init } from "./init.js";
@@ -75,6 +82,12 @@ import {
   trackPlugin as _trackPlugin,
   track as _track,
 } from "./plugins/track.js";
+import {
+  customPlugin as _customPlugin,
+  track as _trackCustom,
+  time as _time,
+  log as _log,
+} from "./plugins/custom.js";
 import type { Breadcrumb } from "@g-heal-claw/shared";
 import type { GHealClawOptions } from "./options.js";
 
@@ -109,8 +122,24 @@ export const GHealClaw = {
   apiPlugin: _apiPlugin,
   resourcePlugin: _resourcePlugin,
   trackPlugin: _trackPlugin,
+  customPlugin: _customPlugin,
+  /**
+   * 业务埋点（customPlugin · ADR-0023）→ type='custom_event'
+   *
+   * 旧的 trackPlugin.track（type='track', trackType='code'）保留为 `trackDom`，
+   * 供被动 DOM 埋点演示使用。
+   */
   track: (name: string, properties?: Record<string, unknown>) =>
+    _trackCustom(name, properties),
+  trackDom: (name: string, properties?: Record<string, unknown>) =>
     _track(name, properties),
+  time: (
+    name: string,
+    durationMs: number,
+    properties?: Record<string, unknown>,
+  ) => _time(name, durationMs, properties),
+  log: (level: "info" | "warn" | "error", message: string, data?: unknown) =>
+    _log(level, message, data),
 };
 
 export default GHealClaw;

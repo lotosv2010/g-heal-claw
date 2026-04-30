@@ -100,6 +100,8 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `ApiMonitorModule` | API 事件切片存储与聚合（ADR-0020 Tier 1）：`api_events_raw` 幂等落库 + summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `ResourceMonitorModule` | 静态资源事件切片存储与聚合（ADR-0022 TM.1.B）：`resource_events_raw` 幂等落库 + summary / categoryBuckets（6 类固定占位）/ trend / topSlow / topFailingHosts 聚合，供 GatewayService 与 DashboardModule 调用；与 apiPlugin/errorPlugin 的三链路互斥（排除 fetch/xhr/beacon） | 进程内 Service | DB |
 | `TrackingModule` | 埋点事件切片存储与聚合（P0-3）：`track_events_raw` 幂等落库 + summary / typeBuckets / trend / topEvents / topPages 聚合，覆盖 click / expose / submit / code 4 类事件，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
+| `CustomModule` | 自定义上报切片存储与聚合（ADR-0023 TM.1.C）：`custom_events_raw` / `custom_metrics_raw` 双表幂等落库 + CustomEventsService（event summary / top events / trend / top pages）+ CustomMetricsService（metric summary p75/p95 / per-name p50/p75/p95/avg / trend），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
+| `LogsModule` | 分级日志切片存储与聚合（ADR-0023 TM.1.C）：`custom_logs_raw` 幂等落库 + LogsService（summary / 3 级别固定占位 levelBuckets / 三折线 trend / top messages 按 (level, messageHead) 分组），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `OpenApiModule` | 面向外部系统的 API Token 开放接口 | HTTP `/open/v1/*` | DB |
 | `HealModule` | 触发自愈流程，产出/回写 heal_job | HTTP + BullMQ `heal-jobs` | DB → ai-agent |
 | `ProjectModule` | 项目/成员/环境/Release/Key 管理 | 被 Dashboard/Open 调用 | DB |
@@ -137,7 +139,8 @@ apps/server/src/gateway/
 | `events-api` | Gateway | Processor/Api | 🟡 过渡期：Gateway 直调 ApiMonitorService | API 请求事件（ADR-0020） |
 | `events-resource` | Gateway | Processor/Resource | 🟡 过渡期：Gateway 直调 ResourceMonitorService（ADR-0022 TM.1.B），队列保留 | 静态资源事件 |
 | `events-visit` | Gateway | Processor/Visit | ⚪ 规划 | 页面访问 + 会话 |
-| `events-custom` | Gateway | Processor/Custom | ⚪ 规划 | 自定义事件 / 指标 / 日志（`custom_event`、`custom_metric`、`custom_log`） |
+| `events-custom` | Gateway | Processor/Custom | 🟡 过渡期：Gateway 直调 CustomEventsService + CustomMetricsService（ADR-0023 TM.1.C），队列保留 | 自定义事件 + 指标（`custom_event` / `custom_metric`） |
+| `events-log` | Gateway | Processor/Logs | 🟡 过渡期：Gateway 直调 LogsService（ADR-0023 TM.1.C），队列保留 | 分级日志（`custom_log`） |
 | `events-track` | Gateway | Processor/Track | 🟡 过渡期：Gateway 直调 TrackingService（P0-3 切片），队列保留 | 代码/全埋点/曝光（`track` 事件） |
 | `alert-evaluator` | `AlertModule` 定时器 | Alert Evaluator | ⚪ 规划 | 告警规则评估 |
 | `notifications` | Alert/Heal | Notification | ⚪ 规划 | 外部通知 |
@@ -300,13 +303,13 @@ apps/web/app/
 │   │   ├── api/                       # API 监控（summary / trend / topSlow） ✅ ADR-0020 Tier 1
 │   │   ├── visits/                    # 页面访问（PV/UV/会话，规划 Phase 2）
 │   │   ├── resources/                 # 静态资源 ✅ ADR-0022 TM.1.B（resourcePlugin + resource_events_raw + 5 模块聚合）
-│   │   └── logs/                      # 日志查询（规划 Phase 3）
+│   │   └── logs/                      # 自定义日志 ✅ ADR-0023 TM.1.C（customPlugin.log + custom_logs_raw + 三级别聚合）
 │   ├── tracking/
 │   │   ├── events/                    # 事件分析 ✅ P0-3（click / expose / submit / code）
 │   │   ├── exposure/                  # 曝光分析（规划）
 │   │   ├── funnel/                    # 漏斗分析（规划）
 │   │   ├── retention/                 # 留存分析（规划）
-│   │   └── custom/                    # 自定义事件 / 指标 / 日志（规划）
+│   │   └── custom/                    # 自定义上报 ✅ ADR-0023 TM.1.C（customPlugin.track/time + custom_events_raw + custom_metrics_raw + 事件/测速/Top 页面聚合）
 │   ├── settings/
 │   │   ├── projects/                  # 项目管理（规划）
 │   │   ├── members/                   # 成员与权限（规划）
@@ -404,12 +407,15 @@ apps/web/app/
 - `releases` — 发布版本（rel_xxx），(project_id, version) UNIQUE
 - `issues` — 异常聚合（iss_xxx），(project_id, fingerprint) UNIQUE；**本期仅建表不写入**（ADR-0016 分组仍走 `error_events_raw.message_head`，T1.4.2 指纹落地后切换）
 
-**事件流表（6 张，bigserial 或复合主键）**：
+**事件流表（9 张，bigserial 或复合主键）**：
 - `perf_events_raw` — 性能切片（ADR-0013），PerformanceProcessor 直写，支撑性能大盘 p75 / 趋势 / 瀑布
 - `error_events_raw` — 异常切片（ADR-0016 + ADR-0019），ErrorProcessor 直写，支撑 9 类目大盘与 `(sub_type, message_head)` 字面排行
 - `api_events_raw` — API 切片（ADR-0020 Tier 1），ApiMonitorService 幂等落库，支撑 summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合
 - `track_events_raw` — 埋点切片（P0-3），TrackingService 幂等落库，支撑埋点大盘 summary / typeBuckets / trend / topEvents / topPages 聚合，覆盖 click / expose / submit / code 4 类事件
 - `resource_events_raw` — 静态资源切片（ADR-0022 TM.1.B），ResourceMonitorService 幂等落库，支撑资源大盘 summary / categoryBuckets（6 类固定）/ trend / topSlow / topFailingHosts 聚合；仅收 PerformanceResourceTiming 样本，明确排除 fetch/xhr/beacon
+- `custom_events_raw` — 自定义业务埋点切片（ADR-0023 TM.1.C），CustomEventsService 幂等落库，支撑 `/tracking/custom` 大盘事件 Top / 趋势 / Top 页面聚合；customPlugin.track 主动上报
+- `custom_metrics_raw` — 自定义业务测速切片（ADR-0023 TM.1.C），CustomMetricsService 幂等落库，支撑 `/tracking/custom` 大盘 p50/p75/p95 + avg 分位数聚合（`percentile_cont` per-name）；customPlugin.time 主动上报
+- `custom_logs_raw` — 自定义分级日志切片（ADR-0023 TM.1.C），LogsService 幂等落库，支撑 `/monitor/logs` 大盘 info/warn/error 三级别固定占位 + 三折线趋势 + (level, messageHead) Top 消息聚合；customPlugin.log 主动上报
 - `events_raw` — 通用归档父表，`PARTITION BY RANGE (ingested_at)` + 4 张周分区骨架（2026w17 ~ 2026w20）；**定位为 Tier 2 归档层**，当前 Gateway 不写入，待通用 Processor / 长期留存策略启用后再接入
 
 **迁移管理（双路径）**：
