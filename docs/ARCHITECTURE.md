@@ -306,7 +306,7 @@ apps/web/app/
 │   │   └── logs/                      # 自定义日志 ✅ ADR-0023 TM.1.C（customPlugin.log + custom_logs_raw + 三级别聚合）
 │   ├── tracking/
 │   │   ├── events/                    # 事件分析 ✅ P0-3（click / expose / submit / code）
-│   │   ├── exposure/                  # 曝光分析（规划）
+│   │   ├── exposure/                  # 曝光分析 ✅ ADR-0024（track_events_raw[track_type=expose] 聚合：总曝光/去重元素/去重页面/每用户曝光 + 小时趋势 + Top selector/Top page）
 │   │   ├── funnel/                    # 漏斗分析（规划）
 │   │   ├── retention/                 # 留存分析（规划）
 │   │   └── custom/                    # 自定义上报 ✅ ADR-0023 TM.1.C（customPlugin.track/time + custom_events_raw + custom_metrics_raw + 事件/测速/Top 页面聚合）

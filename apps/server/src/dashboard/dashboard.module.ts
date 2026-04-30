@@ -12,6 +12,8 @@ import { DashboardCustomController } from "./custom.controller.js";
 import { DashboardCustomService } from "./custom.service.js";
 import { DashboardErrorsController } from "./errors.controller.js";
 import { DashboardErrorsService } from "./errors.service.js";
+import { DashboardExposureController } from "./exposure.controller.js";
+import { DashboardExposureService } from "./exposure.service.js";
 import { DashboardLogsController } from "./logs.controller.js";
 import { DashboardLogsService } from "./logs.service.js";
 import { DashboardPerformanceController } from "./performance.controller.js";
@@ -41,6 +43,7 @@ import { DashboardTrackingService } from "./tracking.service.js";
     DashboardErrorsController,
     DashboardApiController,
     DashboardTrackingController,
+    DashboardExposureController,
     DashboardResourcesController,
     DashboardCustomController,
     DashboardLogsController,
@@ -50,6 +53,7 @@ import { DashboardTrackingService } from "./tracking.service.js";
     DashboardErrorsService,
     DashboardApiService,
     DashboardTrackingService,
+    DashboardExposureService,
     DashboardResourcesService,
     DashboardCustomService,
     DashboardLogsService,

@@ -255,7 +255,9 @@ init(
    - `/tracking/click`、`/tracking/submit`、`/tracking/expose`、`/tracking/code` 四个专项场景
    - `/tracking/playground` 一页速查
 3. DevTools → Network 观察 `/ingest/v1/events` 载荷中的 `trackType`
-4. 访问 `http://localhost:3000/tracking/events` 查看聚合大盘
+4. 访问 `http://localhost:3000/tracking/events` 查看事件分析聚合大盘
+5. 访问 `http://localhost:3000/tracking/exposure` 查看曝光分析大盘（ADR-0024）——
+   专门切片 `track_type='expose'` 子集，展示 Top 元素 / Top 页面 / 小时趋势
 
 **Best Practice**：
 

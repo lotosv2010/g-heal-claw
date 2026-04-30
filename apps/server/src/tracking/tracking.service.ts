@@ -52,6 +52,24 @@ export interface TopTrackPageRow {
   readonly uniqueUsers: number;
 }
 
+/** 曝光总览（仅 track_type='expose'） */
+export interface ExposureSummaryRow {
+  readonly totalExposures: number;
+  readonly uniqueSelectors: number;
+  readonly uniquePages: number;
+  readonly uniqueUsers: number;
+}
+
+/** 曝光：Top 元素（按 selector / eventName 聚合） */
+export interface TopExposureSelectorRow {
+  readonly selector: string;
+  readonly sampleText: string | null;
+  readonly count: number;
+  readonly uniqueUsers: number;
+  readonly uniquePages: number;
+  readonly sharePercent: number;
+}
+
 /**
  * 埋点事件落库 + 聚合服务（P0-3 §2）
  *
@@ -273,6 +291,180 @@ export class TrackingService {
         COUNT(DISTINCT COALESCE(user_id, session_id))     AS users
       FROM track_events_raw
       WHERE project_id = ${projectId}
+        AND ts_ms >= ${sinceMs}
+        AND ts_ms <  ${untilMs}
+        AND page_path <> ''
+      GROUP BY page_path
+      ORDER BY n DESC
+      LIMIT ${clampedLimit}
+    `);
+    return rows.map((r) => ({
+      pagePath: String(r.page_path),
+      count: Number(r.n),
+      uniqueUsers: Number(r.users),
+    }));
+  }
+
+  /** 曝光窗口总览：总曝光 / 去重元素 / 去重页面 / 去重用户 */
+  public async aggregateExposureSummary(
+    params: TrackWindowParams,
+  ): Promise<ExposureSummaryRow> {
+    const db = this.database.db;
+    if (!db) {
+      return {
+        totalExposures: 0,
+        uniqueSelectors: 0,
+        uniquePages: 0,
+        uniqueUsers: 0,
+      };
+    }
+    const { projectId, sinceMs, untilMs } = params;
+    const rows = await db.execute<{
+      total: string | number;
+      selectors: string | number;
+      pages: string | number;
+      users: string | number;
+    }>(sql`
+      SELECT
+        COUNT(*)                                                AS total,
+        COUNT(DISTINCT COALESCE(target_selector, event_name))   AS selectors,
+        COUNT(DISTINCT page_path)                               AS pages,
+        COUNT(DISTINCT COALESCE(user_id, session_id))           AS users
+      FROM track_events_raw
+      WHERE project_id = ${projectId}
+        AND track_type = 'expose'
+        AND ts_ms >= ${sinceMs}
+        AND ts_ms <  ${untilMs}
+    `);
+    const first = rows[0];
+    if (!first) {
+      return {
+        totalExposures: 0,
+        uniqueSelectors: 0,
+        uniquePages: 0,
+        uniqueUsers: 0,
+      };
+    }
+    return {
+      totalExposures: Number(first.total),
+      uniqueSelectors: Number(first.selectors),
+      uniquePages: Number(first.pages),
+      uniqueUsers: Number(first.users),
+    };
+  }
+
+  /** 曝光按小时：曝光量 + 去重用户（仅 expose） */
+  public async aggregateExposureTrend(
+    params: TrackWindowParams,
+  ): Promise<TrackTrendRow[]> {
+    const db = this.database.db;
+    if (!db) return [];
+    const { projectId, sinceMs, untilMs } = params;
+    const rows = await db.execute<{
+      hour: Date | string;
+      n: string | number;
+      users: string | number;
+    }>(sql`
+      SELECT
+        date_trunc('hour', to_timestamp(ts_ms / 1000.0))     AS hour,
+        COUNT(*)                                              AS n,
+        COUNT(DISTINCT COALESCE(user_id, session_id))         AS users
+      FROM track_events_raw
+      WHERE project_id = ${projectId}
+        AND track_type = 'expose'
+        AND ts_ms >= ${sinceMs}
+        AND ts_ms <  ${untilMs}
+      GROUP BY hour
+      ORDER BY hour ASC
+    `);
+    return rows.map((r) => ({
+      hour:
+        r.hour instanceof Date
+          ? r.hour.toISOString()
+          : new Date(String(r.hour)).toISOString(),
+      count: Number(r.n),
+      uniqueUsers: Number(r.users),
+    }));
+  }
+
+  /** 曝光 Top 元素（按 selector 回落 event_name） */
+  public async aggregateTopExposureSelectors(
+    params: TrackWindowParams,
+    limit: number,
+  ): Promise<TopExposureSelectorRow[]> {
+    const db = this.database.db;
+    if (!db) return [];
+    const { projectId, sinceMs, untilMs } = params;
+    const clampedLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+    const rows = await db.execute<{
+      selector: string;
+      sample_text: string | null;
+      n: string | number;
+      users: string | number;
+      pages: string | number;
+      total: string | number;
+    }>(sql`
+      WITH scoped AS (
+        SELECT
+          COALESCE(target_selector, event_name) AS selector,
+          target_text,
+          user_id,
+          session_id,
+          page_path
+        FROM track_events_raw
+        WHERE project_id = ${projectId}
+          AND track_type = 'expose'
+          AND ts_ms >= ${sinceMs}
+          AND ts_ms <  ${untilMs}
+      )
+      SELECT
+        selector,
+        MAX(target_text)                                  AS sample_text,
+        COUNT(*)                                          AS n,
+        COUNT(DISTINCT COALESCE(user_id, session_id))     AS users,
+        COUNT(DISTINCT page_path)                         AS pages,
+        (SELECT COUNT(*) FROM scoped)                     AS total
+      FROM scoped
+      WHERE selector IS NOT NULL AND selector <> ''
+      GROUP BY selector
+      ORDER BY n DESC
+      LIMIT ${clampedLimit}
+    `);
+    return rows.map((r) => {
+      const count = Number(r.n);
+      const total = Number(r.total);
+      return {
+        selector: String(r.selector),
+        sampleText: r.sample_text ?? null,
+        count,
+        uniqueUsers: Number(r.users),
+        uniquePages: Number(r.pages),
+        sharePercent: total > 0 ? (count / total) * 100 : 0,
+      };
+    });
+  }
+
+  /** 曝光 Top 页面（仅 expose） */
+  public async aggregateTopExposurePages(
+    params: TrackWindowParams,
+    limit: number,
+  ): Promise<TopTrackPageRow[]> {
+    const db = this.database.db;
+    if (!db) return [];
+    const { projectId, sinceMs, untilMs } = params;
+    const clampedLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+    const rows = await db.execute<{
+      page_path: string;
+      n: string | number;
+      users: string | number;
+    }>(sql`
+      SELECT
+        page_path,
+        COUNT(*)                                          AS n,
+        COUNT(DISTINCT COALESCE(user_id, session_id))     AS users
+      FROM track_events_raw
+      WHERE project_id = ${projectId}
+        AND track_type = 'expose'
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
         AND page_path <> ''
