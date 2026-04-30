@@ -11,6 +11,7 @@ import { TrackingModule } from "./modules/tracking/tracking.module.js";
 import { ResourcesModule } from "./modules/resources/resources.module.js";
 import { CustomModule } from "./modules/custom/custom.module.js";
 import { LogsModule } from "./modules/logs/logs.module.js";
+import { VisitsModule } from "./modules/visits/visits.module.js";
 
 @Module({})
 export class AppModule {
@@ -28,6 +29,7 @@ export class AppModule {
         ResourcesModule,
         CustomModule,
         LogsModule,
+        VisitsModule,
         DashboardModule,
       ],
     };

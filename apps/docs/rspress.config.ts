@@ -110,6 +110,7 @@ export default defineConfig({
             { text: "API 监控", link: "/sdk/api" },
             { text: "静态资源监控", link: "/sdk/resources" },
             { text: "埋点上报", link: "/sdk/tracking" },
+            { text: "页面访问", link: "/sdk/page-view" },
             { text: "自定义上报", link: "/sdk/custom" },
             { text: "Sourcemap 上传", link: "/sdk/sourcemap" },
           ],

@@ -624,6 +624,63 @@ export const CUSTOM_DDL: readonly string[] = [
 ];
 
 // ============================================================
+// 事件流切片：page_view_raw（ADR-0020 Tier 2.A）
+// ============================================================
+
+export const CREATE_PAGE_VIEW_RAW = `
+CREATE TABLE IF NOT EXISTS page_view_raw (
+  id              bigserial PRIMARY KEY,
+  event_id        uuid NOT NULL UNIQUE,
+  project_id      varchar(64) NOT NULL,
+  public_key      varchar(64) NOT NULL,
+  session_id      varchar(64) NOT NULL,
+  ts_ms           bigint NOT NULL,
+  url             text NOT NULL,
+  path            text NOT NULL,
+  referrer        text,
+  referrer_host   varchar(128),
+  load_type       varchar(16) NOT NULL,
+  is_spa_nav      boolean NOT NULL DEFAULT false,
+  duration_ms     double precision,
+  ua              text,
+  browser         varchar(64),
+  os              varchar(64),
+  device_type     varchar(16),
+  release         varchar(64),
+  environment     varchar(32),
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+`.trim();
+
+export const CREATE_IDX_PV_PROJECT_TS = `
+CREATE INDEX IF NOT EXISTS idx_pv_project_ts
+  ON page_view_raw (project_id, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_PV_PROJECT_PATH_TS = `
+CREATE INDEX IF NOT EXISTS idx_pv_project_path_ts
+  ON page_view_raw (project_id, path, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_PV_PROJECT_SESSION_TS = `
+CREATE INDEX IF NOT EXISTS idx_pv_project_session_ts
+  ON page_view_raw (project_id, session_id, ts_ms DESC);
+`.trim();
+
+export const CREATE_IDX_PV_PROJECT_LOADTYPE_TS = `
+CREATE INDEX IF NOT EXISTS idx_pv_project_loadtype_ts
+  ON page_view_raw (project_id, load_type, ts_ms DESC);
+`.trim();
+
+export const VISITS_DDL: readonly string[] = [
+  CREATE_PAGE_VIEW_RAW,
+  CREATE_IDX_PV_PROJECT_TS,
+  CREATE_IDX_PV_PROJECT_PATH_TS,
+  CREATE_IDX_PV_PROJECT_SESSION_TS,
+  CREATE_IDX_PV_PROJECT_LOADTYPE_TS,
+];
+
+// ============================================================
 // 事件流：events_raw 分区父表（ADR-0017 §3.8）
 // ============================================================
 // 本期仅建骨架，Gateway 不写入；T1.4.1 完整 Processor 切入后启用。
@@ -774,6 +831,7 @@ export const ALL_DDL: readonly string[] = [
   ...TRACK_DDL,
   ...RESOURCE_DDL,
   ...CUSTOM_DDL,
+  ...VISITS_DDL,
   ...EVENTS_RAW_DDL,
   ...DLQ_DDL,
 ];

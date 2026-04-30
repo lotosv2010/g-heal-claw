@@ -10,6 +10,7 @@ import {
   httpPlugin,
   init,
   longTaskPlugin,
+  pageViewPlugin,
   performancePlugin,
   resourcePlugin,
   speedIndexPlugin,
@@ -94,6 +95,8 @@ export function GhcProvider({ children }: { children: ReactNode }) {
             slowThresholdMs: 500,
           }),
           customPlugin(),
+          // pageViewPlugin：采初次加载 + SPA 路由切换，驱动「页面访问」大盘
+          pageViewPlugin(),
         ],
       },
     );

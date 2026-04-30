@@ -2,6 +2,9 @@
 
 本页定义 `/monitor/visits` 所有卡片、趋势图与分布表的字段。
 
+> **当前实现范围（ADR-0020 Tier 2.A · 2026-04-30）**：PV / UV / SPA 切换占比 / 刷新占比 / 访问趋势 / TopPages / TopReferrers。
+> 下文涉及 `page_duration` / `session` / `geo` / `utm` 的章节属于**推迟项**，后续增量迭代纳入。
+
 ## 事件模型
 
 SDK 在页面首次可见时上报 `page_view`，在页面隐藏（`visibilitychange → hidden` 或 `pagehide`）时上报 `page_duration`，二者共同构成一次访问记录。

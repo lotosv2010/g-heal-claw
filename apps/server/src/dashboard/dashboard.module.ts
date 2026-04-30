@@ -6,6 +6,7 @@ import { LogsModule } from "../modules/logs/logs.module.js";
 import { PerformanceModule } from "../modules/performance/performance.module.js";
 import { ResourcesModule } from "../modules/resources/resources.module.js";
 import { TrackingModule } from "../modules/tracking/tracking.module.js";
+import { VisitsModule } from "../modules/visits/visits.module.js";
 import { DashboardApiController } from "./monitor/api.controller.js";
 import { DashboardApiService } from "./monitor/api.service.js";
 import { DashboardErrorsController } from "./monitor/errors.controller.js";
@@ -16,6 +17,8 @@ import { DashboardPerformanceController } from "./monitor/performance.controller
 import { DashboardPerformanceService } from "./monitor/performance.service.js";
 import { DashboardResourcesController } from "./monitor/resources.controller.js";
 import { DashboardResourcesService } from "./monitor/resources.service.js";
+import { DashboardVisitsController } from "./monitor/visits.controller.js";
+import { DashboardVisitsService } from "./monitor/visits.service.js";
 import { DashboardCustomController } from "./tracking/custom.controller.js";
 import { DashboardCustomService } from "./tracking/custom.service.js";
 import { DashboardExposureController } from "./tracking/exposure.controller.js";
@@ -37,6 +40,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
     ResourcesModule,
     CustomModule,
     LogsModule,
+    VisitsModule,
   ],
   controllers: [
     DashboardPerformanceController,
@@ -47,6 +51,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
     DashboardResourcesController,
     DashboardCustomController,
     DashboardLogsController,
+    DashboardVisitsController,
   ],
   providers: [
     DashboardPerformanceService,
@@ -57,6 +62,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
     DashboardResourcesService,
     DashboardCustomService,
     DashboardLogsService,
+    DashboardVisitsService,
   ],
 })
 export class DashboardModule {}

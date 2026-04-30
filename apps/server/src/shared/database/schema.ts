@@ -20,3 +20,4 @@ export * from "./schema/resource-events-raw.js";
 export * from "./schema/custom-events-raw.js";
 export * from "./schema/custom-metrics-raw.js";
 export * from "./schema/custom-logs-raw.js";
+export * from "./schema/page-view-raw.js";

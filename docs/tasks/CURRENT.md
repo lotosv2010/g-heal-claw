@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-04-30（TM.R apps/server 目录按入口边界重构完成，ADR-0025 全量 4 切片落地；零行为变更，baseline 测试全绿；下阶段进入 Tier 2 或回到 Phase 2 未完成切片）
+> 最后更新: 2026-04-30（TM.2.A Visits 页面访问简化切片完成：SDK pageViewPlugin + page_view_raw + VisitsModule + /dashboard/v1/visits/overview + Web /monitor/visits live 页面 + demo 场景 + 单测 / typecheck 全绿；推迟 GeoIP / page_duration / session 聚合 / UTM；ADR-0020 Tier 2.A 闭环）
 
 ## 状态说明
 
@@ -423,8 +423,15 @@
 
 ### Tier 2｜访问/项目管理/实时通信（~17d，阻塞依赖先行）
 
-- [ ] **TM.2.A** `visits` 页面（PageViewPlugin + IP 地域 + `page_view_raw` + 会话聚合）— 5d
-  - 前置：GeoIP 库选型（MaxMind GeoLite2 许可证 + 运维 `GEOIP_DB_PATH`）
+- [x] **TM.2.A** `visits` 页面（简化切片：PageViewPlugin + `page_view_raw` + PV/UV/SPA占比/刷新占比/TopPages/TopReferrers；GeoIP / page_duration / session 聚合推迟）— ~2.5d（完成 2026-04-30，ADR-0020 Tier 2.A）
+  - [x] **TM.2.A.1** SDK `pageViewPlugin`（硬刷新 + history patch；默认 `autoSpa: true`）— 0.4d（完成 2026-04-30）
+  - [x] **TM.2.A.2** `page_view_raw` drizzle schema + DDL + migration 0008 — 0.3d（完成 2026-04-30）
+  - [x] **TM.2.A.3** `VisitsModule.VisitsService`（saveBatch + aggregateSummary / aggregateTrend / aggregateTopPages / aggregateTopReferrers）— 0.5d（完成 2026-04-30）
+  - [x] **TM.2.A.4** Gateway 分流接入（`isPageView` + `saveBatch` 计数进持久化汇总）— 0.1d（完成 2026-04-30）
+  - [x] **TM.2.A.5** Dashboard `GET /dashboard/v1/visits/overview`（DashboardVisitsController + Service + Zod DTO；summary 环比/trend/topPages/topReferrers）— 0.4d（完成 2026-04-30）
+  - [x] **TM.2.A.6** Web `/monitor/visits` live 页面（SummaryCards + TrendChart + TopPages + TopReferrers + 三态 SourceBadge）— 0.5d（完成 2026-04-30）
+  - [x] **TM.2.A.7** Demo 场景 `/visits/page-view` + SDK/Server 单测 + docs 传导 — 0.3d（完成 2026-04-30）
+  - 推迟：GeoIP 地域分布、page_duration 停留时长、session_raw 会话聚合、UTM 渠道归因（后续单独拆任务）
 - [ ] **TM.2.B** `projects` 应用管理（项目 CRUD + API Token + RBAC）— 7d
   - **前置**：T1.1.7 JWT + RBAC 认证 MVP（4d）必须先行
 - [ ] **TM.2.C** `realtime` 通信监控（WebSocket/SSE 采集）— 5d
@@ -678,10 +685,11 @@
 
 > 每周同步更新本节。
 
-- 已完成：TM.R apps/server 目录按入口边界重构（ADR-0025）全 4 切片 TM.R.1/2/3/4（2026-04-30）
-- 阶段主题：**菜单完整化**（ADR-0020）— Tier 1 已全量交付；TM.R 纯内部重构切片已完成
-- 下一步：进入 Tier 2（visits / projects / realtime）或回到 Phase 2 未完成切片（T1.4.1 Error Processor 接管 + 指纹落地等）
-- 并行候选（不阻塞菜单推进）：T1.4.4 DLQ 告警（已完 90%）；T2.1.8 P0.1 SI 后端核实（~0.3d 小切片）
+- 进行中：（无）
+- 已完成（2026-04-30）：**TM.2.A Visits 页面访问简化切片（ADR-0020 Tier 2.A）** —— SDK `pageViewPlugin`（硬刷新 + history patch，7 case 单测）；`page_view_raw` drizzle schema + DDL + migration 0008；`VisitsModule.VisitsService`（saveBatch + 4 聚合方法）；Gateway 分流；Dashboard `/dashboard/v1/visits/overview`；Web `/monitor/visits` live 页面（SummaryCards + TrendChart + TopPages + TopReferrers + 三态 SourceBadge）；demo 场景 `/visits/page-view`；server 单测 228/228 全绿 + sdk 97/97 全绿 + typecheck 8/8；推迟：GeoIP / page_duration / session_raw / UTM
+- 阶段主题：**Phase 1 收尾**（异步化闭环） + **菜单完整化**（ADR-0020，Tier 1 已全部交付，Tier 2.A 已交付）双线并推
+- 下一步候选：**TM.2.B projects 应用管理**（前置 T1.1.7 RBAC）；或 TM.2.C realtime；或 Phase 1 收尾（T1.4.1 ErrorProcessor BullMQ 接管）；或 T2.1.8 P0.1 SI 后端核实（~0.3d 小切片）
+- 备选（不阻塞）：GeoIP 地域分布 + page_duration + session_raw 作为 TM.2.A 的增量迭代独立拆任务
 - 最近完成（2026-04-29）：**Tier 1.A API 监控菜单 live 化（TM.1.A 全 6 子任务）** —— SDK `apiPlugin`（独立 `__ghcApiPatched` 标记与 `httpPlugin` 并存，共享 `http-capture.ts` 纯函数；12 case 单测）；`api_events_raw` 表 + drizzle 0004 迁移；`ApiMonitorService`（saveBatch + 4 聚合方法，10 case 单测）；`DashboardApiService` + `/dashboard/v1/api/overview`（summary + 5 状态码桶 + 小时趋势 + Top 慢请求 + 环比）；Web `/api` 页面 4 模块组件（summary-cards / status-buckets / trend-chart AntV 三折线 / top-slow-table）；demo `ghc-provider.tsx` 注册 `apiPlugin({ slowThresholdMs: 300 })`；全量 typecheck 7/7 + server 单元 15 files 123 tests + e2e 6 tests 全绿
 - 最近完成（2026-04-29）：**ADR-0020 菜单完整化交付路线图注册** —— `docs/decisions/0020-menu-delivery-roadmap.md` 三 Tier 分层（Tier 1: api/resources/custom/logs ~10d；Tier 2: visits/projects/realtime ~17d；Tier 3: overview 2d）；关键设计决策：`apiPlugin`（type='api' 采集成功请求）与现有 `httpPlugin`（type='error' 异常分流）并存 + raw 表统一设计 + 前端页面模板化复用 `errors` 结构；`docs/decisions/README.md` 索引更新；`docs/tasks/CURRENT.md` 注入 TM.1.A ~ TM.3.A 子任务树
 - 最近完成（2026-04-29）：**T1.3.6 Gateway k6 压测脚本 + T1.4.3 Issue HLL 用户数估算 + 回写 cron** —— `apps/server/bench/ingest.k6.js`（ramping-vus 0→100→0，阈值 p95<200ms / p99<500ms / 成功率>99%）+ README；`IssueUserHllService`（写入路径 PFADD 批内归并）+ `IssueHllBackfillService`（30 分钟窗口 PFCOUNT 回写，只增不减防回退）；server 单元 113/113 + e2e 6/6 + typecheck 7/7 + build 5/5 全绿

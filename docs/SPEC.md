@@ -372,6 +372,7 @@ interface NavigationTiming {
 | 原始事件 | `/api/v1/projects/:id/events?type=...` | GET |
 | **性能大盘（首版）** | **`/dashboard/v1/performance/overview`**（ADR-0015，见 §5.4.0） | GET |
 | **异常大盘（首版）** | **`/dashboard/v1/errors/overview`**（ADR-0016，见 §5.4.0.1） | GET |
+| **访问大盘（首版 · Tier 2.A）** | **`/dashboard/v1/visits/overview`**（ADR-0020 Tier 2.A；响应：summary {pv/uv/spaNavCount/reloadCount/spaNavRatio/reloadRatio/deltaPercent/deltaDirection} + trend[{hour,pv,uv}] + topPages[{path,pv,uv,sharePercent}] + topReferrers[{referrerHost,pv,sharePercent}]） | GET |
 | 性能大盘（长期） | `/api/v1/projects/:id/performance/overview`、`/performance/web-vitals`、`/performance/apdex` | GET |
 | API 分析 | `/api/v1/projects/:id/api/overview`、`/api/slow`、`/api/errors` | GET |
 | 资源分析 | `/api/v1/projects/:id/resources/overview` | GET |

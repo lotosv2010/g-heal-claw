@@ -16,7 +16,8 @@ export type ScenarioGroupKey =
   | "api"
   | "resources"
   | "tracking"
-  | "custom";
+  | "custom"
+  | "visits";
 
 export interface ScenarioRoute {
   readonly href: string;
@@ -127,6 +128,20 @@ export const SCENARIO_GROUPS: readonly ScenarioGroup[] = [
         href: "/tracking/code",
         label: "Code 代码埋点",
         hint: "GHealClaw.track(name, props) 主动上报（旧版 trackPlugin）",
+      },
+    ],
+  },
+  {
+    key: "visits",
+    title: "页面访问",
+    description:
+      "PageView 采集（硬刷新 / SPA 切换 / 后退前进） · 映射到大盘「监控 → 页面访问」",
+    accent: "teal",
+    routes: [
+      {
+        href: "/visits/page-view",
+        label: "PageView 场景",
+        hint: "pushState / reload / popstate 触发 type=page_view 上报",
       },
     ],
   },

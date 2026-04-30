@@ -102,6 +102,7 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `TrackingModule` | 埋点事件切片存储与聚合（P0-3）：`track_events_raw` 幂等落库 + summary / typeBuckets / trend / topEvents / topPages 聚合，覆盖 click / expose / submit / code 4 类事件，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `CustomModule` | 自定义上报切片存储与聚合（ADR-0023 TM.1.C）：`custom_events_raw` / `custom_metrics_raw` 双表幂等落库 + CustomEventsService（event summary / top events / trend / top pages）+ CustomMetricsService（metric summary p75/p95 / per-name p50/p75/p95/avg / trend），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `LogsModule` | 分级日志切片存储与聚合（ADR-0023 TM.1.C）：`custom_logs_raw` 幂等落库 + LogsService（summary / 3 级别固定占位 levelBuckets / 三折线 trend / top messages 按 (level, messageHead) 分组），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
+| `VisitsModule` | 页面访问事件切片存储与聚合（ADR-0020 Tier 2.A）：`page_view_raw` 幂等落库 + summary（PV/UV/SPA 占比/刷新占比）/ trend（按小时 PV·UV）/ topPages / topReferrers 聚合，供 GatewayService 与 DashboardModule 调用；地域 / 停留时长 / 会话聚合 / UTM 推迟 | 进程内 Service | DB |
 | `OpenApiModule` | 面向外部系统的 API Token 开放接口 | HTTP `/open/v1/*` | DB |
 | `HealModule` | 触发自愈流程，产出/回写 heal_job | HTTP + BullMQ `heal-jobs` | DB → ai-agent |
 | `ProjectModule` | 项目/成员/环境/Release/Key 管理 | 被 Dashboard/Open 调用 | DB |
@@ -321,7 +322,7 @@ apps/web/app/
 │   │   ├── errors/                    # 异常分析 ✅ 首版
 │   │   ├── performance/               # 页面性能（Web Vitals / 瀑布图） ✅ 首版
 │   │   ├── api/                       # API 监控（summary / trend / topSlow） ✅ ADR-0020 Tier 1
-│   │   ├── visits/                    # 页面访问（PV/UV/会话，规划 Phase 2）
+│   │   ├── visits/                    # 页面访问 ✅ ADR-0020 Tier 2.A（pageViewPlugin + page_view_raw + summary/trend/topPages/topReferrers）
 │   │   ├── resources/                 # 静态资源 ✅ ADR-0022 TM.1.B（resourcePlugin + resource_events_raw + 5 模块聚合）
 │   │   └── logs/                      # 自定义日志 ✅ ADR-0023 TM.1.C（customPlugin.log + custom_logs_raw + 三级别聚合）
 │   ├── tracking/

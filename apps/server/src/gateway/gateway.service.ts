@@ -5,6 +5,7 @@ import type {
   CustomLog,
   CustomMetric,
   ErrorEvent,
+  PageViewEvent,
   ResourceEvent,
   TrackEvent,
 } from "@g-heal-claw/shared";
@@ -19,6 +20,7 @@ import {
 } from "../modules/performance/performance.service.js";
 import { ResourcesService } from "../modules/resources/resources.service.js";
 import { TrackingService } from "../modules/tracking/tracking.service.js";
+import { VisitsService } from "../modules/visits/visits.service.js";
 import type { GatewayAuthContext } from "./dsn-auth.guard.js";
 import { IdempotencyService } from "./idempotency.service.js";
 import type { IngestRequest } from "./ingest.dto.js";
@@ -48,6 +50,7 @@ export class GatewayService {
     private readonly customEvents: CustomEventsService,
     private readonly customMetrics: CustomMetricsService,
     private readonly logs: LogsService,
+    private readonly visits: VisitsService,
     private readonly idempotency: IdempotencyService,
   ) {}
 
@@ -71,6 +74,7 @@ export class GatewayService {
     const customEvents = first.filter(isCustomEvent);
     const customMetrics = first.filter(isCustomMetric);
     const customLogs = first.filter(isCustomLog);
+    const pageViewEvents = first.filter(isPageView);
 
     const [
       perfPersisted,
@@ -81,6 +85,7 @@ export class GatewayService {
       customEventPersisted,
       customMetricPersisted,
       customLogPersisted,
+      pageViewPersisted,
     ] = await Promise.all([
       perfEvents.length ? this.performance.saveBatch(perfEvents) : 0,
       errorEvents.length ? this.errors.saveBatch(errorEvents) : 0,
@@ -92,6 +97,7 @@ export class GatewayService {
       customEvents.length ? this.customEvents.saveBatch(customEvents) : 0,
       customMetrics.length ? this.customMetrics.saveBatch(customMetrics) : 0,
       customLogs.length ? this.logs.saveBatch(customLogs) : 0,
+      pageViewEvents.length ? this.visits.saveBatch(pageViewEvents) : 0,
     ]);
     const persisted =
       perfPersisted +
@@ -101,13 +107,15 @@ export class GatewayService {
       resourcePersisted +
       customEventPersisted +
       customMetricPersisted +
-      customLogPersisted;
+      customLogPersisted +
+      pageViewPersisted;
 
     this.logger.log(
       `accepted=${total} deduped=${duplicates.length} perf=${perfEvents.length} ` +
         `errors=${errorEvents.length} apis=${apiEvents.length} tracks=${trackEvents.length} ` +
         `resources=${resourceEvents.length} customEvents=${customEvents.length} ` +
         `customMetrics=${customMetrics.length} customLogs=${customLogs.length} ` +
+        `pageViews=${pageViewEvents.length} ` +
         `persisted=${persisted} ` +
         `types=[${payload.events.map((e) => e.type).join(",")}] ` +
         `projectId=${auth?.projectId ?? "-"} publicKey=${auth?.publicKey ?? "-"}`,
@@ -158,4 +166,10 @@ function isCustomLog(
   event: IngestRequest["events"][number],
 ): event is CustomLog {
   return event.type === "custom_log";
+}
+
+function isPageView(
+  event: IngestRequest["events"][number],
+): event is PageViewEvent {
+  return event.type === "page_view";
 }

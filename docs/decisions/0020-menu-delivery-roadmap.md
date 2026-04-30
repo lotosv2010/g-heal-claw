@@ -99,3 +99,13 @@
 - 4 个页面的并行开发易引入重复样板代码；抽 `lib/dashboard-page-template.tsx` 前先落 2 个再抽
 - `custom` 菜单涉及"用户业务定义字段"→ UI 过度扩展会拖累进度；本轮只做 3 列（eventName / sampleCount / lastSeen）
 - `visits` 的 GeoIP 库许可证需确认（MaxMind GeoLite2 免费但需注册）
+
+## 8. 后续（Tier 2.A 实际落地摘要 · 2026-04-30）
+
+为缩短首切片到约 2.5d，**Tier 2.A 仅落地简化版 visits**：
+
+- 落地：SDK `pageViewPlugin`（硬刷新 + history patch）+ `page_view_raw` raw 表 + `VisitsModule`（saveBatch + 4 聚合）+ `/dashboard/v1/visits/overview` + Web `/monitor/visits` live 页面（PV/UV/SPA占比/刷新占比/TopPages/TopReferrers + 三态 SourceBadge）+ demo 场景 `/visits/page-view`
+- 推迟（独立增量切片再评估）：GeoIP 地域分布、`page_duration` 停留时长插件、`session_raw` 会话聚合、UTM 渠道归因
+- Demo 路径：`examples/nextjs-demo/app/(demo)/visits/page-view/page.tsx`（SPA 导航 / reload / popstate 3 按钮）
+- 使用说明：`apps/docs/docs/sdk/page-view.mdx`（SDK 接入）+ `apps/docs/docs/guide/dashboard/visits.mdx`（后台用法）
+- 任务 ID：TM.2.A.1 ~ TM.2.A.7（全部 `[x]`，见 `docs/tasks/CURRENT.md`）

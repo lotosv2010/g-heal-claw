@@ -44,6 +44,10 @@ export {
 } from "./plugins/http.js";
 export { apiPlugin, type ApiPluginOptions } from "./plugins/api.js";
 export {
+  pageViewPlugin,
+  type PageViewPluginOptions,
+} from "./plugins/page-view.js";
+export {
   resourcePlugin,
   type ResourcePluginOptions,
 } from "./plugins/resource.js";
@@ -77,6 +81,7 @@ import { speedIndexPlugin as _speedIndexPlugin } from "./plugins/speed-index.js"
 import { fspPlugin as _fspPlugin } from "./plugins/fsp.js";
 import { httpPlugin as _httpPlugin } from "./plugins/http.js";
 import { apiPlugin as _apiPlugin } from "./plugins/api.js";
+import { pageViewPlugin as _pageViewPlugin } from "./plugins/page-view.js";
 import { resourcePlugin as _resourcePlugin } from "./plugins/resource.js";
 import {
   trackPlugin as _trackPlugin,
@@ -120,6 +125,7 @@ export const GHealClaw = {
   fspPlugin: _fspPlugin,
   httpPlugin: _httpPlugin,
   apiPlugin: _apiPlugin,
+  pageViewPlugin: _pageViewPlugin,
   resourcePlugin: _resourcePlugin,
   trackPlugin: _trackPlugin,
   customPlugin: _customPlugin,
