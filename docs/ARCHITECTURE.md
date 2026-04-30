@@ -97,8 +97,8 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `DashboardModule` | 面向 Web 的只读聚合 API（首版 ADR-0015 性能大盘直查 `perf_events_raw` + p75；首版 ADR-0016/0019 异常大盘直查 `error_events_raw` 按 9 类目 `category` 聚合 + `(sub_type, message_head)` 字面排行；T1.1.7 后并入 JWT + ProjectGuard） | HTTP `/dashboard/v1/*` → Phase 6 迁移至 `/api/v1/*` | DB、PerformanceService、ErrorsService |
 | `ErrorsModule` | 异常事件切片存储与聚合（ADR-0016 + ADR-0019）：`error_events_raw` 幂等落库（新增 Ajax/API code 列）+ 9 类目 `categoryCards` / `stackBuckets` / `ranking` / `dimensions` 聚合方法，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `PerformanceModule` | 性能事件切片存储与聚合（ADR-0013）：`perf_events_raw` 落库 + p75 / 趋势 / 瀑布 / 慢页面 Top N 聚合 | 进程内 Service | DB |
-| `ApiMonitorModule` | API 事件切片存储与聚合（ADR-0020 Tier 1）：`api_events_raw` 幂等落库 + summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
-| `ResourceMonitorModule` | 静态资源事件切片存储与聚合（ADR-0022 TM.1.B）：`resource_events_raw` 幂等落库 + summary / categoryBuckets（6 类固定占位）/ trend / topSlow / topFailingHosts 聚合，供 GatewayService 与 DashboardModule 调用；与 apiPlugin/errorPlugin 的三链路互斥（排除 fetch/xhr/beacon） | 进程内 Service | DB |
+| `ApiModule` | API 事件切片存储与聚合（ADR-0020 Tier 1；ADR-0025 后由 `api-monitor/` 更名为 `modules/api/`）：`api_events_raw` 幂等落库 + summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
+| `ResourcesModule` | 静态资源事件切片存储与聚合（ADR-0022 TM.1.B；ADR-0025 后由 `resource-monitor/` 更名为 `modules/resources/`）：`resource_events_raw` 幂等落库 + summary / categoryBuckets（6 类固定占位）/ trend / topSlow / topFailingHosts 聚合，供 GatewayService 与 DashboardModule 调用；与 apiPlugin/errorPlugin 的三链路互斥（排除 fetch/xhr/beacon） | 进程内 Service | DB |
 | `TrackingModule` | 埋点事件切片存储与聚合（P0-3）：`track_events_raw` 幂等落库 + summary / typeBuckets / trend / topEvents / topPages 聚合，覆盖 click / expose / submit / code 4 类事件，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `CustomModule` | 自定义上报切片存储与聚合（ADR-0023 TM.1.C）：`custom_events_raw` / `custom_metrics_raw` 双表幂等落库 + CustomEventsService（event summary / top events / trend / top pages）+ CustomMetricsService（metric summary p75/p95 / per-name p50/p75/p95/avg / trend），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `LogsModule` | 分级日志切片存储与聚合（ADR-0023 TM.1.C）：`custom_logs_raw` 幂等落库 + LogsService（summary / 3 级别固定占位 levelBuckets / 三折线 trend / top messages 按 (level, messageHead) 分组），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
@@ -110,16 +110,36 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 
 ### 3.2 模块内部结构示例
 
+**入口层 vs 业务域层（ADR-0025）**：
+`apps/server/src/` 按"入口边界"分两层：
+- 入口层（顶层平铺）：`gateway/`（SDK 写链路唯一入口）、`dashboard/`（Web 读链路唯一入口，按 4 组菜单分级）、`health/`、其它入口（`sourcemap/` / `openapi/` / `heal/` 等）。
+- 业务域层（`modules/` 子目录）：`errors/` / `performance/` / `api/` / `resources/` / `tracking/` / `custom/` / `logs/` 等纯领域服务；只通过 DI 被入口层消费，不直接对外暴露 HTTP。
+
 ```
-apps/server/src/gateway/
-├── gateway.module.ts
-├── gateway.controller.ts        # /ingest 端点
-├── gateway.service.ts           # DSN 解析 + 限流 + 入队
-├── dto/
-│   └── ingest-batch.dto.ts      # Zod Schema + z.infer 类型
-└── guards/
-    └── dsn.guard.ts             # DSN publicKey → projectId 解析
+apps/server/src/
+├── gateway/                    # 入口层：SDK 写链路
+│   ├── gateway.module.ts
+│   ├── gateway.controller.ts   # /ingest 端点
+│   ├── gateway.service.ts
+│   ├── dto/ingest-batch.dto.ts
+│   └── guards/dsn.guard.ts
+├── dashboard/                  # 入口层：Web 读链路，按 web (console)/ 4 组菜单分级
+│   ├── dashboard.module.ts
+│   ├── dto/                    # 所有 Overview DTO（Zod Schema）
+│   ├── monitor/                # errors / performance / api / resources / logs .{controller,service}
+│   ├── tracking/               # tracking / exposure / custom .{controller,service}
+│   └── settings/               # Tier 2+ 占位（projects / members / tokens / ...）
+└── modules/                    # 业务域层（进程内 Service，无 HTTP 出口）
+    ├── errors/      errors.service.ts
+    ├── performance/ performance.service.ts
+    ├── api/         api.service.ts
+    ├── resources/   resources.service.ts
+    ├── tracking/    tracking.service.ts
+    ├── custom/      custom-events.service.ts · custom-metrics.service.ts
+    └── logs/        logs.service.ts
 ```
+
+**心智对称**：后端 `dashboard/{monitor,tracking,settings}/` ⟷ 前端 `apps/web/app/(console)/{dashboard,monitor,tracking,settings}/`。
 
 ### 3.3 通信规则
 
@@ -136,8 +156,8 @@ apps/server/src/gateway/
 |---|---|---|---|---|
 | `events-error` | Gateway | Processor/Error | 🟡 过渡期：Gateway 直调 ErrorsService；队列保留 | 异常事件 |
 | `events-performance` | Gateway | Processor/Performance | 🟡 过渡期：Gateway 直调 PerformanceService；队列保留（T2.1.4 切换） | 性能事件（Web Vitals、navigation） |
-| `events-api` | Gateway | Processor/Api | 🟡 过渡期：Gateway 直调 ApiMonitorService | API 请求事件（ADR-0020） |
-| `events-resource` | Gateway | Processor/Resource | 🟡 过渡期：Gateway 直调 ResourceMonitorService（ADR-0022 TM.1.B），队列保留 | 静态资源事件 |
+| `events-api` | Gateway | Processor/Api | 🟡 过渡期：Gateway 直调 ApiService | API 请求事件（ADR-0020） |
+| `events-resource` | Gateway | Processor/Resource | 🟡 过渡期：Gateway 直调 ResourcesService（ADR-0022 TM.1.B），队列保留 | 静态资源事件 |
 | `events-visit` | Gateway | Processor/Visit | ⚪ 规划 | 页面访问 + 会话 |
 | `events-custom` | Gateway | Processor/Custom | 🟡 过渡期：Gateway 直调 CustomEventsService + CustomMetricsService（ADR-0023 TM.1.C），队列保留 | 自定义事件 + 指标（`custom_event` / `custom_metric`） |
 | `events-log` | Gateway | Processor/Logs | 🟡 过渡期：Gateway 直调 LogsService（ADR-0023 TM.1.C），队列保留 | 分级日志（`custom_log`） |
@@ -410,9 +430,9 @@ apps/web/app/
 **事件流表（9 张，bigserial 或复合主键）**：
 - `perf_events_raw` — 性能切片（ADR-0013），PerformanceProcessor 直写，支撑性能大盘 p75 / 趋势 / 瀑布
 - `error_events_raw` — 异常切片（ADR-0016 + ADR-0019），ErrorProcessor 直写，支撑 9 类目大盘与 `(sub_type, message_head)` 字面排行
-- `api_events_raw` — API 切片（ADR-0020 Tier 1），ApiMonitorService 幂等落库，支撑 summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合
+- `api_events_raw` — API 切片（ADR-0020 Tier 1），ApiService 幂等落库，支撑 summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合
 - `track_events_raw` — 埋点切片（P0-3），TrackingService 幂等落库，支撑埋点大盘 summary / typeBuckets / trend / topEvents / topPages 聚合，覆盖 click / expose / submit / code 4 类事件
-- `resource_events_raw` — 静态资源切片（ADR-0022 TM.1.B），ResourceMonitorService 幂等落库，支撑资源大盘 summary / categoryBuckets（6 类固定）/ trend / topSlow / topFailingHosts 聚合；仅收 PerformanceResourceTiming 样本，明确排除 fetch/xhr/beacon
+- `resource_events_raw` — 静态资源切片（ADR-0022 TM.1.B），ResourcesService 幂等落库，支撑资源大盘 summary / categoryBuckets（6 类固定）/ trend / topSlow / topFailingHosts 聚合；仅收 PerformanceResourceTiming 样本，明确排除 fetch/xhr/beacon
 - `custom_events_raw` — 自定义业务埋点切片（ADR-0023 TM.1.C），CustomEventsService 幂等落库，支撑 `/tracking/custom` 大盘事件 Top / 趋势 / Top 页面聚合；customPlugin.track 主动上报
 - `custom_metrics_raw` — 自定义业务测速切片（ADR-0023 TM.1.C），CustomMetricsService 幂等落库，支撑 `/tracking/custom` 大盘 p50/p75/p95 + avg 分位数聚合（`percentile_cont` per-name）；customPlugin.time 主动上报
 - `custom_logs_raw` — 自定义分级日志切片（ADR-0023 TM.1.C），LogsService 幂等落库，支撑 `/monitor/logs` 大盘 info/warn/error 三级别固定占位 + 三折线趋势 + (level, messageHead) Top 消息聚合；customPlugin.log 主动上报

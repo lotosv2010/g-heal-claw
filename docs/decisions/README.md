@@ -60,5 +60,6 @@
 | [ADR-0020](./0020-menu-delivery-roadmap.md) | 菜单完整化交付路线图（8 个占位页 → live 分 Tier 推进）：Tier 1 api/resources/custom/logs；Tier 2 visits/projects/realtime（依赖 JWT+RBAC 与协议 ADR）；Tier 3 overview 收口 | 采纳 |
 | [ADR-0022](./0022-resource-monitoring-slice.md) | 静态资源监控切片（TM.1.B）：独立 `resourcePlugin`（PerformanceObserver 采全量 RT + 6 类分类）+ `resource_events_raw` + `ResourceMonitorModule` 聚合 + `/monitor/resources` 大盘；与 errorPlugin（DOM error）/ apiPlugin（fetch/XHR）三条链路边界清晰 | 采纳 |
 | [ADR-0023](./0023-custom-and-logs-slice.md) | 自定义上报 + 日志查询切片（TM.1.C）：`customPlugin` 主动业务 API（track/time/log/captureMessage）+ 3 张独立 raw 表 + `CustomModule` / `LogsModule` + `/tracking/custom` 与 `/monitor/logs` 双大盘；与 trackPlugin 被动 DOM 采集在 type 维度完全独立 | 采纳 |
+| [ADR-0025](./0025-server-directory-by-entry-boundary.md) | apps/server 按入口边界重构：`gateway/`（SDK 写）保持；`dashboard/` 按 web 4 组菜单分级（monitor/tracking/settings）；业务域模块统一沉到 `modules/`；`api-monitor`→`api`、`resource-monitor`→`resources` 统一命名；零行为变更（路由 / 队列 / 表名 / 契约不变） | 采纳 |
 
 > 当你需要为某条决策补充详细背景或推翻旧决策时，请新增 `0001-xxx.md`（而非修改旧文件），并在此索引更新状态。

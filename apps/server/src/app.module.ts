@@ -5,12 +5,12 @@ import { SharedModule } from "./shared/shared.module.js";
 import { HealthModule } from "./health/health.module.js";
 import { GatewayModule } from "./gateway/gateway.module.js";
 import { DashboardModule } from "./dashboard/dashboard.module.js";
-import { ErrorsModule } from "./errors/errors.module.js";
-import { ApiMonitorModule } from "./api-monitor/api-monitor.module.js";
-import { TrackingModule } from "./tracking/tracking.module.js";
-import { ResourceMonitorModule } from "./resource-monitor/resource-monitor.module.js";
-import { CustomModule } from "./custom/custom.module.js";
-import { LogsModule } from "./logs/logs.module.js";
+import { ErrorsModule } from "./modules/errors/errors.module.js";
+import { ApiModule } from "./modules/api/api.module.js";
+import { TrackingModule } from "./modules/tracking/tracking.module.js";
+import { ResourcesModule } from "./modules/resources/resources.module.js";
+import { CustomModule } from "./modules/custom/custom.module.js";
+import { LogsModule } from "./modules/logs/logs.module.js";
 
 @Module({})
 export class AppModule {
@@ -23,9 +23,9 @@ export class AppModule {
         HealthModule,
         GatewayModule,
         ErrorsModule,
-        ApiMonitorModule,
+        ApiModule,
         TrackingModule,
-        ResourceMonitorModule,
+        ResourcesModule,
         CustomModule,
         LogsModule,
         DashboardModule,

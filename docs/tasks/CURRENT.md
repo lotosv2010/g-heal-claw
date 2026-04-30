@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-04-29（ADR-0020 菜单完整化交付路线图注册；下阶段主题切换为 "菜单完整性"，按 Tier 1/2/3 推进 8 个占位页 → live；T1.3.6 k6 + T1.4.3 HLL 保持）
+> 最后更新: 2026-04-30（TM.R apps/server 目录按入口边界重构完成，ADR-0025 全量 4 切片落地；零行为变更，baseline 测试全绿；下阶段进入 Tier 2 或回到 Phase 2 未完成切片）
 
 ## 状态说明
 
@@ -381,6 +381,46 @@
 
 > **Tier 1 整体验收**：4 张菜单（api / resources / custom / logs）从 Placeholder → live；server 单元覆盖新增聚合全部 pass；`pnpm typecheck` 8/8 + `pnpm build` 全绿；ADR-0020 §2 Tier 1 全部闭环。
 
+### TM.R｜apps/server 目录按入口边界重构（ADR-0025，~1d，零行为变更）
+
+- [x] **TM.R.1** 业务域模块下沉 `modules/` 子目录 — 0.3d（2026-04-30 完成）
+  - 输入：现状 `apps/server/src/{errors,performance,tracking,custom,logs}`（5 个无后缀业务域）
+  - 输出：`apps/server/src/modules/{errors,performance,tracking,custom,logs}`；`apps/server/tests/{...}` 镜像迁移为 `apps/server/tests/modules/{...}`；5 处 `git mv`；`app.module.ts` / `gateway.module.ts` / `dashboard/*.module.ts` 的 import 路径更新
+  - 验收：`pnpm -F @g-heal-claw/server typecheck + build + test` 全绿；e2e 全绿；HTTP 路由字符串零 diff（`grep @Controller` 前后对照）
+  - 依赖：无
+
+- [x] **TM.R.2** `api-monitor` → `modules/api` + `resource-monitor` → `modules/resources` 统一命名 — 0.3d（2026-04-30 完成）
+  - 输入：TM.R.1 完成；`src/api-monitor/*` + `src/resource-monitor/*` + 对应 tests
+  - 输出：
+    - 目录：`modules/api/` + `modules/resources/`（`git mv`）
+    - 文件名：`api-monitor.module.ts` → `api.module.ts`、`api-monitor.service.ts` → `api.service.ts`；`resource-monitor.*` 同理
+    - TS 类名：`ApiMonitorModule/Service` → `ApiModule/ApiService`；`ResourceMonitorModule/Service` → `ResourcesModule/ResourcesService`
+    - import / 注入处全部同步
+  - 验收：typecheck + build + test 全绿；HTTP 路由字符串零 diff；队列名 / DB 表名 / Controller path 字符串完全不变
+  - 依赖：TM.R.1
+
+- [x] **TM.R.3** `dashboard/` 按 web 4 组菜单分级 — 0.3d（2026-04-30 完成）
+  - 输入：TM.R.2 完成；`dashboard/{api,custom,errors,exposure,logs,performance,resources,tracking}.{controller,service}.ts`（16 平铺文件）
+  - 输出：
+    - `dashboard/monitor/` ← `{errors,performance,api,resources,logs}.{controller,service}.ts`（5×2=10 文件）
+    - `dashboard/tracking/` ← `{tracking,exposure,custom}.{controller,service}.ts`（3×2=6 文件）
+    - `dashboard/settings/.gitkeep`（占位，Tier 2+ 落地）
+    - `dashboard/dto/` 保留不动
+    - `dashboard.module.ts` import 路径同步（controllers/providers 列表字符串不变）
+  - 验收：typecheck + build + test + e2e 全绿；`/dashboard/v1/**` 所有路径字符串零 diff；`pnpm test` 所有测试路径同步迁移至 `tests/dashboard/{monitor,tracking}/`
+  - 依赖：TM.R.2
+
+- [x] **TM.R.4** 文档传导 —  0.1d（2026-04-30 完成）
+  - 输入：TM.R.3 完成
+  - 输出：
+    - `docs/ARCHITECTURE.md §3.1` 模块拓扑目录树更新 + 补"入口层 / 业务域层"分层说明
+    - `docs/tasks/CURRENT.md`：TM.R.1~4 标记 `[x]` + 完成日期；更新"当前焦点（Now）"与"最近更新"时间戳
+    - ADR-0025「后续」章节更新（无需 demo/docs 页面联动，因零行为变更）
+  - 验收：`docs/` 内引用 `api-monitor`/`resource-monitor`/`ApiMonitorService`/`ResourceMonitorService` 全部已更新（或明确保留历史记录的语境）
+  - 依赖：TM.R.3
+
+> **TM.R 整体验收**：零行为变更——HTTP 路由清单 / 队列名 / DB 表名 / SDK 契约 / web fetch URL 字符完全不变；`pnpm typecheck 7/7 + build 5/5 + test all green + e2e all green`；`git mv` 历史可溯；实现 ADR-0025 §2 所述前后端目录心智对称。
+
 ### Tier 2｜访问/项目管理/实时通信（~17d，阻塞依赖先行）
 
 - [ ] **TM.2.A** `visits` 页面（PageViewPlugin + IP 地域 + `page_view_raw` + 会话聚合）— 5d
@@ -638,8 +678,8 @@
 
 > 每周同步更新本节。
 
-- 进行中：无（TM.1.C 已全量交付）
-- 阶段主题：**菜单完整化**（ADR-0020）— Tier 1 4 菜单（api / resources / custom / logs）全部 live；Tier 1 整体验收完成
+- 已完成：TM.R apps/server 目录按入口边界重构（ADR-0025）全 4 切片 TM.R.1/2/3/4（2026-04-30）
+- 阶段主题：**菜单完整化**（ADR-0020）— Tier 1 已全量交付；TM.R 纯内部重构切片已完成
 - 下一步：进入 Tier 2（visits / projects / realtime）或回到 Phase 2 未完成切片（T1.4.1 Error Processor 接管 + 指纹落地等）
 - 并行候选（不阻塞菜单推进）：T1.4.4 DLQ 告警（已完 90%）；T2.1.8 P0.1 SI 后端核实（~0.3d 小切片）
 - 最近完成（2026-04-29）：**Tier 1.A API 监控菜单 live 化（TM.1.A 全 6 子任务）** —— SDK `apiPlugin`（独立 `__ghcApiPatched` 标记与 `httpPlugin` 并存，共享 `http-capture.ts` 纯函数；12 case 单测）；`api_events_raw` 表 + drizzle 0004 迁移；`ApiMonitorService`（saveBatch + 4 聚合方法，10 case 单测）；`DashboardApiService` + `/dashboard/v1/api/overview`（summary + 5 状态码桶 + 小时趋势 + Top 慢请求 + 环比）；Web `/api` 页面 4 模块组件（summary-cards / status-buckets / trend-chart AntV 三折线 / top-slow-table）；demo `ghc-provider.tsx` 注册 `apiPlugin({ slowThresholdMs: 300 })`；全量 typecheck 7/7 + server 单元 15 files 123 tests + e2e 6 tests 全绿

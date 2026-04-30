@@ -1,27 +1,27 @@
 import { Module } from "@nestjs/common";
-import { ApiMonitorModule } from "../api-monitor/api-monitor.module.js";
-import { CustomModule } from "../custom/custom.module.js";
-import { ErrorsModule } from "../errors/errors.module.js";
-import { LogsModule } from "../logs/logs.module.js";
-import { PerformanceModule } from "../performance/performance.module.js";
-import { ResourceMonitorModule } from "../resource-monitor/resource-monitor.module.js";
-import { TrackingModule } from "../tracking/tracking.module.js";
-import { DashboardApiController } from "./api.controller.js";
-import { DashboardApiService } from "./api.service.js";
-import { DashboardCustomController } from "./custom.controller.js";
-import { DashboardCustomService } from "./custom.service.js";
-import { DashboardErrorsController } from "./errors.controller.js";
-import { DashboardErrorsService } from "./errors.service.js";
-import { DashboardExposureController } from "./exposure.controller.js";
-import { DashboardExposureService } from "./exposure.service.js";
-import { DashboardLogsController } from "./logs.controller.js";
-import { DashboardLogsService } from "./logs.service.js";
-import { DashboardPerformanceController } from "./performance.controller.js";
-import { DashboardPerformanceService } from "./performance.service.js";
-import { DashboardResourcesController } from "./resources.controller.js";
-import { DashboardResourcesService } from "./resources.service.js";
-import { DashboardTrackingController } from "./tracking.controller.js";
-import { DashboardTrackingService } from "./tracking.service.js";
+import { ApiModule } from "../modules/api/api.module.js";
+import { CustomModule } from "../modules/custom/custom.module.js";
+import { ErrorsModule } from "../modules/errors/errors.module.js";
+import { LogsModule } from "../modules/logs/logs.module.js";
+import { PerformanceModule } from "../modules/performance/performance.module.js";
+import { ResourcesModule } from "../modules/resources/resources.module.js";
+import { TrackingModule } from "../modules/tracking/tracking.module.js";
+import { DashboardApiController } from "./monitor/api.controller.js";
+import { DashboardApiService } from "./monitor/api.service.js";
+import { DashboardErrorsController } from "./monitor/errors.controller.js";
+import { DashboardErrorsService } from "./monitor/errors.service.js";
+import { DashboardLogsController } from "./monitor/logs.controller.js";
+import { DashboardLogsService } from "./monitor/logs.service.js";
+import { DashboardPerformanceController } from "./monitor/performance.controller.js";
+import { DashboardPerformanceService } from "./monitor/performance.service.js";
+import { DashboardResourcesController } from "./monitor/resources.controller.js";
+import { DashboardResourcesService } from "./monitor/resources.service.js";
+import { DashboardCustomController } from "./tracking/custom.controller.js";
+import { DashboardCustomService } from "./tracking/custom.service.js";
+import { DashboardExposureController } from "./tracking/exposure.controller.js";
+import { DashboardExposureService } from "./tracking/exposure.service.js";
+import { DashboardTrackingController } from "./tracking/tracking.controller.js";
+import { DashboardTrackingService } from "./tracking/tracking.service.js";
 
 /**
  * Dashboard 前端数据聚合模块（ADR-0015 + ADR-0016 §3 + ADR-0020 §4.2 + ADR-0022 §4 + P0-3 §2）
@@ -32,9 +32,9 @@ import { DashboardTrackingService } from "./tracking.service.js";
   imports: [
     PerformanceModule,
     ErrorsModule,
-    ApiMonitorModule,
+    ApiModule,
     TrackingModule,
-    ResourceMonitorModule,
+    ResourcesModule,
     CustomModule,
     LogsModule,
   ],

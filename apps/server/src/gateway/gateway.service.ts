@@ -8,17 +8,17 @@ import type {
   ResourceEvent,
   TrackEvent,
 } from "@g-heal-claw/shared";
-import { ApiMonitorService } from "../api-monitor/api-monitor.service.js";
-import { CustomEventsService } from "../custom/custom-events.service.js";
-import { CustomMetricsService } from "../custom/custom-metrics.service.js";
-import { ErrorsService } from "../errors/errors.service.js";
-import { LogsService } from "../logs/logs.service.js";
+import { ApiService } from "../modules/api/api.service.js";
+import { CustomEventsService } from "../modules/custom/custom-events.service.js";
+import { CustomMetricsService } from "../modules/custom/custom-metrics.service.js";
+import { ErrorsService } from "../modules/errors/errors.service.js";
+import { LogsService } from "../modules/logs/logs.service.js";
 import {
   PerformanceService,
   type PerfOrLongTaskEvent,
-} from "../performance/performance.service.js";
-import { ResourceMonitorService } from "../resource-monitor/resource-monitor.service.js";
-import { TrackingService } from "../tracking/tracking.service.js";
+} from "../modules/performance/performance.service.js";
+import { ResourcesService } from "../modules/resources/resources.service.js";
+import { TrackingService } from "../modules/tracking/tracking.service.js";
 import type { GatewayAuthContext } from "./dsn-auth.guard.js";
 import { IdempotencyService } from "./idempotency.service.js";
 import type { IngestRequest } from "./ingest.dto.js";
@@ -42,9 +42,9 @@ export class GatewayService {
   public constructor(
     private readonly performance: PerformanceService,
     private readonly errors: ErrorsService,
-    private readonly apiMonitor: ApiMonitorService,
+    private readonly apiMonitor: ApiService,
     private readonly tracking: TrackingService,
-    private readonly resourceMonitor: ResourceMonitorService,
+    private readonly resourceMonitor: ResourcesService,
     private readonly customEvents: CustomEventsService,
     private readonly customMetrics: CustomMetricsService,
     private readonly logs: LogsService,
