@@ -109,3 +109,13 @@
 - Demo 路径：`examples/nextjs-demo/app/(demo)/visits/page-view/page.tsx`（SPA 导航 / reload / popstate 3 按钮）
 - 使用说明：`apps/docs/docs/sdk/page-view.mdx`（SDK 接入）+ `apps/docs/docs/guide/dashboard/visits.mdx`（后台用法）
 - 任务 ID：TM.2.A.1 ~ TM.2.A.7（全部 `[x]`，见 `docs/tasks/CURRENT.md`）
+
+### 8.1 Tier 2.D `tracking/funnel` 实际落地摘要（ADR-0027 · 2026-04-30）
+
+零 SDK / 零新表 / 零 RBAC 依赖，URL 驱动的无状态切片：
+
+- 落地：`TrackingService.aggregateFunnel`（动态 N 步 CTE，2~8 步 + `stepWindowMs` 约束 + 用户级去重）+ `DashboardFunnelService/Controller`（装配层计算 `conversionFromPrev/conversionFromFirst/overallConversion`，4 位小数）+ Web `/tracking/funnel` live 页面（URL 驱动配置表单 + SummaryCards + FunnelChart + StepsTable + 三态 SourceBadge）+ demo 场景 `/tracking/funnel` 三步按钮
+- 推迟（独立增量切片）：持久化 funnels 表（命名漏斗 / 收藏 / 邮件订阅）、A/B 对比、流失下钻（UA / 地域 / 页面）、多窗口并排对比
+- Demo 路径：`examples/nextjs-demo/app/(demo)/tracking/funnel/page.tsx`（view_home → click_cta → submit_form 3 按钮）
+- 使用说明：`apps/docs/docs/guide/tracking/funnel.md`（URL 参数表 · 字段口径 · 验证链路 · 常见问题）
+- 任务 ID：TM.2.D.1 ~ TM.2.D.5（全部 `[x]`，见 `docs/tasks/CURRENT.md`）

@@ -129,6 +129,11 @@ export const SCENARIO_GROUPS: readonly ScenarioGroup[] = [
         label: "Code 代码埋点",
         hint: "GHealClaw.track(name, props) 主动上报（旧版 trackPlugin）",
       },
+      {
+        href: "/tracking/funnel",
+        label: "转化漏斗触发器",
+        hint: "view_home → click_cta → submit_form，驱动 Web 大盘漏斗",
+      },
     ],
   },
   {

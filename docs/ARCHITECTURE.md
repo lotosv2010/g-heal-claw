@@ -99,7 +99,7 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `PerformanceModule` | 性能事件切片存储与聚合（ADR-0013）：`perf_events_raw` 落库 + p75 / 趋势 / 瀑布 / 慢页面 Top N 聚合 | 进程内 Service | DB |
 | `ApiModule` | API 事件切片存储与聚合（ADR-0020 Tier 1；ADR-0025 后由 `api-monitor/` 更名为 `modules/api/`）：`api_events_raw` 幂等落库 + summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `ResourcesModule` | 静态资源事件切片存储与聚合（ADR-0022 TM.1.B；ADR-0025 后由 `resource-monitor/` 更名为 `modules/resources/`）：`resource_events_raw` 幂等落库 + summary / categoryBuckets（6 类固定占位）/ trend / topSlow / topFailingHosts 聚合，供 GatewayService 与 DashboardModule 调用；与 apiPlugin/errorPlugin 的三链路互斥（排除 fetch/xhr/beacon） | 进程内 Service | DB |
-| `TrackingModule` | 埋点事件切片存储与聚合（P0-3）：`track_events_raw` 幂等落库 + summary / typeBuckets / trend / topEvents / topPages 聚合，覆盖 click / expose / submit / code 4 类事件，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
+| `TrackingModule` | 埋点事件切片存储与聚合（P0-3 + ADR-0024 曝光 + ADR-0027 漏斗）：`track_events_raw` 幂等落库 + summary / typeBuckets / trend / topEvents / topPages / 曝光切片 / **动态 N 步漏斗聚合（aggregateFunnel，2~8 步 CTE 逐步推进 + `stepWindowMs` 约束 + 用户级去重）**，覆盖 click / expose / submit / code 4 类事件，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `CustomModule` | 自定义上报切片存储与聚合（ADR-0023 TM.1.C）：`custom_events_raw` / `custom_metrics_raw` 双表幂等落库 + CustomEventsService（event summary / top events / trend / top pages）+ CustomMetricsService（metric summary p75/p95 / per-name p50/p75/p95/avg / trend），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `LogsModule` | 分级日志切片存储与聚合（ADR-0023 TM.1.C）：`custom_logs_raw` 幂等落库 + LogsService（summary / 3 级别固定占位 levelBuckets / 三折线 trend / top messages 按 (level, messageHead) 分组），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `VisitsModule` | 页面访问事件切片存储与聚合（ADR-0020 Tier 2.A）：`page_view_raw` 幂等落库 + summary（PV/UV/SPA 占比/刷新占比）/ trend（按小时 PV·UV）/ topPages / topReferrers 聚合，供 GatewayService 与 DashboardModule 调用；地域 / 停留时长 / 会话聚合 / UTM 推迟 | 进程内 Service | DB |
@@ -155,7 +155,7 @@ apps/server/src/
 
 | 队列名 | 生产者 | 消费者 | 状态 | 用途 |
 |---|---|---|---|---|
-| `events-error` | Gateway | Processor/Error | 🟡 过渡期：Gateway 直调 ErrorsService；队列保留 | 异常事件 |
+| `events-error` | Gateway | Processor/Error | 🟢 已落地（ADR-0026 / TM.E）：BullMQ 消费 + Sourcemap stub + DLQ 桥接，MODE 开关 `ERROR_PROCESSOR_MODE=queue\|sync\|dual` | 异常事件 |
 | `events-performance` | Gateway | Processor/Performance | 🟡 过渡期：Gateway 直调 PerformanceService；队列保留（T2.1.4 切换） | 性能事件（Web Vitals、navigation） |
 | `events-api` | Gateway | Processor/Api | 🟡 过渡期：Gateway 直调 ApiService | API 请求事件（ADR-0020） |
 | `events-resource` | Gateway | Processor/Resource | 🟡 过渡期：Gateway 直调 ResourcesService（ADR-0022 TM.1.B），队列保留 | 静态资源事件 |
@@ -179,7 +179,7 @@ apps/server/src/
 
 ### 4.1 错误事件 → Issue
 
-#### 4.1.1 当前实现（ADR-0016 切片）
+#### 4.1.1 当前实现（ADR-0026 / TM.E：BullMQ 异步 + Sourcemap stub）
 
 ```
 SDK (errorPlugin, window.error 冒泡/捕获 + unhandledrejection)
@@ -189,31 +189,32 @@ SDK (errorPlugin, window.error 冒泡/捕获 + unhandledrejection)
 
   ──POST /ingest/v1/events──▶ Gateway
       · Zod 校验 · DSN → projectId · 批量幂等（eventId UNIQUE）
-      · 直调 ErrorsService.saveBatch() → error_events_raw（ADR-0016）
-      · 暂不入 BullMQ events-error（过渡设计）
-      · 与 PerformanceService 并列分流，日志 `perf=N errors=M persisted=K`
+      · 按 ERROR_PROCESSOR_MODE 分流：
+        - queue（默认）：Queue('events-error').add() 后立即响应，persisted=0 / enqueued=N
+        - sync         ：回滚路径，Gateway 进程内直调 ErrorsService.saveBatch()
+        - dual         ：双写灰度比对
+      · 响应体 `{ accepted, persisted, duplicates, enqueued }`（enqueued 仅增不改 SDK 契约）
+      · Redis 故障 → 本进程自动降级 sync，并记 WARN 日志
+
+BullMQ events-error ──▶ ErrorProcessor（concurrency=4, attempts=3 指数退避）
+  · SourcemapService.resolveFrames(events) 还原（当前 stub；T1.5.3 实装）
+  · ErrorsService.saveBatch() → error_events_raw UNIQUE · IssuesService.upsertBatch() · HLL pfadd
+  · 失败耗尽 → @OnWorkerEvent('failed') → DeadLetterService(stage=error-raw-insert)
 
 DashboardModule (ADR-0016)
-  └─ GET /dashboard/v1/errors/overview
-      · 并发 5 次查询：summary 当前 / summary 环比 / bySubType / trend / topGroups
-      · 直查 error_events_raw，走 idx_err_project_ts / idx_err_project_sub_ts / idx_err_project_group_ts
-      · 空数据返回 5 枚 subType 占位（count=0, ratio=0）
+  └─ GET /dashboard/v1/errors/overview（链路与实现不变）
 
-Web /errors
-  · SSR force-dynamic + 三态 Badge（live / empty / error）
-  · SubTypeDonut 用纯 CSS conic-gradient（不引图表库）
-  · TrendChart 复用 @ant-design/plots Line（与 /performance 同风格）
+Web /errors（链路与实现不变）
 ```
 
-#### 4.1.2 目标实现（T1.4.1 / T1.4.2 / T1.5 之后）
+#### 4.1.2 目标实现（T1.5.3 Sourcemap 完整还原后）
 
 ```
 SDK ──batch──▶ Gateway ──▶ BullMQ: events-error ──▶ ErrorProcessor
-   · Sourcemap 还原堆栈（SourcemapService）
-   · 计算指纹 sha1(subType + normalizedMessage + topFrame)
-   · UPSERT issues（error_issues）+ INSERT events_raw
+   · Sourcemap 还原堆栈（SourcemapService 真实实现：MinIO + source-map v0.7 + LRU）
+   · 计算指纹 sha1(subType + normalizedMessage + topFrame) —— 已在 ErrorsService 内闭环
+   · UPSERT issues（error_issues）+ INSERT events_raw —— 已在当前实现内闭环
    · 触发 alert-evaluator（实时告警场景）
-   · DashboardModule topGroups 查询源切换至 error_issues（Controller 契约不变）
 ```
 
 ### 4.2 性能事件 → 聚合指标

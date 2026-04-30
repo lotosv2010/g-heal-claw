@@ -271,6 +271,74 @@
 - [x] **T1.4.3** Issue 用户数 HLL 估算 + 分钟级批量回写 — 2d（完成 2026-04-29；`IssueUserHllService` 写入路径 `PFADD` + `IssueHllBackfillService` cron 定时 `PFCOUNT` 回写 `issues.impacted_sessions`；ENV 开关 `ISSUE_HLL_BACKFILL_INTERVAL_MS`（0 禁用）；5+6 单测全绿）
 - [x] **T1.4.4** DLQ 死信队列 + 失败告警 — 1d（完成 2026-04-29；`events_dlq` 表 + `DeadLetterService` + ErrorsService 双路径兜底 + 10 单测全绿）
 
+#### TM.E｜ErrorProcessor BullMQ 接管（ADR-0026，承接 T1.4.1 切片 → §4.1.2 目标形态）
+
+> 背景：T1.4.1 / T1.4.2 已交付切片方案（同步直调 + 指纹聚合），但 `events-error` 队列仍为 🟡 过渡态、无 Sourcemap 服务端还原、`events_raw` 分区 2026-05-18 耗尽。本组任务落地 ADR-0026：Gateway 异步化 + Sourcemap stub（T1.5.3 填实现）+ 分区维护 cron。零 SDK / Web 契约变更。
+
+- [x] **TM.E.1** BullMQ 依赖 + `EventsErrorQueue` 声明 + `ErrorProcessor` 骨架 — 0.6d · 2026-04-30
+  - 输入：`packages/shared/src/queues/names.ts` `QueueName.EventsError` 已定义
+  - 输出：`apps/server/package.json` 新增 `@nestjs/bullmq@^10` + `bullmq@^5`；`gateway/gateway.module.ts` 注册 `BullModule.registerQueue({ name: QueueName.EventsError })`；`modules/errors/error.processor.ts` 新建（`@Processor(QueueName.EventsError)` + `process(job)` 空壳 + Logger）；`errors.module.ts` 导出并注入
+  - 验收：`pnpm -F @g-heal-claw/server typecheck && build` 全绿；启动日志出现 `[ErrorProcessor] listening queue=events-error`；队列向 Redis 连接建立
+  - 依赖：无
+
+- [x] **TM.E.2** Gateway `errors` 分流改为 enqueue + `ERROR_PROCESSOR_MODE` 灰度开关 + `enqueued` 响应字段 — 0.8d · 2026-04-30
+  - 输入：TM.E.1
+  - 输出：
+    - `config/env.ts` / `ServerEnvSchema`（shared）新增 `ERROR_PROCESSOR_MODE: 'sync' | 'queue' | 'dual'`（默认 `queue`）
+    - `gateway/gateway.service.ts`：`errorEvents.length > 0` 时按 mode 分流（queue → `this.errorQueue.add(...)`；sync → 保留 `this.errors.saveBatch`；dual → 两者同时）
+    - `gateway/ingest.dto.ts` / 响应 Schema：追加 `enqueued: number`（accepted / persisted / duplicates 保留）
+    - Redis 不可用 / `Queue.add` reject → 自动降级 sync 路径，WARN 日志
+  - 验收：单测覆盖 3 模式；Swagger `/docs` 响应示例含 `enqueued`；e2e 混合批次（perf + error）两路径正确分流
+  - 依赖：TM.E.1
+
+- [x] **TM.E.3** `SourcemapModule` 骨架 + `SourcemapService.resolveFrames` stub — 0.4d · 2026-04-30
+  - 输入：TM.E.1
+  - 输出：`apps/server/src/modules/sourcemap/sourcemap.module.ts` + `sourcemap.service.ts`（`resolveFrames(event: ErrorEvent): Promise<ErrorEvent>` 直返 event，debug 日志含 `release / frames.length`）；`ErrorsModule` import `SourcemapModule`；Processor 持有 SourcemapService DI
+  - 验收：单测覆盖 stub 幂等返回；`typecheck` / `build` 全绿；SourcemapService 可被未来 T1.5.3 直接替换实现体而不改 Processor
+  - 依赖：TM.E.1
+
+- [x] **TM.E.4** ErrorProcessor 消费循环 + `@OnQueueFailed` 桥接到 DLQ — 0.6d · 2026-04-30
+  - 输入：TM.E.1, TM.E.2, TM.E.3
+  - 输出：
+    - `error.processor.ts` `process(job)`：`{ events: ErrorEvent[] }` → `Promise.all(events.map(ev => sourcemap.resolveFrames(ev)))` → `errors.saveBatch(resolved)` → 返回统计
+    - `@OnQueueFailed`（attempts 耗尽）→ `dlq.enqueueEvents(events, 'error-processor-fail', reason)`
+    - 默认 `attempts: 3, backoff: { type: 'exponential', delay: 2000 }`，`concurrency: 4`，`removeOnComplete: 1000`
+  - 验收：单测 mock Queue + Worker 验证重试与 DLQ 转投；处理耗时日志含 `batch=N duration=Xms` 结构化字段
+  - 依赖：TM.E.1, TM.E.2, TM.E.3
+
+- [x] **TM.E.5** `@nestjs/schedule` + `PartitionMaintenanceService`（预建 N+2 水位）+ `ddl.ts` 扩 5 张分区 — 0.8d · 2026-04-30
+  - 输入：ADR-0017 §3.8 现有 4 张分区
+  - 输出：
+    - `apps/server/package.json` 新增 `@nestjs/schedule@^4`；`app.module.ts` `ScheduleModule.forRoot()`
+    - `apps/server/src/shared/database/partition-maintenance.service.ts`：`@Cron('0 3 * * 1')` 周一 03:00 UTC + `onModuleInit` 立即 tick；扫描 `pg_catalog` 已有 `events_raw_*` 分区；若未来 2 周内任一周缺分区则 `CREATE TABLE IF NOT EXISTS ... PARTITION OF events_raw FOR VALUES FROM ... TO ...`
+    - `ddl.ts` `EVENTS_RAW_DDL` 扩 5 张幂等分区：`2026w21 ~ 2026w25`（2026-05-18 ~ 2026-06-22）
+    - ENV 新增 `PARTITION_MAINTENANCE_CRON`（默认 `0 3 * * 1`，空串禁用）
+  - 验收：test 环境跳过；dev 启动日志 `[PartitionMaintenance] ensured weeks=[w21..w25]`；单测注入假 DB 验证缺分区补建 + 已存在不重建
+  - 依赖：无
+
+- [x] **TM.E.6** 单测 + e2e 补齐 — 0.8d · 2026-04-30
+  - 输入：TM.E.1 ~ TM.E.5
+  - 输出：
+    - `tests/gateway/gateway.service.spec.ts`：扩 `ERROR_PROCESSOR_MODE` 三分支 + `enqueued` 字段断言
+    - `tests/modules/errors/error.processor.spec.ts`：消费成功 / SourcemapService 透传 / 重试耗尽入 DLQ（3 case）
+    - `tests/modules/sourcemap/sourcemap.service.spec.ts`：stub 幂等（1 case）
+    - `tests/shared/database/partition-maintenance.service.spec.ts`：cron 补建 / 已存在跳过 / cron 失败 WARN（3 case）
+    - e2e：`POST /ingest/v1/events`（含 error）→ 返回含 `enqueued > 0`；Worker 处理后 `error_events_raw` 有行
+  - 验收：`pnpm test` 新增 ≥ 8 case 全绿；现有 testbase 全绿
+  - 依赖：TM.E.1 ~ TM.E.5
+
+- [x] **TM.E.7** 文档传导 + demo 注释 + apps/docs 页面 — 0.4d · 2026-04-30
+  - 输入：TM.E.6
+  - 输出：
+    - `docs/ARCHITECTURE.md §3.4`：`events-error` 🟡 → 🟢；`§4.1.2` 由"目标实现"改为"当前实现"并注明 Sourcemap 为 stub
+    - `docs/SPEC.md`：Ingest 响应 Schema 补 `enqueued` 字段
+    - `docs/tasks/CURRENT.md`：TM.E.1~TM.E.7 标记 `[x]` + 日期；"当前焦点"更新
+    - `.env.example`：追加 `ERROR_PROCESSOR_MODE` / `PARTITION_MAINTENANCE_CRON`
+    - `apps/docs/docs/reference/error-processor.mdx`（新建）+ `apps/docs/docs/guide/ops/partition-maintenance.mdx`（新建）+ `_meta.json` 侧边栏同步
+    - `examples/nextjs-demo/app/errors/README.md` 或页面注释追加"现走 BullMQ 异步消费，观察 `[ErrorProcessor]` 日志"
+  - 验收：`docs/decisions/0026-*.md` 「后续」章节引用 demo 与 apps/docs 双向可追溯；`pnpm -F docs build`（若启用）通过
+  - 依赖：TM.E.6
+
 ### M1.5 Sourcemap 服务
 
 - [ ] **T1.5.1** SourcemapModule HTTP（Release 创建 + multipart 上传 + 列表/删除）— 3d
@@ -436,6 +504,32 @@
   - **前置**：T1.1.7 JWT + RBAC 认证 MVP（4d）必须先行
 - [ ] **TM.2.C** `realtime` 通信监控（WebSocket/SSE 采集）— 5d
   - **前置**：新 ADR（例如 ADR-0021）定协议范围 + 采集边界
+- [x] **TM.2.D** `tracking/funnel` 转化漏斗分析（ADR-0027，无状态 URL 驱动 + CTE 逐步推进）— ~1.8d · 2026-04-30
+  - [x] **TM.2.D.1** `TrackingService.aggregateFunnel`（动态 N 步 CTE，2~8 步，`stepWindowMs` 约束，`COALESCE(user_id, session_id)` 去重）+ 单测 — 0.5d · 2026-04-30
+    - 输入：`track_events_raw` 已就绪 + `idx_track_project_name_ts` 索引
+    - 输出：`apps/server/src/modules/tracking/tracking.service.ts` 追加 `aggregateFunnel()` + `FunnelStepRow` 类型；`apps/server/tests/modules/tracking/funnel.spec.ts`（db=null 短路 / 2 步正常 / 8 步上限 / 超过 8 步拒绝 / 空 steps 拒绝 / stepWindowMs 截断）
+    - 验收：`pnpm -F @g-heal-claw/server test` 新增 ≥ 5 case 全绿；SQL 不拼接原始字符串（只拼步骤数，事件名走参数数组）
+    - 依赖：无
+  - [x] **TM.2.D.2** Dashboard `GET /dashboard/v1/tracking/funnel` —— Controller + Service + Zod DTO（steps CSV 解析 + 范围校验）— 0.3d · 2026-04-30
+    - 输入：TM.2.D.1
+    - 输出：`dashboard/tracking/funnel.controller.ts` + `funnel.service.ts` + `dto/tracking-funnel.dto.ts`；`dashboard.module.ts` 注册；装配层计算 `conversionFromPrev` / `conversionFromFirst` / `overallConversion`（保留 4 位小数）
+    - 验收：Zod 拒绝 steps < 2 / > 8 / windowHours 越界 / stepWindowMinutes 越界；装配层单测覆盖 4 case（正常 / 末步 0 / 首步 0 空窗口 / 舍入边界）
+    - 依赖：TM.2.D.1
+  - [x] **TM.2.D.3** Web `/tracking/funnel` live 页面 —— `lib/api/funnel.ts` + Client 配置表单（URL sync）+ Server Component 渲染 FunnelChart + 三态 SourceBadge — 0.5d · 2026-04-30
+    - 输入：TM.2.D.2
+    - 输出：`apps/web/lib/api/funnel.ts`（三态 source）；`app/(console)/tracking/funnel/page.tsx`（Server，读 `searchParams`）+ `funnel-config-form.tsx`（Client，URL replace）+ `funnel-chart.tsx`（横向条形每步递减 + 转化率）
+    - 验收：访问 `/tracking/funnel?steps=a,b,c` 展示三步漏斗；未配置时空白态 + 引导；非法参数 → SourceBadge=error
+    - 依赖：TM.2.D.2
+  - [x] **TM.2.D.4** Demo 场景 `examples/nextjs-demo/app/(demo)/tracking/funnel/`（三步按钮：view_home / click_cta / submit_form） — 0.2d · 2026-04-30
+    - 输入：trackPlugin / customPlugin.track 已可用
+    - 输出：demo 页面 3 按钮依次触发 `GHealClaw.track(name)`；LogPanel 观察上报；demo-scenarios 登记；ghc-provider 无需改动
+    - 验收：`pnpm dev:demo` → 点击三按钮 → Network `type=track` 上报 → `/tracking/funnel?steps=view_home,click_cta,submit_form` 显示 1/1/1 转化
+    - 依赖：TM.2.D.3
+  - [x] **TM.2.D.5** 文档传导：重写 `apps/docs/docs/guide/tracking/funnel.md` + SPEC / ARCHITECTURE / ADR-0020 Tier 2 补漏斗一节 — 0.3d · 2026-04-30
+    - 输入：TM.2.D.1~4
+    - 输出：guide/tracking/funnel.md（配置说明 + 示例链接 + 常见问题 + 推迟项）；SPEC §routing 追加 `/dashboard/v1/tracking/funnel` 行；ARCHITECTURE §3.1 TrackingModule 行追加「漏斗聚合」；ADR-0020 §8 Tier 2 增补 funnel 摘要；ADR-0027 「后续」双向引用 demo 路径 + apps/docs 页面
+    - 验收：`apps/docs/rspress.config.ts` 侧边栏已含 funnel 链接（已在配，仅确认）；双向可追溯
+    - 依赖：TM.2.D.4
 
 ### Tier 3｜总览收口（~2d）
 
@@ -686,9 +780,11 @@
 > 每周同步更新本节。
 
 - 进行中：（无）
+- 已完成（2026-04-30）：**TM.E ErrorProcessor BullMQ 接管（ADR-0026，7 子任务全部 `[x]`）** —— `shared/queue/queue.module.ts` 全局 BullMQ 连接（Redis URL + 默认 removeOnComplete/removeOnFail）；`modules/sourcemap/*` Service stub（本期原样返回，T1.5.3 替换实现体无需改 Processor）；`modules/errors/error.processor.ts` `@Processor(events-error)` + `concurrency=4` + `@OnWorkerEvent('failed')` 终态 → `DeadLetterService.enqueueEvents`；`modules/partitions/*` `@Cron('0 3 * * 1')` + onModuleInit 立即 tick + ISO 周工具（toIsoWeekMonday/addDays/weeklyPartitionName）+ LOOKAHEAD_WEEKS=8；`gateway.service.ts` `ERROR_PROCESSOR_MODE` 灰度（queue/sync/dual）+ Redis 失败降级 sync + 响应新增 `enqueued` 字段；`ddl.ts` 扩 5 张周分区（2026w21~2026w25，覆盖 2026-05-18~2026-06-22）；`shared/env/server.ts` 新增 5 键；server 260 单测 + 6 e2e + typecheck 全绿；ADR-0026 状态提议 → 采纳；SPEC §5.1 响应补 `enqueued`；ARCHITECTURE §3.4 events-error 🟡 → 🟢 + §4.1.1/§4.1.2 当前实现 vs 目标实现拆分；`.env.example` 追加 2 键；`apps/docs/docs/reference/error-processor.mdx` + `apps/docs/docs/guide/ops/partition-maintenance.mdx` 新建；demo `examples/nextjs-demo/app/errors/page.tsx` 注释追加 `[ErrorProcessor]` 日志观察指引
+- 已完成（2026-04-30）：**TM.2.D 转化漏斗切片（ADR-0027）** —— `TrackingService.aggregateFunnel`（动态 N 步 CTE，9 case 单测）+ `DashboardFunnelService/Controller`（4 case 装配层单测 · conversionFromPrev/conversionFromFirst/overallConversion 4 位小数 + 首末步 0 保护）+ Web `/tracking/funnel` live 页（URL 驱动配置表单 + SummaryCards + FunnelChart + StepsTable + 三态 SourceBadge）+ demo `/tracking/funnel` 3 按钮 + `apps/docs/docs/guide/tracking/funnel.md` + SPEC/ARCHITECTURE/ADR-0020 §8.1 同步；server 237+4/241 全绿 + web/demo typecheck 全绿
 - 已完成（2026-04-30）：**TM.2.A Visits 页面访问简化切片（ADR-0020 Tier 2.A）** —— SDK `pageViewPlugin`（硬刷新 + history patch，7 case 单测）；`page_view_raw` drizzle schema + DDL + migration 0008；`VisitsModule.VisitsService`（saveBatch + 4 聚合方法）；Gateway 分流；Dashboard `/dashboard/v1/visits/overview`；Web `/monitor/visits` live 页面（SummaryCards + TrendChart + TopPages + TopReferrers + 三态 SourceBadge）；demo 场景 `/visits/page-view`；server 单测 228/228 全绿 + sdk 97/97 全绿 + typecheck 8/8；推迟：GeoIP / page_duration / session_raw / UTM
-- 阶段主题：**Phase 1 收尾**（异步化闭环） + **菜单完整化**（ADR-0020，Tier 1 已全部交付，Tier 2.A 已交付）双线并推
-- 下一步候选：**TM.2.B projects 应用管理**（前置 T1.1.7 RBAC）；或 TM.2.C realtime；或 Phase 1 收尾（T1.4.1 ErrorProcessor BullMQ 接管）；或 T2.1.8 P0.1 SI 后端核实（~0.3d 小切片）
+- 阶段主题：**Phase 1 收尾完成**（TM.E ErrorProcessor 接管 + 分区维护 cron 落地，`events-error` 由 🟡 → 🟢）+ **菜单完整化**（ADR-0020，Tier 1 + Tier 2.A + Tier 2.D 已交付）
+- 下一步候选：**M1.5 Sourcemap 服务**（T1.5.1 Release/multipart upload → T1.5.2 S3/MinIO 存储 → T1.5.3 source-map v0.7 还原，落地后仅替换 `SourcemapService.resolveFrames` 实现体）；或 **TM.2.B projects 应用管理**（前置 T1.1.7 RBAC）；或 **TM.2.C realtime**
 - 备选（不阻塞）：GeoIP 地域分布 + page_duration + session_raw 作为 TM.2.A 的增量迭代独立拆任务
 - 最近完成（2026-04-29）：**Tier 1.A API 监控菜单 live 化（TM.1.A 全 6 子任务）** —— SDK `apiPlugin`（独立 `__ghcApiPatched` 标记与 `httpPlugin` 并存，共享 `http-capture.ts` 纯函数；12 case 单测）；`api_events_raw` 表 + drizzle 0004 迁移；`ApiMonitorService`（saveBatch + 4 聚合方法，10 case 单测）；`DashboardApiService` + `/dashboard/v1/api/overview`（summary + 5 状态码桶 + 小时趋势 + Top 慢请求 + 环比）；Web `/api` 页面 4 模块组件（summary-cards / status-buckets / trend-chart AntV 三折线 / top-slow-table）；demo `ghc-provider.tsx` 注册 `apiPlugin({ slowThresholdMs: 300 })`；全量 typecheck 7/7 + server 单元 15 files 123 tests + e2e 6 tests 全绿
 - 最近完成（2026-04-29）：**ADR-0020 菜单完整化交付路线图注册** —— `docs/decisions/0020-menu-delivery-roadmap.md` 三 Tier 分层（Tier 1: api/resources/custom/logs ~10d；Tier 2: visits/projects/realtime ~17d；Tier 3: overview 2d）；关键设计决策：`apiPlugin`（type='api' 采集成功请求）与现有 `httpPlugin`（type='error' 异常分流）并存 + raw 表统一设计 + 前端页面模板化复用 `errors` 结构；`docs/decisions/README.md` 索引更新；`docs/tasks/CURRENT.md` 注入 TM.1.A ~ TM.3.A 子任务树

@@ -58,6 +58,12 @@ const fixtureEnv: ServerEnv = {
   SMS_ACCESS_KEY: "",
   SMS_ACCESS_SECRET: "",
   SMS_SIGN_NAME: "",
+  // TM.E / ADR-0026：Error Processor + 分区维护
+  ERROR_PROCESSOR_MODE: "queue",
+  ERROR_PROCESSOR_CONCURRENCY: 4,
+  ERROR_PROCESSOR_ATTEMPTS: 3,
+  ERROR_PROCESSOR_BACKOFF_MS: 2000,
+  PARTITION_MAINTENANCE_CRON: "0 3 * * 1",
 };
 
 describe("Gateway e2e", () => {
@@ -97,7 +103,13 @@ describe("Gateway e2e", () => {
       .expect(200);
     // NODE_ENV=test 下 DatabaseService / RedisService 均不建连接
     // Redis 缺席时幂等放行，persisted 仍为 0（DB 未建连）；duplicates 恒为 0
-    expect(res.body).toEqual({ accepted: 1, persisted: 0, duplicates: 0 });
+    // enqueued 仅在有 error 事件时累计；此处 custom_log → 0
+    expect(res.body).toEqual({
+      accepted: 1,
+      persisted: 0,
+      duplicates: 0,
+      enqueued: 0,
+    });
   });
 
   it("POST /ingest/v1/events — 非法 payload（events 空）返回 400", async () => {

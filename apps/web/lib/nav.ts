@@ -100,7 +100,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         slug: "tracking/funnel",
         label: "转化漏斗",
         icon: Funnel,
-        placeholder: "Phase 6 交付",
+        placeholder: null,
       },
       {
         slug: "tracking/retention",

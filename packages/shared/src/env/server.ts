@@ -53,6 +53,20 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   // -------- IP 地域库 --------
   GEOIP_DB_PATH: z.string().min(1),
 
+  // -------- Error Processor（TM.E / ADR-0026）--------
+  // sync   : Gateway 沿用同步落库（T1.4.1 切片形态，提供 30s 回滚路径）
+  // queue  : Gateway 仅 enqueue events-error，ErrorProcessor 异步消费
+  // dual   : 双写（enqueue + 同步落库），灰度或指纹重算校验时启用
+  ERROR_PROCESSOR_MODE: z.enum(["sync", "queue", "dual"]).default("queue"),
+  // ErrorProcessor 并发度 / 重试次数 / 退避首 delay（bullmq 指数退避基准）
+  ERROR_PROCESSOR_CONCURRENCY: z.coerce.number().int().positive().default(4),
+  ERROR_PROCESSOR_ATTEMPTS: z.coerce.number().int().positive().default(3),
+  ERROR_PROCESSOR_BACKOFF_MS: z.coerce.number().int().positive().default(2000),
+
+  // -------- 分区维护 cron（TM.E.5）--------
+  // 标准 cron 表达式；默认每周一 03:00 预创建未来分区
+  PARTITION_MAINTENANCE_CRON: z.string().min(1).default("0 3 * * 1"),
+
   // -------- 通知渠道默认值（可选）--------
   DINGTALK_DEFAULT_WEBHOOK: z.url().optional().or(z.literal("")),
   WECHAT_WORK_DEFAULT_WEBHOOK: z.url().optional().or(z.literal("")),

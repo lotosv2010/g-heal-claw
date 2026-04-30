@@ -1,4 +1,5 @@
 import { Module, type DynamicModule } from "@nestjs/common";
+import { ScheduleModule } from "@nestjs/schedule";
 import { ConfigModule } from "./config/config.module.js";
 import type { ServerEnv } from "./config/env.js";
 import { SharedModule } from "./shared/shared.module.js";
@@ -12,6 +13,7 @@ import { ResourcesModule } from "./modules/resources/resources.module.js";
 import { CustomModule } from "./modules/custom/custom.module.js";
 import { LogsModule } from "./modules/logs/logs.module.js";
 import { VisitsModule } from "./modules/visits/visits.module.js";
+import { PartitionsModule } from "./modules/partitions/partitions.module.js";
 
 @Module({})
 export class AppModule {
@@ -21,6 +23,8 @@ export class AppModule {
       imports: [
         ConfigModule.forRoot(env),
         SharedModule,
+        // TM.E.5：全局注册 @nestjs/schedule，供 PartitionMaintenance 等模块使用
+        ScheduleModule.forRoot(),
         HealthModule,
         GatewayModule,
         ErrorsModule,
@@ -30,6 +34,7 @@ export class AppModule {
         CustomModule,
         LogsModule,
         VisitsModule,
+        PartitionsModule,
         DashboardModule,
       ],
     };

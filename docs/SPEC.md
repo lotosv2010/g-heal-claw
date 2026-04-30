@@ -342,7 +342,11 @@ interface NavigationTiming {
 ```
 
 **响应**：
-- `202 Accepted` — 已入队。
+- `200 OK` —`{ accepted, persisted, duplicates, enqueued }`：
+  - `accepted` 本次上报事件总数
+  - `persisted` 同步落库数（queue 模式下 error 事件为 0；sync/dual 模式累计所有同步路径）
+  - `duplicates` Redis SETNX 命中的幂等去重数
+  - `enqueued` 异步入队数（TM.E / ADR-0026；当前仅 `error` 事件在 `ERROR_PROCESSOR_MODE ∈ {queue, dual}` 时累计）
 - `429 Too Many Requests` — 超出项目限流，返回 `Retry-After`。
 - `400 Bad Request` — Schema 校验失败。
 - `401 Unauthorized` — DSN 无效或项目已删除。
@@ -373,6 +377,7 @@ interface NavigationTiming {
 | **性能大盘（首版）** | **`/dashboard/v1/performance/overview`**（ADR-0015，见 §5.4.0） | GET |
 | **异常大盘（首版）** | **`/dashboard/v1/errors/overview`**（ADR-0016，见 §5.4.0.1） | GET |
 | **访问大盘（首版 · Tier 2.A）** | **`/dashboard/v1/visits/overview`**（ADR-0020 Tier 2.A；响应：summary {pv/uv/spaNavCount/reloadCount/spaNavRatio/reloadRatio/deltaPercent/deltaDirection} + trend[{hour,pv,uv}] + topPages[{path,pv,uv,sharePercent}] + topReferrers[{referrerHost,pv,sharePercent}]） | GET |
+| **转化漏斗（Tier 2.D）** | **`/dashboard/v1/tracking/funnel`**（ADR-0027；Query：`projectId` 必填 · `steps` CSV 2~8 项 · `windowHours` 默认 24（1~168）· `stepWindowMinutes` 默认 60（1~1440）；响应：`windowHours / stepWindowMinutes / totalEntered / steps[{index,eventName,users,conversionFromPrev,conversionFromFirst}] / overallConversion` · 比例 4 位小数） | GET |
 | 性能大盘（长期） | `/api/v1/projects/:id/performance/overview`、`/performance/web-vitals`、`/performance/apdex` | GET |
 | API 分析 | `/api/v1/projects/:id/api/overview`、`/api/slow`、`/api/errors` | GET |
 | 资源分析 | `/api/v1/projects/:id/resources/overview` | GET |

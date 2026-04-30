@@ -52,6 +52,29 @@ export interface TopTrackPageRow {
   readonly uniqueUsers: number;
 }
 
+/** 漏斗：单步命中去重用户数 */
+export interface FunnelStepRow {
+  readonly index: number;
+  readonly eventName: string;
+  readonly users: number;
+}
+
+/** 漏斗聚合参数（ADR-0027） */
+export interface FunnelParams {
+  readonly projectId: string;
+  readonly sinceMs: number;
+  readonly untilMs: number;
+  /** 2~8 个事件名，严格顺序推进 */
+  readonly steps: readonly string[];
+  /** 步骤间最大间隔（ms）——step i 命中时间必须 ≤ step i-1 命中时间 + stepWindowMs */
+  readonly stepWindowMs: number;
+}
+
+/** 漏斗最大步数（与 DTO 校验对齐） */
+export const FUNNEL_MAX_STEPS = 8;
+/** 漏斗最小步数 */
+export const FUNNEL_MIN_STEPS = 2;
+
 /** 曝光总览（仅 track_type='expose'） */
 export interface ExposureSummaryRow {
   readonly totalExposures: number;
@@ -442,6 +465,106 @@ export class TrackingService {
         sharePercent: total > 0 ? (count / total) * 100 : 0,
       };
     });
+  }
+
+  /**
+   * 漏斗聚合（ADR-0027 / TM.2.D.1）
+   *
+   * 动态 N 步 CTE 逐步推进：
+   *  - step 1：窗口内命中首事件的去重用户 t1 = MIN(ts_ms)
+   *  - step i (i≥2)：在 t_{i-1} ≤ ts ≤ t_{i-1} + stepWindowMs 范围内命中
+   *    事件名 = steps[i]，取最早时间作为 t_i
+   *
+   * 用户级去重：COALESCE(user_id, session_id) 与 tracking/visits 既有口径一致。
+   *
+   * 校验：步数 ∈ [FUNNEL_MIN_STEPS, FUNNEL_MAX_STEPS]；事件名走参数数组防注入。
+   * 空 steps / 越界步数：抛 Error（上层 DTO 先拦截，服务层再防御）。
+   *
+   * 返回：每步命中用户数；未命中步骤 users=0（不短路，保持长度）。
+   */
+  public async aggregateFunnel(
+    params: FunnelParams,
+  ): Promise<FunnelStepRow[]> {
+    const { projectId, sinceMs, untilMs, steps, stepWindowMs } = params;
+    const n = steps.length;
+    if (n < FUNNEL_MIN_STEPS || n > FUNNEL_MAX_STEPS) {
+      throw new Error(
+        `漏斗步数必须在 ${FUNNEL_MIN_STEPS} ~ ${FUNNEL_MAX_STEPS} 之间，实际 ${n}`,
+      );
+    }
+    if (stepWindowMs <= 0) {
+      throw new Error(`stepWindowMs 必须 > 0，实际 ${stepWindowMs}`);
+    }
+    const db = this.database.db;
+    if (!db) {
+      return steps.map((eventName, i) => ({
+        index: i + 1,
+        eventName,
+        users: 0,
+      }));
+    }
+
+    // 动态构造 CTE：s1 ... sn，最终 SELECT 各 CTE COUNT
+    // 事件名全部走占位参数，SQL 结构只按步数拼接不含用户输入
+    const scoped = sql`
+      scoped AS (
+        SELECT COALESCE(user_id, session_id) AS uid,
+               event_name, ts_ms
+        FROM track_events_raw
+        WHERE project_id = ${projectId}
+          AND ts_ms >= ${sinceMs}
+          AND ts_ms <  ${untilMs}
+      )
+    `;
+
+    const stepCtes = steps.map((eventName, i) => {
+      if (i === 0) {
+        return sql`
+          s1 AS (
+            SELECT uid, MIN(ts_ms) AS t
+            FROM scoped
+            WHERE event_name = ${eventName}
+            GROUP BY uid
+          )
+        `;
+      }
+      const prevAlias = sql.raw(`s${i}`);
+      const currAlias = sql.raw(`s${i + 1}`);
+      return sql`
+        ${currAlias} AS (
+          SELECT ${prevAlias}.uid, MIN(scoped.ts_ms) AS t
+          FROM ${prevAlias}
+          JOIN scoped ON scoped.uid = ${prevAlias}.uid
+          WHERE scoped.event_name = ${eventName}
+            AND scoped.ts_ms >= ${prevAlias}.t
+            AND scoped.ts_ms <= ${prevAlias}.t + ${stepWindowMs}
+          GROUP BY ${prevAlias}.uid
+        )
+      `;
+    });
+
+    const selects = steps.map((_ev, i) => {
+      const alias = sql.raw(`s${i + 1}`);
+      const col = sql.raw(`u${i + 1}`);
+      return sql`(SELECT COUNT(*)::bigint FROM ${alias}) AS ${col}`;
+    });
+
+    const queryParts = sql.join(
+      [scoped, ...stepCtes],
+      sql`,`,
+    );
+
+    const rows = await db.execute<Record<string, string | number>>(sql`
+      WITH ${queryParts}
+      SELECT ${sql.join(selects, sql`, `)}
+    `);
+
+    const first = rows[0] ?? {};
+    return steps.map((eventName, i) => ({
+      index: i + 1,
+      eventName,
+      users: Number(first[`u${i + 1}`] ?? 0),
+    }));
   }
 
   /** 曝光 Top 页面（仅 expose） */

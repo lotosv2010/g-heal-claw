@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { BullModule } from "@nestjs/bullmq";
+import { QueueName } from "@g-heal-claw/shared";
 import { ApiModule } from "../modules/api/api.module.js";
 import { ErrorsModule } from "../modules/errors/errors.module.js";
 import { PerformanceModule } from "../modules/performance/performance.module.js";
@@ -25,6 +27,8 @@ import { RateLimitService } from "./rate-limit.service.js";
     CustomModule,
     LogsModule,
     VisitsModule,
+    // TM.E.1：Gateway 作为 events-error 队列 Producer
+    BullModule.registerQueue({ name: QueueName.EventsError }),
   ],
   controllers: [GatewayController],
   providers: [

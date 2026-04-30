@@ -86,6 +86,12 @@ export default defineConfig({
             { text: "API Keys", link: "/guide/settings/tokens" },
           ],
         },
+        {
+          text: "运维",
+          items: [
+            { text: "分区维护", link: "/guide/ops/partition-maintenance" },
+          ],
+        },
       ],
       "/reference/": [
         {
@@ -97,6 +103,12 @@ export default defineConfig({
             { text: "异常分析指标", link: "/reference/error-metrics" },
             { text: "API 监控指标", link: "/reference/api-metrics" },
             { text: "访问分析指标", link: "/reference/visits-metrics" },
+          ],
+        },
+        {
+          text: "后端实现",
+          items: [
+            { text: "ErrorProcessor（异常异步消费）", link: "/reference/error-processor" },
           ],
         },
       ],
