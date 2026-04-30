@@ -63,5 +63,6 @@
 | [ADR-0025](./0025-server-directory-by-entry-boundary.md) | apps/server 按入口边界重构：`gateway/`（SDK 写）保持；`dashboard/` 按 web 4 组菜单分级（monitor/tracking/settings）；业务域模块统一沉到 `modules/`；`api-monitor`→`api`、`resource-monitor`→`resources` 统一命名；零行为变更（路由 / 队列 / 表名 / 契约不变） | 采纳 |
 | [ADR-0026](./0026-error-processor-bullmq-takeover.md) | ErrorProcessor BullMQ 接管：Gateway 同步直调 → `events-error` 异步消费 + `SourcemapService` 骨架（resolveFrames stub，待 T1.5.3 实现）+ `events_raw` 分区维护 cron；`ERROR_PROCESSOR_MODE=sync\|queue\|dual` 灰度开关；零 SDK/Web 契约变更 | 采纳 |
 | [ADR-0027](./0027-tracking-funnel-slice.md) | 转化漏斗分析切片（TM.2.D）：无状态 URL 驱动（`steps=A,B,C` query）+ 单 SQL CTE 逐步推进 + `TrackingService.aggregateFunnel` + `/dashboard/v1/tracking/funnel` + `/tracking/funnel` live 页；复用 `track_events_raw`，零 SDK / 零新表；持久化漏斗 + A/B 对比 + 流失下钻推迟 | 采纳 |
+| [ADR-0028](./0028-tracking-retention-slice.md) | 用户留存分析切片（TM.2.E）：无状态 URL 驱动（`cohortDays=7&returnDays=7&identity=session` query）+ 单 CTE 两步计算（first_seen + day_offset）+ `TrackingService.aggregateRetention` + `/dashboard/v1/tracking/retention` + `/tracking/retention` live 页；复用 `page_view_raw`，零 SDK / 零新表；持久化 Cohort + 周月粒度 + 渠道下钻推迟 | 提议 |
 
 > 当你需要为某条决策补充详细背景或推翻旧决策时，请新增 `0001-xxx.md`（而非修改旧文件），并在此索引更新状态。

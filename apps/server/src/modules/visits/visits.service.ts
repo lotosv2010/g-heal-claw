@@ -44,6 +44,31 @@ export interface TopReferrerRow {
   readonly sharePercent: number;
 }
 
+/** 留存矩阵 cohort 粒度（ADR-0028 / TM.2.E.1） */
+export type RetentionIdentity = "session" | "user";
+
+/** 留存参数 */
+export interface RetentionParams {
+  readonly projectId: string;
+  readonly sinceMs: number;
+  readonly untilMs: number;
+  readonly cohortDays: number;
+  readonly returnDays: number;
+  readonly identity: RetentionIdentity;
+}
+
+/** 留存矩阵行（单 cohort_day + day_offset 交叉） */
+export interface RetentionMatrixRow {
+  readonly cohortDay: string; // ISO date "2026-04-23"
+  readonly cohortSize: number; // 该 cohort 首日新用户数
+  readonly dayOffset: number; // 0..returnDays
+  readonly retained: number; // 当天仍访问的 uid 数（day 0 = cohortSize）
+}
+
+export const RETENTION_MIN_DAYS = 1;
+export const RETENTION_MAX_DAYS = 30;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 /**
  * 页面访问事件落库 + 聚合服务（ADR-0020 Tier 2.A）
  *
@@ -243,6 +268,133 @@ export class VisitsService {
       };
     });
   }
+
+  /**
+   * 留存矩阵聚合（ADR-0028 / TM.2.E.1）
+   *
+   * 单次往返 + CTE 两步计算：
+   *  - scoped：按 identity 收敛 uid + 日粒度化（UTC）
+   *  - first_seen：每个 uid 的首访日 = cohort_day
+   *  - visits：cohort 窗口内新用户 × returnDays+1 观察天交叉
+   *
+   * 窗口语义（Mixpanel 风格）：
+   *  - scan window = `[sinceMs, untilMs)`，全量扫描；
+   *  - cohort window = **scan 窗口的后 cohortDays 天** `[untilMs - cohortDays*1d, untilMs)`，
+   *    新用户必须在此区间首次出现才计入 cohort；
+   *  - look-back = scan 窗口剩余 `returnDays` 天 `[sinceMs, untilMs - cohortDays*1d)`，
+   *    仅用于识别"已知老用户"（他们的 first_seen 落在 look-back，HAVING 过滤）；
+   *  - 如此今日刚访问的用户（first_seen=今天）可立刻出现在最新 cohort 的 day 0。
+   *
+   * 身份粒度：
+   *  - identity='session'：uid = session_id（默认；与 /monitor/visits UV 口径一致）
+   *  - identity='user'：uid = COALESCE(user_id, session_id)（对齐 funnel）
+   *
+   * 防御：
+   *  - cohortDays / returnDays ∈ [1, 30]
+   *  - 时间窗口 ≥ (cohortDays + returnDays) 天（否则尾 cohort 无足够观察期）
+   *  - db=null 短路返回空数组，上层装配层生成 source=empty
+   */
+  public async aggregateRetention(
+    params: RetentionParams,
+  ): Promise<RetentionMatrixRow[]> {
+    const {
+      projectId,
+      sinceMs,
+      untilMs,
+      cohortDays,
+      returnDays,
+      identity,
+    } = params;
+    if (
+      !Number.isInteger(cohortDays) ||
+      cohortDays < RETENTION_MIN_DAYS ||
+      cohortDays > RETENTION_MAX_DAYS
+    ) {
+      throw new Error(
+        `cohortDays 必须是 ${RETENTION_MIN_DAYS}~${RETENTION_MAX_DAYS} 的整数，实际 ${cohortDays}`,
+      );
+    }
+    if (
+      !Number.isInteger(returnDays) ||
+      returnDays < RETENTION_MIN_DAYS ||
+      returnDays > RETENTION_MAX_DAYS
+    ) {
+      throw new Error(
+        `returnDays 必须是 ${RETENTION_MIN_DAYS}~${RETENTION_MAX_DAYS} 的整数，实际 ${returnDays}`,
+      );
+    }
+    const requiredMs = (cohortDays + returnDays) * ONE_DAY_MS;
+    if (untilMs - sinceMs < requiredMs) {
+      throw new Error(
+        `时间窗口 ${untilMs - sinceMs}ms 不足，至少需要 (cohortDays + returnDays) * 1d = ${requiredMs}ms`,
+      );
+    }
+
+    const db = this.database.db;
+    if (!db) return [];
+
+    // cohort 窗口：sinceMs 起 cohortDays 天内命中的用户算新用户
+    const cohortUntilMs = sinceMs + cohortDays * ONE_DAY_MS;
+    // identity 不接受用户输入（DTO 已校验为枚举），此处仍走 sql.raw 与其他常量拼接分离
+    const uidExpr =
+      identity === "user"
+        ? sql.raw("COALESCE(user_id, session_id)")
+        : sql.raw("session_id");
+
+    const rows = await db.execute<{
+      cohort_day: Date | string;
+      cohort_size: string | number;
+      day_offset: string | number;
+      retained: string | number;
+    }>(sql`
+      WITH scoped AS (
+        SELECT
+          ${uidExpr} AS uid,
+          ts_ms,
+          DATE_TRUNC('day', TO_TIMESTAMP(ts_ms / 1000.0) AT TIME ZONE 'UTC') AS day_utc
+        FROM page_view_raw
+        WHERE project_id = ${projectId}
+          AND ts_ms >= ${sinceMs}
+          AND ts_ms <  ${untilMs}
+      ),
+      first_seen AS (
+        SELECT uid, MIN(day_utc) AS cohort_day
+        FROM scoped
+        GROUP BY uid
+        HAVING MIN(ts_ms) >= ${sinceMs}
+           AND MIN(ts_ms) <  ${cohortUntilMs}
+      ),
+      visits AS (
+        SELECT DISTINCT s.uid, f.cohort_day, s.day_utc
+        FROM scoped s
+        JOIN first_seen f USING (uid)
+        WHERE s.day_utc <= f.cohort_day + make_interval(days => ${returnDays})
+      )
+      SELECT
+        f.cohort_day                                              AS cohort_day,
+        (SELECT COUNT(*) FROM first_seen fs
+           WHERE fs.cohort_day = f.cohort_day)                    AS cohort_size,
+        EXTRACT(DAY FROM (v.day_utc - f.cohort_day))::int          AS day_offset,
+        COUNT(DISTINCT v.uid)                                      AS retained
+      FROM visits v
+      JOIN first_seen f USING (uid)
+      GROUP BY f.cohort_day, day_offset
+      ORDER BY f.cohort_day ASC, day_offset ASC
+    `);
+
+    return rows.map((r) => ({
+      cohortDay: toIsoDate(r.cohort_day),
+      cohortSize: Number(r.cohort_size),
+      dayOffset: Number(r.day_offset),
+      retained: Number(r.retained),
+    }));
+  }
+}
+
+/** cohort_day 字段归一：PG Date | ISO 字符串 → "YYYY-MM-DD" */
+function toIsoDate(v: Date | string): string {
+  const d = v instanceof Date ? v : new Date(String(v));
+  return d.toISOString().slice(0, 10);
 }
 
 /** PageViewEvent → page_view_raw 行映射 */

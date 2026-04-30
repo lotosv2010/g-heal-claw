@@ -134,6 +134,11 @@ export const SCENARIO_GROUPS: readonly ScenarioGroup[] = [
         label: "转化漏斗触发器",
         hint: "view_home → click_cta → submit_form，驱动 Web 大盘漏斗",
       },
+      {
+        href: "/tracking/retention",
+        label: "用户留存触发器",
+        hint: "硬刷新 / SPA 导航 / 重置 session，驱动留存矩阵 day 0",
+      },
     ],
   },
   {

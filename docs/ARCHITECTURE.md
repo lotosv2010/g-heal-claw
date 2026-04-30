@@ -102,7 +102,7 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `TrackingModule` | 埋点事件切片存储与聚合（P0-3 + ADR-0024 曝光 + ADR-0027 漏斗）：`track_events_raw` 幂等落库 + summary / typeBuckets / trend / topEvents / topPages / 曝光切片 / **动态 N 步漏斗聚合（aggregateFunnel，2~8 步 CTE 逐步推进 + `stepWindowMs` 约束 + 用户级去重）**，覆盖 click / expose / submit / code 4 类事件，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `CustomModule` | 自定义上报切片存储与聚合（ADR-0023 TM.1.C）：`custom_events_raw` / `custom_metrics_raw` 双表幂等落库 + CustomEventsService（event summary / top events / trend / top pages）+ CustomMetricsService（metric summary p75/p95 / per-name p50/p75/p95/avg / trend），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `LogsModule` | 分级日志切片存储与聚合（ADR-0023 TM.1.C）：`custom_logs_raw` 幂等落库 + LogsService（summary / 3 级别固定占位 levelBuckets / 三折线 trend / top messages 按 (level, messageHead) 分组），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
-| `VisitsModule` | 页面访问事件切片存储与聚合（ADR-0020 Tier 2.A）：`page_view_raw` 幂等落库 + summary（PV/UV/SPA 占比/刷新占比）/ trend（按小时 PV·UV）/ topPages / topReferrers 聚合，供 GatewayService 与 DashboardModule 调用；地域 / 停留时长 / 会话聚合 / UTM 推迟 | 进程内 Service | DB |
+| `VisitsModule` | 页面访问事件切片存储与聚合（ADR-0020 Tier 2.A + ADR-0028 TM.2.E）：`page_view_raw` 幂等落库 + summary（PV/UV/SPA 占比/刷新占比）/ trend（按小时 PV·UV）/ topPages / topReferrers + **aggregateRetention**（cohort × day_offset 单次 CTE；identity=session\|user；默认 7d cohort × 7d 观察期；供 DashboardRetentionService 装配层消费）；地域 / 停留时长 / 会话聚合 / UTM 推迟 | 进程内 Service | DB |
 | `OpenApiModule` | 面向外部系统的 API Token 开放接口 | HTTP `/open/v1/*` | DB |
 | `HealModule` | 触发自愈流程，产出/回写 heal_job | HTTP + BullMQ `heal-jobs` | DB → ai-agent |
 | `ProjectModule` | 项目/成员/环境/Release/Key 管理 | 被 Dashboard/Open 调用 | DB |
@@ -329,8 +329,8 @@ apps/web/app/
 │   ├── tracking/
 │   │   ├── events/                    # 事件分析 ✅ P0-3（click / expose / submit / code）
 │   │   ├── exposure/                  # 曝光分析 ✅ ADR-0024（track_events_raw[track_type=expose] 聚合：总曝光/去重元素/去重页面/每用户曝光 + 小时趋势 + Top selector/Top page）
-│   │   ├── funnel/                    # 漏斗分析（规划）
-│   │   ├── retention/                 # 留存分析（规划）
+│   │   ├── funnel/                    # 漏斗分析 ✅ ADR-0027（track_events_raw 动态 N 步 CTE · 用户级去重 · stepWindowMs）
+│   │   ├── retention/                 # 留存分析 ✅ ADR-0028（page_view_raw 单次 CTE · cohort × day_offset · identity session/user · 三态 source）
 │   │   └── custom/                    # 自定义上报 ✅ ADR-0023 TM.1.C（customPlugin.track/time + custom_events_raw + custom_metrics_raw + 事件/测速/Top 页面聚合）
 │   ├── settings/
 │   │   ├── projects/                  # 项目管理（规划）

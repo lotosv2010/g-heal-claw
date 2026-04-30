@@ -119,3 +119,12 @@
 - Demo 路径：`examples/nextjs-demo/app/(demo)/tracking/funnel/page.tsx`（view_home → click_cta → submit_form 3 按钮）
 - 使用说明：`apps/docs/docs/guide/tracking/funnel.md`（URL 参数表 · 字段口径 · 验证链路 · 常见问题）
 - 任务 ID：TM.2.D.1 ~ TM.2.D.5（全部 `[x]`，见 `docs/tasks/CURRENT.md`）
+
+### 8.2 Tier 2.E `tracking/retention` 实际落地摘要（ADR-0028 · 2026-04-30）
+
+- 数据源：`page_view_raw`（与 `/monitor/visits` 同源，复用 `(project_id, session_id, ts_ms)` 索引）；零新表 / 零 SDK / 零 Schema 改动
+- 落地：`VisitsService.aggregateRetention`（单次 CTE：scoped → first_seen → visits；HAVING 约束首访落在 cohort 窗口；identity=session\|user）+ `DashboardRetentionService/Controller`（装配层计算 `retentionByDay` / 加权 `averageByDay` · 4 位小数 · 三态 source live/empty/error 兜底）+ Web `/tracking/retention` live 页面（URL 驱动配置表单 + SummaryCards + RetentionHeatmap CSS Grid 热力图 + RetentionChart AntV Line + 三态 SourceBadge）+ demo 场景 `/tracking/retention`（刷新 / SPA 导航 / 重置 session 三触发器 + README psql 造数脚本）
+- 推迟（独立增量切片）：命名 cohort 持久化 / 邮件订阅 · 周 / 月粒度 · 分渠道 / 分 UA 下钻 · 预测性 LTV · `page_view_raw.user_id` 列迁移（现 identity=user 将触发 source=error 兜底）
+- Demo 路径：`examples/nextjs-demo/app/(demo)/tracking/retention/page.tsx`（3 触发按钮 + `README.md #留存造数` psql 3cohort×3session 脚本）
+- 使用说明：`apps/docs/docs/guide/tracking/retention.md`（URL 参数表 · 字段口径 · psql 造数链路 · 常见问题）
+- 任务 ID：TM.2.E.1 ~ TM.2.E.5（全部 `[x]`，见 `docs/tasks/CURRENT.md`）

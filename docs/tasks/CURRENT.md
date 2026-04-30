@@ -531,6 +531,33 @@
     - 验收：`apps/docs/rspress.config.ts` 侧边栏已含 funnel 链接（已在配，仅确认）；双向可追溯
     - 依赖：TM.2.D.4
 
+- [x] **TM.2.E** `tracking/retention` 用户留存分析（ADR-0028，无状态 URL 驱动 + 单 CTE 两步计算）— ~2.7d · 2026-04-30
+  - [x] **TM.2.E.1** `VisitsService.aggregateRetention`（单 CTE：scoped → first_seen → day_offset 交叉，`identity=session|user` 切换，`cohortDays` / `returnDays` 1~30 边界）+ 单测 — 0.8d · 2026-04-30
+    - 输入：`page_view_raw` 既有 schema + `idx_pv_project_session_ts` 索引（ADR-0025 模块边界：page_view_raw 归 VisitsService）
+    - 输出：`apps/server/src/modules/visits/visits.service.ts` 追加 `aggregateRetention()` + `RetentionMatrixRow` 类型；`apps/server/tests/modules/visits/retention.spec.ts`（db=null 短路 / 正常日 cohort / identity=user 切换 / cohortDays 越界拒绝 / returnDays 越界拒绝 / 时间窗不足拒绝，6 case）
+    - 验收：`pnpm -F @g-heal-claw/server test` 新增 6 case 全绿；SQL 单次往返
+    - 依赖：无
+  - [x] **TM.2.E.2** Dashboard `GET /dashboard/v1/tracking/retention` —— Controller + Service + Zod DTO（window + cohortDays + returnDays + identity）— 0.6d · 2026-04-30
+    - 输入：TM.2.E.1
+    - 输出：`dashboard/tracking/retention.controller.ts` + `retention.service.ts` + `dto/tracking-retention.dto.ts`；`dashboard.module.ts` 注册；装配层计算 `retentionByDay` / `averageByDay` / `totalNewUsers`（4 位小数 + 跨 cohort 加权平均）
+    - 验收：4 case 装配层单测（空 rows → source=empty / 正常矩阵 / averageByDay 加权正确 / error 兜底）
+    - 依赖：TM.2.E.1
+  - [x] **TM.2.E.3** Web `/tracking/retention` live 页面 —— `lib/api/retention.ts` + Client 配置表单（URL sync）+ Server Component 渲染 Heatmap + Chart + 三态 SourceBadge — 0.8d · 2026-04-30
+    - 输入：TM.2.E.2
+    - 输出：`apps/web/lib/api/retention.ts`；`app/(console)/tracking/retention/page.tsx`（Server，读 `searchParams`）+ `retention-config-form.tsx`（Client，URL replace）+ `summary-cards.tsx`（totalNewUsers / avg day1 / avg day7）+ `retention-heatmap.tsx`（行 cohort × 列 offset，色阶 0~100%）+ `retention-chart.tsx`（AntV Line，averageByDay 曲线）
+    - 验收：访问 `/tracking/retention?cohortDays=7&returnDays=7` 展示矩阵；参数非法 → SourceBadge=error；空数据 → SourceBadge=empty + 引导文案
+    - 依赖：TM.2.E.2
+  - [x] **TM.2.E.4** Demo 场景 `examples/nextjs-demo/app/(demo)/tracking/retention/` + psql 造数 SQL — 0.2d · 2026-04-30
+    - 输入：TM.2.E.3
+    - 输出：`page.tsx`（引导性访问按钮 + 文案说明"留存需跨日数据，推荐造数验证"）；页面同目录 `README.md` 附 psql 3 日造数 SQL 模板
+    - 验收：`pnpm dev:demo` → 点击访问 → Network `type=page_view` 上报；执行 SQL 造数后 `/tracking/retention` 呈现可视矩阵
+    - 依赖：TM.2.E.3
+  - [x] **TM.2.E.5** 文档传导：`apps/docs/docs/guide/tracking/retention.md` + SPEC §5 + ARCHITECTURE §3.1 + ADR-0020 §8.2 增补 + CURRENT.md + rspress 侧边栏 — 0.3d · 2026-04-30
+    - 输入：TM.2.E.1~4
+    - 输出：guide/tracking/retention.md（URL 参数表 · 字段口径 · 身份粒度说明 · 验证链路 · 常见问题）；SPEC §routing 追加 `/dashboard/v1/tracking/retention` 行；ARCHITECTURE §3.1 TrackingModule 行追加「留存聚合」；ADR-0020 §8 追加 8.2 Tier 2.E 落地摘要；ADR-0028 状态 提议 → 采纳 + 「后续」引用 demo 路径 + apps/docs 页面；`rspress.config.ts` 留存菜单链接已在配
+    - 验收：双向可追溯；`pnpm -F @g-heal-claw/docs build` 全绿
+    - 依赖：TM.2.E.4
+
 ### Tier 3｜总览收口（~2d）
 
 - [ ] **TM.3.A** `overview` 数据总览：拼接前 9 个模块的汇总卡片 + 全站健康度 — 2d
@@ -780,6 +807,7 @@
 > 每周同步更新本节。
 
 - 进行中：（无）
+- 已完成（2026-04-30）：**TM.2.E 用户留存切片（ADR-0028，5 子任务全部 `[x]`）** —— `VisitsService.aggregateRetention`（单次 CTE：scoped → first_seen（HAVING 约束首访在 cohort 窗口）→ visits；identity=session\|user 切换；7 case 单测）+ `DashboardRetentionService/Controller`（装配层 4 case 单测：空 rows/正常矩阵/加权平均/error 兜底 · `retentionByDay` day 0 恒为 1 + 缺失 offset 补 0 · `averageByDay` 按 cohortSize 加权而非简单平均 · 三态 source live/empty/error 不 5xx）+ Web `/tracking/retention` live 页（`lib/api/retention.ts` URL 解析夹紧 + Server Component + `retention-config-form.tsx` URL replace + `summary-cards.tsx` + `retention-heatmap.tsx` CSS Grid 绿色色阶热力图 + `retention-chart.tsx` AntV Line + 三态 SourceBadge）+ demo `/tracking/retention`（刷新 / SPA 导航 / 重置 session 3 触发器 + `README.md #留存造数` psql 3cohort×3session 脚本）+ `apps/docs/docs/guide/tracking/retention.md` 全量重写（URL 参数表 + 字段口径 + psql 验证链路 + FAQ）+ SPEC §5.3 新增 `/dashboard/v1/tracking/retention` 行 + ARCHITECTURE §3.1 VisitsModule 追加 aggregateRetention + §3.2 tracking/retention 从"规划"改为"✅ ADR-0028" + ADR-0020 §8.2 Tier 2.E 落地摘要 + ADR-0028 状态提议 → 采纳；server 7+4 新增单测全绿 + web typecheck & build 全绿
 - 已完成（2026-04-30）：**TM.E ErrorProcessor BullMQ 接管（ADR-0026，7 子任务全部 `[x]`）** —— `shared/queue/queue.module.ts` 全局 BullMQ 连接（Redis URL + 默认 removeOnComplete/removeOnFail）；`modules/sourcemap/*` Service stub（本期原样返回，T1.5.3 替换实现体无需改 Processor）；`modules/errors/error.processor.ts` `@Processor(events-error)` + `concurrency=4` + `@OnWorkerEvent('failed')` 终态 → `DeadLetterService.enqueueEvents`；`modules/partitions/*` `@Cron('0 3 * * 1')` + onModuleInit 立即 tick + ISO 周工具（toIsoWeekMonday/addDays/weeklyPartitionName）+ LOOKAHEAD_WEEKS=8；`gateway.service.ts` `ERROR_PROCESSOR_MODE` 灰度（queue/sync/dual）+ Redis 失败降级 sync + 响应新增 `enqueued` 字段；`ddl.ts` 扩 5 张周分区（2026w21~2026w25，覆盖 2026-05-18~2026-06-22）；`shared/env/server.ts` 新增 5 键；server 260 单测 + 6 e2e + typecheck 全绿；ADR-0026 状态提议 → 采纳；SPEC §5.1 响应补 `enqueued`；ARCHITECTURE §3.4 events-error 🟡 → 🟢 + §4.1.1/§4.1.2 当前实现 vs 目标实现拆分；`.env.example` 追加 2 键；`apps/docs/docs/reference/error-processor.mdx` + `apps/docs/docs/guide/ops/partition-maintenance.mdx` 新建；demo `examples/nextjs-demo/app/errors/page.tsx` 注释追加 `[ErrorProcessor]` 日志观察指引
 - 已完成（2026-04-30）：**TM.2.D 转化漏斗切片（ADR-0027）** —— `TrackingService.aggregateFunnel`（动态 N 步 CTE，9 case 单测）+ `DashboardFunnelService/Controller`（4 case 装配层单测 · conversionFromPrev/conversionFromFirst/overallConversion 4 位小数 + 首末步 0 保护）+ Web `/tracking/funnel` live 页（URL 驱动配置表单 + SummaryCards + FunnelChart + StepsTable + 三态 SourceBadge）+ demo `/tracking/funnel` 3 按钮 + `apps/docs/docs/guide/tracking/funnel.md` + SPEC/ARCHITECTURE/ADR-0020 §8.1 同步；server 237+4/241 全绿 + web/demo typecheck 全绿
 - 已完成（2026-04-30）：**TM.2.A Visits 页面访问简化切片（ADR-0020 Tier 2.A）** —— SDK `pageViewPlugin`（硬刷新 + history patch，7 case 单测）；`page_view_raw` drizzle schema + DDL + migration 0008；`VisitsModule.VisitsService`（saveBatch + 4 聚合方法）；Gateway 分流；Dashboard `/dashboard/v1/visits/overview`；Web `/monitor/visits` live 页面（SummaryCards + TrendChart + TopPages + TopReferrers + 三态 SourceBadge）；demo 场景 `/visits/page-view`；server 单测 228/228 全绿 + sdk 97/97 全绿 + typecheck 8/8；推迟：GeoIP / page_duration / session_raw / UTM

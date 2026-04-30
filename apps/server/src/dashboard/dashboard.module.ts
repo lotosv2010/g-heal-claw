@@ -25,6 +25,8 @@ import { DashboardExposureController } from "./tracking/exposure.controller.js";
 import { DashboardExposureService } from "./tracking/exposure.service.js";
 import { DashboardFunnelController } from "./tracking/funnel.controller.js";
 import { DashboardFunnelService } from "./tracking/funnel.service.js";
+import { DashboardRetentionController } from "./tracking/retention.controller.js";
+import { DashboardRetentionService } from "./tracking/retention.service.js";
 import { DashboardTrackingController } from "./tracking/tracking.controller.js";
 import { DashboardTrackingService } from "./tracking/tracking.service.js";
 
@@ -51,6 +53,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
     DashboardTrackingController,
     DashboardExposureController,
     DashboardFunnelController,
+    DashboardRetentionController,
     DashboardResourcesController,
     DashboardCustomController,
     DashboardLogsController,
@@ -63,6 +66,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
     DashboardTrackingService,
     DashboardExposureService,
     DashboardFunnelService,
+    DashboardRetentionService,
     DashboardResourcesService,
     DashboardCustomService,
     DashboardLogsService,
