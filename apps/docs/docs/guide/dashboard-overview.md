@@ -1,11 +1,13 @@
 # 菜单总览
 
-Dashboard 按 **四组菜单** 组织，对应不同使用场景：
+Dashboard 按 **四个一级分组** 组织，与管理后台 `apps/web` 左侧菜单严格对齐：
 
 ## Dashboard（综合视图）
 
-- **数据总览** `/dashboard/overview`：跨模块健康度汇总
-- **实时监控** `/dashboard/realtime`：最近 5 分钟数据流
+| 菜单 | 路径 | 使用指南 |
+|---|---|---|
+| 数据总览 | `/dashboard/overview` | [数据总览](/guide/dashboard/overview) |
+| 实时监控 | `/dashboard/realtime` | [实时监控](/guide/dashboard/realtime) |
 
 ## 监控中心（可观测核心）
 
@@ -14,17 +16,31 @@ Dashboard 按 **四组菜单** 组织，对应不同使用场景：
 | 异常分析 | `/monitor/errors` | [异常分析](/guide/errors) |
 | 页面性能 | `/monitor/performance` | [页面性能](/guide/performance) |
 | API 监控 | `/monitor/api` | [API 监控](/guide/api) |
-| 访问分析 | `/monitor/visits` | [访问分析](/guide/visits) |
-| 资源监控 | `/monitor/resources` | — |
-| 日志查询 | `/monitor/logs` | — |
+| 页面访问 | `/monitor/visits` | [页面访问](/guide/visits) |
+| 静态资源 | `/monitor/resources` | [静态资源](/guide/resources) |
+| 日志查询 | `/monitor/logs` | [日志查询](/guide/logs) |
 
 ## 埋点分析
 
-详见 [埋点分析](/guide/tracking)。
+| 菜单 | 路径 | 使用指南 |
+|---|---|---|
+| 事件分析 | `/tracking/events` | [事件分析](/guide/tracking) |
+| 曝光分析 | `/tracking/exposure` | [曝光分析](/guide/exposure) |
+| 转化漏斗 | `/tracking/funnel` | [转化漏斗](/guide/tracking/funnel) |
+| 用户留存 | `/tracking/retention` | [用户留存](/guide/tracking/retention) |
+| 自定义上报 | `/tracking/custom` | [自定义上报](/guide/custom) |
 
 ## 系统设置
 
-详见 [系统设置](/guide/settings)。
+| 菜单 | 路径 | 使用指南 |
+|---|---|---|
+| 应用管理 | `/settings/projects` | [应用管理](/guide/settings/projects) |
+| Source Map | `/settings/sourcemaps` | [Source Map](/guide/settings/sourcemaps) |
+| 告警规则 | `/settings/alerts` | [告警规则](/guide/settings/alerts) |
+| 通知渠道 | `/settings/channels` | [通知渠道](/guide/settings/channels) |
+| 成员与权限 | `/settings/members` | [成员与权限](/guide/settings/members) |
+| AI 修复配置 | `/settings/ai` | [AI 修复配置](/guide/settings/ai) |
+| API Keys | `/settings/tokens` | [API Keys](/guide/settings/tokens) |
 
 ## 通用交互
 

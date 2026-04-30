@@ -6,9 +6,9 @@
 |---|---|---|---|
 | `GHealClaw.track(name, properties?)` | `custom_event` | 业务埋点（加购、下单、分享） | 埋点分析 → 自定义上报（事件 Top） |
 | `GHealClaw.time(name, durationMs, properties?)` | `custom_metric` | 业务测速（结算耗时、编辑器冷启动、内部 API） | 埋点分析 → 自定义上报（p50/p75/p95 + avg） |
-| `GHealClaw.log(level, message, data?)` | `custom_log` | 分级日志（info / warn / error）主动上报 | 监控中心 → 自定义日志 |
+| `GHealClaw.log(level, message, data?)` | `custom_log` | 分级日志（info / warn / error）主动上报 | 监控中心 → 日志查询 |
 
-> 源于 [ADR-0023](https://github.com/lotosv2010/g-heal-claw/blob/main/docs/decisions/0023-custom-and-logs-slice.md)。customPlugin 无任何 DOM 监听，三个 API 产出的 `type` 与 `trackPlugin`（`type='track'`）完全不重叠。
+> customPlugin 无任何 DOM 监听，三个 API 产出的 `type` 与 `trackPlugin`（`type='track'`）完全不重叠。
 
 ## 启用插件
 
@@ -88,7 +88,7 @@ GHealClaw.log("error", "upload failed", { code: "E_TIMEOUT", file: "a.png" });
 | 插件 | 触发方式 | 事件 type | 大盘 |
 |---|---|---|---|
 | `trackPlugin` | 监听 `[data-track]` 点击 / `[data-track-expose]` 曝光 / form submit | `track`（subType: click / expose / submit / code） | 埋点分析 → 事件分析 |
-| `customPlugin` | 主动 API（`track` / `time` / `log`） | `custom_event` / `custom_metric` / `custom_log` | 埋点分析 → 自定义上报 / 监控中心 → 自定义日志 |
+| `customPlugin` | 主动 API（`track` / `time` / `log`） | `custom_event` / `custom_metric` / `custom_log` | 埋点分析 → 自定义上报 / 监控中心 → 日志查询 |
 
 > 旧版 `trackPlugin.track(name, props)`（产出 `type='track', subType='code'`）保留用于兼容旧代码埋点；新业务**优先使用** `customPlugin.track`。
 

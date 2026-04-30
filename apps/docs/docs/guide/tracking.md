@@ -1,18 +1,18 @@
-# 埋点分析
+# 事件分析
 
-路径：埋点中心 → **埋点分析** `/tracking/*`
+路径：埋点分析 → **事件分析** `/tracking/events`
 
-## 五个子菜单
+## 五个兄弟菜单
 
-| 菜单 | 路径 | 状态 | 用途 |
+| 菜单 | 路径 | 状态 | 使用指南 |
 |---|---|---|---|
-| 事件分析 | `/tracking/events` | ✅ P0-3 已交付 | 4 类埋点事件（click / expose / submit / code）全量聚合 |
-| 曝光分析 | `/tracking/exposure` | 建设中 | 元素进入视口的曝光明细 |
-| 漏斗分析 | `/tracking/funnel` | 建设中 | 多步骤转化率 |
-| 留存分析 | `/tracking/retention` | 建设中 | 次日 / 7 日 / 30 日留存 |
-| 自定义上报 | `/tracking/custom` | 建设中 | 自定义事件 / 指标 / 日志 |
+| 事件分析 | `/tracking/events` | ✅ 已交付 | 本页 |
+| 曝光分析 | `/tracking/exposure` | ✅ 已交付 | [曝光分析](/guide/exposure) |
+| 转化漏斗 | `/tracking/funnel` | 建设中 | [转化漏斗](/guide/tracking/funnel) |
+| 用户留存 | `/tracking/retention` | 建设中 | [用户留存](/guide/tracking/retention) |
+| 自定义上报 | `/tracking/custom` | ✅ 已交付 | [自定义上报](/guide/custom) |
 
-## 事件分析大盘（P0-3）
+## 事件分析大盘
 
 数据源 `track_events_raw`（trackPlugin 上报），路径：`/tracking/events`。
 
@@ -31,6 +31,13 @@
 | 去重用户 | `COUNT(DISTINCT COALESCE(user_id, session_id))` | user_id 缺失时回退 session_id，兼顾匿名访客 |
 | 事件名数 | `COUNT(DISTINCT COALESCE(event_name, '-'))` | 触达的不同事件名数量；反映埋点覆盖广度 |
 | 每会话事件数 | `总事件数 / 去重 session` | 反映单次会话的交互密度 |
+
+### 趋势与 Tabs 切换
+
+- **事件趋势**：Segmented 两组切换 —— 「事件数」小时桶 / 「去重用户」小时桶
+- **Tabs**：
+  - 事件 TOP：按 `(event_name, track_type)` 倒序聚合，展示名称 / 类型 Badge / 次数 / 占比
+  - 页面 TOP：按 `page_path` 倒序聚合，展示路径 / 事件数 / 去重用户
 
 ### 事件类型分布
 

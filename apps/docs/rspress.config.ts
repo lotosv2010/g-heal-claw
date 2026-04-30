@@ -47,17 +47,43 @@ export default defineConfig({
           ],
         },
         {
-          text: "使用指南",
+          text: "Dashboard",
+          items: [
+            { text: "数据总览", link: "/guide/dashboard/overview" },
+            { text: "实时监控", link: "/guide/dashboard/realtime" },
+          ],
+        },
+        {
+          text: "监控中心",
           items: [
             { text: "异常分析", link: "/guide/errors" },
             { text: "页面性能", link: "/guide/performance" },
             { text: "API 监控", link: "/guide/api" },
+            { text: "页面访问", link: "/guide/visits" },
             { text: "静态资源", link: "/guide/resources" },
-            { text: "自定义日志", link: "/guide/logs" },
-            { text: "访问分析", link: "/guide/visits" },
-            { text: "埋点分析", link: "/guide/tracking" },
+            { text: "日志查询", link: "/guide/logs" },
+          ],
+        },
+        {
+          text: "埋点分析",
+          items: [
+            { text: "事件分析", link: "/guide/tracking" },
+            { text: "曝光分析", link: "/guide/exposure" },
+            { text: "转化漏斗", link: "/guide/tracking/funnel" },
+            { text: "用户留存", link: "/guide/tracking/retention" },
             { text: "自定义上报", link: "/guide/custom" },
-            { text: "系统设置", link: "/guide/settings" },
+          ],
+        },
+        {
+          text: "系统设置",
+          items: [
+            { text: "应用管理", link: "/guide/settings/projects" },
+            { text: "Source Map", link: "/guide/settings/sourcemaps" },
+            { text: "告警规则", link: "/guide/settings/alerts" },
+            { text: "通知渠道", link: "/guide/settings/channels" },
+            { text: "成员与权限", link: "/guide/settings/members" },
+            { text: "AI 修复配置", link: "/guide/settings/ai" },
+            { text: "API Keys", link: "/guide/settings/tokens" },
           ],
         },
       ],
