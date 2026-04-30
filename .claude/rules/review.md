@@ -63,17 +63,41 @@
 - [ ] `src/**/*.{test,spec}.{ts,tsx}` 不存在（散落即违规）
 - [ ] `tests/` 目录结构镜像 `src/`，命名保留 `.test.ts` / `.spec.ts` 后缀
 
-### 9. Demo 场景 + 使用文档（需求级交付强制项）
+### 9. Demo 场景 + 使用文档 + 项目文档（需求级交付强制项）
 
-> 每完成一个**用户可感知的需求**（新增 SDK 能力 / 新增接口 / 新增页面 / 新增通知渠道等），必须同步补齐以下两项；纯内部重构 / 文档勘误可豁免。
+> 每完成一个**用户可感知的需求**（新增 SDK 能力 / 新增接口 / 新增页面 / 新增通知渠道等），必须顺序完成以下三步；纯内部重构 / 文档勘误可豁免。
 
-- [ ] **Demo 场景**：在 `examples/nextjs-demo/` 对应分组（`performance` / `errors` / `api` / `resources`）下补一个**最小可触发**的用例，并接入 `demo-scenarios.ts` 单一数据源，让开发者可在 `pnpm dev:demo` 中一键复现
-- [ ] **使用说明**：在 `docs/` 中补一段 How-to（落点视需求而定）：
-  - SDK 能力 → `GETTING_STARTED.md §7 SDK 接入` 子节
-  - 后端 API → `docs/SPEC.md` 接口章节 + 示例 curl
-  - 后台页面 → `docs/ARCHITECTURE.md §5.1` 路由清单加 ✅ 标记 + 字段含义段
-  - 新模块 / 队列 / 数据表 → `docs/ARCHITECTURE.md` 对应清单 + ADR 后续小节
-- [ ] **双向可追溯**：ADR 的「后续」章节引用了 demo 路径与文档落点；demo README 或页面文案引用了 ADR / 文档链接
+**Step 1 · Demo 测试场景（`examples/nextjs-demo/`）**
+
+- [ ] 新建或扩展一个**独立测试场景**（页面 / 路由 / 按钮），开发者通过 `pnpm dev:demo` 即可一键触发并观察到完整链路效果
+- [ ] 场景归入既有分组目录（`performance` / `errors` / `api` / `resources` / `tracking` / `custom` 等），保持目录结构与 dashboard 菜单一致
+- [ ] 场景注释说明触发路径（DevTools → Network 看什么、Dashboard 去哪个页面验证）
+- [ ] 若引入新分组，在 demo 的左侧菜单 / 首页分组列表中登记
+
+**Step 2 · 使用说明（`apps/docs/` Rspress 站点）**
+
+- [ ] 在 `apps/docs/docs/` 对应章节新增或追加 How-to 页面（落点依能力类型选择）：
+  - SDK 能力 → `apps/docs/docs/sdk/<plugin>.mdx`
+  - 后端 API → `apps/docs/docs/reference/api.mdx`（或 `reference/<module>.mdx`）
+  - 后台页面 → `apps/docs/docs/guide/dashboard/<slug>.mdx`
+  - 快速接入类入口 → `apps/docs/docs/quickstart/*.mdx`
+- [ ] 使用说明包含：**能力简介 + 最小代码/截图 + 配置项 + 常见问题**
+- [ ] 若新增 Rspress 页面，同步更新 `apps/docs/rspress.config.ts` 或自动侧边栏对应的 `_meta.json`
+
+**Step 3 · 项目文档传导**
+
+按相关性从上至下补齐（不相关的可跳过，但需心里过一遍）：
+
+- [ ] `docs/PRD.md` / `docs/SPEC.md` / `docs/ARCHITECTURE.md` / `docs/DESIGN.md` —— 契约 / 架构 / 路由清单级变化
+- [ ] `docs/decisions/NNNN-*.md` —— 新增 ADR，「后续」章节引用 demo 路径 + apps/docs 页面链接
+- [ ] `docs/tasks/CURRENT.md` —— 对应任务状态 `[~]` → `[x]` + 完成日期；更新 "当前焦点"
+- [ ] `GETTING_STARTED.md` —— 本地联调 / SDK 接入 / 运维小节如涉及需同步
+- [ ] `README.md` —— 仅当新增能力改变了项目对外描述时更新
+- [ ] `CLAUDE.md` / `AGENTS.md` —— 仅当新增了 AI 工具必须遵守的新规则 / 新命令时更新
+
+**双向可追溯**（强制）：
+- [ ] ADR 的「后续」章节同时指向 **demo 路径** 与 **apps/docs 页面**
+- [ ] demo 场景文案（页面标题 / 注释）反向引用 apps/docs 页面链接或 ADR 编号
 
 ## 常见问题速查
 
@@ -87,5 +111,6 @@
 | NestJS Controller 缺少 Swagger | 添加 `@ApiTags` + `@ApiOperation` + `@ApiResponse` 装饰器 |
 | 模块间直接导入 Controller | 改为导入 Service，通过 Module exports 暴露 |
 | 测试文件放在 `src/` 下 | 迁移到 `<package>/tests/`，保留镜像路径和 `.test.ts` / `.spec.ts` 后缀 |
-| 新需求交付后没有 demo 场景 | 在 `examples/nextjs-demo/app/demo-scenarios.ts` 对应分组补最小用例，确保 `pnpm dev:demo` 可一键触发 |
-| 新需求交付后文档缺使用说明 | 按能力落点补：SDK → `GETTING_STARTED §7`；接口 → `docs/SPEC.md`；页面 → `docs/ARCHITECTURE.md §5.1`；模块 → ARCHITECTURE 模块清单 + ADR 后续 |
+| 新需求交付后没有 demo 场景 | 在 `examples/nextjs-demo/` 对应分组目录新建独立测试场景（页面 / 路由 / 按钮），确保 `pnpm dev:demo` 一键可触发 |
+| 新需求交付后缺使用文档 | 在 `apps/docs/docs/` 对应章节（sdk / reference / guide/dashboard / quickstart）补 How-to 页面，含简介 + 最小示例 + 配置项 |
+| 新需求交付后项目文档未传导 | 按相关性顺序检查：PRD/SPEC/ARCHITECTURE/DESIGN → ADR → CURRENT.md → GETTING_STARTED → README → CLAUDE/AGENTS，有契约/架构变化必须同步 |

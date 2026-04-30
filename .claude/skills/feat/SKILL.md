@@ -227,10 +227,30 @@ Phase 1: 需求理解 ──→ Phase 2: 方案设计（ADR）──→ Phase 3:
 
 5. **自检**：逐条对照 `.claude/rules/review.md` 中的 Checklist。
 
-6. **Demo 场景 + 使用文档**（用户可感知的需求必做，纯内部重构可豁免）：
-   - 在 `examples/nextjs-demo/app/demo-scenarios.ts` 对应分组（performance / errors / api / resources）补最小可触发用例，确保 `pnpm dev:demo` 可一键复现
-   - 按能力落点补使用说明：SDK → `GETTING_STARTED.md §7`；接口 → `docs/SPEC.md`；后台页面 → `docs/ARCHITECTURE.md §5.1` 路由清单 + ✅ 标记；新模块/队列/数据表 → `docs/ARCHITECTURE.md` 对应清单
-   - ADR「后续」章节引用 demo 路径与文档落点，形成双向可追溯
+6. **Demo 场景 + 使用文档 + 项目文档传导**（用户可感知的需求必做，纯内部重构可豁免，三步按序执行，详见 `.claude/rules/review.md §9`）：
+
+   **Step 1 · Demo 测试场景（`examples/nextjs-demo/`）**
+   - 在对应分组目录（`performance` / `errors` / `api` / `resources` / `tracking` / `custom` 等）新建独立测试场景（页面 / 路由 / 按钮）
+   - 场景注释明示触发路径（DevTools 看什么、Dashboard 哪个页面验证）
+   - `pnpm dev:demo` 一键可触发
+
+   **Step 2 · 使用说明（`apps/docs/` Rspress 站点）**
+   - SDK 能力 → `apps/docs/docs/sdk/<plugin>.mdx`
+   - 后端 API → `apps/docs/docs/reference/api.mdx` 或 `reference/<module>.mdx`
+   - 后台页面 → `apps/docs/docs/guide/dashboard/<slug>.mdx`
+   - 快速接入类 → `apps/docs/docs/quickstart/*.mdx`
+   - 内容含：能力简介 + 最小代码/截图 + 配置项 + 常见问题
+   - 新增页面同步更新 Rspress 侧边栏（`rspress.config.ts` 或 `_meta.json`）
+
+   **Step 3 · 项目文档传导**（按相关性从上至下）
+   - `docs/PRD.md` / `docs/SPEC.md` / `docs/ARCHITECTURE.md` / `docs/DESIGN.md` —— 契约/架构/路由清单级变化
+   - `docs/decisions/NNNN-*.md` —— 新增 ADR，「后续」章节引用 demo 路径 + apps/docs 页面
+   - `docs/tasks/CURRENT.md` —— 任务 `[~]` → `[x]` + 日期 + 更新 "当前焦点"
+   - `GETTING_STARTED.md` —— 本地联调 / SDK 接入涉及时同步
+   - `README.md` —— 仅当对外描述改变时更新
+   - `CLAUDE.md` / `AGENTS.md` —— 仅当新增了 AI 工具必须遵守的规则时更新
+
+   **双向可追溯**：ADR「后续」章节同时指向 demo 路径 + apps/docs 页面；demo 场景文案反向引用 apps/docs 链接或 ADR 编号
 
 7. **收尾**：将 `CURRENT.md` 中对应任务从 `[~]` 改为 `[x]`，附完成日期；更新"当前焦点（Now）"下一步。
 
@@ -264,14 +284,21 @@ Phase 1: 需求理解 ──→ Phase 2: 方案设计（ADR）──→ Phase 3:
 - ARCHITECTURE：[是否更新]
 - DESIGN：[是否更新]
 
-**Demo 场景**：
-- 分组：[performance / errors / api / resources]
-- 路径：[examples/nextjs-demo/app/... 或 demo-scenarios.ts 条目]
+**Step 1 · Demo 场景**：
+- 分组：[performance / errors / api / resources / tracking / custom ...]
+- 路径：[examples/nextjs-demo/app/... 新建的页面/组件]
 - 触发方式：[pnpm dev:demo 后点击/访问什么能看到效果]
 
-**使用文档**：
-- 落点：[GETTING_STARTED §7 / docs/SPEC.md §X / docs/ARCHITECTURE.md §5.1 / ...]
+**Step 2 · apps/docs 使用说明**：
+- 落点：[apps/docs/docs/sdk/...mdx | reference/...mdx | guide/dashboard/...mdx | quickstart/...mdx]
+- 侧边栏：[rspress.config.ts / _meta.json 是否更新]
 - 摘要：[一句话说明用户该怎么用]
+
+**Step 3 · 项目文档传导**：
+- docs/*.md（PRD/SPEC/ARCHITECTURE/DESIGN）：[章节 + 变更摘要]
+- ADR：[编号 + 文件 + 「后续」是否引用 demo 与 apps/docs]
+- CURRENT.md：[任务 ID 状态变化]
+- GETTING_STARTED / README / CLAUDE / AGENTS：[涉及则列出，否则写 "不涉及"]
 
 **验证状态**：
 - typecheck: PASS / FAIL
