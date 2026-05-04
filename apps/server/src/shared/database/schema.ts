@@ -10,6 +10,7 @@
 export * from "./schema/users.js";
 export * from "./schema/projects.js";
 export * from "./schema/releases.js";
+export * from "./schema/release-artifacts.js";
 export * from "./schema/issues.js";
 export * from "./schema/events-raw.js";
 export * from "./schema/perf-events-raw.js";

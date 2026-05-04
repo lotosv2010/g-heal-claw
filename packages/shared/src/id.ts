@@ -22,6 +22,7 @@ export const RELEASE_ID_PREFIX = "rel" as const;
 export const ISSUE_ID_PREFIX = "iss" as const;
 export const ENVIRONMENT_ID_PREFIX = "env" as const;
 export const NOTIFICATION_ID_PREFIX = "notif" as const;
+export const ARTIFACT_ID_PREFIX = "art" as const;
 
 export const ID_PREFIXES = [
   PROJECT_ID_PREFIX,
@@ -31,6 +32,7 @@ export const ID_PREFIXES = [
   ISSUE_ID_PREFIX,
   ENVIRONMENT_ID_PREFIX,
   NOTIFICATION_ID_PREFIX,
+  ARTIFACT_ID_PREFIX,
 ] as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[number];
@@ -66,3 +68,4 @@ export const generateProjectKeyId = (): string =>
   generateId(PROJECT_KEY_PREFIX);
 export const generateReleaseId = (): string => generateId(RELEASE_ID_PREFIX);
 export const generateIssueId = (): string => generateId(ISSUE_ID_PREFIX);
+export const generateArtifactId = (): string => generateId(ARTIFACT_ID_PREFIX);

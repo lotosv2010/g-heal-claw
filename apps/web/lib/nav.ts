@@ -74,9 +74,9 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { slug: "monitor/errors", label: "异常分析", icon: AlertTriangle, placeholder: null },
       { slug: "monitor/performance", label: "页面性能", icon: Activity, placeholder: null },
       { slug: "monitor/api", label: "API 监控", icon: Network, placeholder: null },
-      { slug: "monitor/visits", label: "页面访问", icon: Users, placeholder: "Phase 2 交付" },
+      { slug: "monitor/visits", label: "页面访问", icon: Users, placeholder: null },
       { slug: "monitor/resources", label: "静态资源", icon: Box, placeholder: null },
-      { slug: "monitor/logs", label: "日志查询", icon: FileText, placeholder: "Phase 3 交付" },
+      { slug: "monitor/logs", label: "日志查询", icon: FileText, placeholder: null },
     ],
   },
   {
@@ -106,9 +106,9 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         slug: "tracking/retention",
         label: "用户留存",
         icon: Repeat,
-        placeholder: "Phase 6 交付",
+        placeholder: null,
       },
-      { slug: "tracking/custom", label: "自定义上报", icon: Plus, placeholder: "Phase 3 交付" },
+      { slug: "tracking/custom", label: "自定义上报", icon: Plus, placeholder: null },
     ],
   },
   {

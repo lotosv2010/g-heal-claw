@@ -135,6 +135,29 @@ CREATE INDEX IF NOT EXISTS idx_releases_project_created
 `.trim();
 
 // ============================================================
+// 主表：release_artifacts（ADR-0031 §2.1）
+// ============================================================
+
+export const CREATE_RELEASE_ARTIFACTS = `
+CREATE TABLE IF NOT EXISTS release_artifacts (
+  id              varchar(32) PRIMARY KEY,
+  release_id      varchar(32) NOT NULL REFERENCES releases(id) ON DELETE CASCADE,
+  project_id      varchar(32) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  filename        varchar(512) NOT NULL,
+  map_filename    varchar(512) NOT NULL,
+  storage_key     varchar(1024) NOT NULL,
+  file_size       integer NOT NULL,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT uq_artifacts_release_filename UNIQUE (release_id, filename)
+);
+`.trim();
+
+export const CREATE_IDX_ARTIFACTS_PROJECT_RELEASE = `
+CREATE INDEX IF NOT EXISTS idx_artifacts_project_release
+  ON release_artifacts (project_id, release_id);
+`.trim();
+
+// ============================================================
 // 主表：issues（ADR-0017 §3.7，本期仅建表不写入）
 // ============================================================
 
@@ -821,6 +844,8 @@ export const MAIN_DDL: readonly string[] = [
   CREATE_ENVIRONMENTS,
   CREATE_RELEASES,
   CREATE_IDX_RELEASES_PROJECT_CREATED,
+  CREATE_RELEASE_ARTIFACTS,
+  CREATE_IDX_ARTIFACTS_PROJECT_RELEASE,
   CREATE_ISSUES,
   CREATE_IDX_ISSUES_STATUS_LASTSEEN,
   CREATE_IDX_ISSUES_SUBTYPE_LASTSEEN,

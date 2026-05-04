@@ -109,6 +109,7 @@ export default defineConfig({
           text: "后端实现",
           items: [
             { text: "ErrorProcessor（异常异步消费）", link: "/reference/error-processor" },
+            { text: "Sourcemap API", link: "/reference/sourcemap" },
           ],
         },
       ],

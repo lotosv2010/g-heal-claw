@@ -339,14 +339,65 @@
   - 验收：`docs/decisions/0026-*.md` 「后续」章节引用 demo 与 apps/docs 双向可追溯；`pnpm -F docs build`（若启用）通过
   - 依赖：TM.E.6
 
-### M1.5 Sourcemap 服务
+### M1.5 Sourcemap 服务（ADR-0031，T1.5.1~T1.5.4 首版；T1.5.5/T1.5.6 推迟）
 
-- [ ] **T1.5.1** SourcemapModule HTTP（Release 创建 + multipart 上传 + 列表/删除）— 3d
-- [ ] **T1.5.2** S3/MinIO 存储封装（StorageService） — 2d
-- [ ] **T1.5.3** 堆栈还原 Service（source-map v0.7 + LRU 缓存 + 预热）— 3d
-- [ ] **T1.5.4** ErrorProcessor 接入还原 Service — 1d
-- [ ] **T1.5.5** `@g-heal-claw/cli` 上传工具（登录 / upload release / upload artifacts）— 3d
-- [ ] **T1.5.6** `@g-heal-claw/vite-plugin` 构建期上传钩子 — 2d
+- [x] **T1.5.1** `release_artifacts` 表 + Drizzle schema + 迁移 + S3StorageService — 1.2d ✅ 2026-05-04
+  - 输入：`releases` 表已存在；`BaseEnvSchema` 已含 9 个 `MINIO_*` key；DESIGN §9.4 StorageService 接口
+  - 输出：
+    - `apps/server/src/shared/database/schema/release-artifacts.ts`（Drizzle pgTable：id/release_id/project_id/filename/map_filename/storage_key/file_size/created_at + UQ(release_id,filename) + IDX(project_id,release_id)）
+    - `apps/server/src/shared/database/schema.ts` re-export
+    - `apps/server/src/shared/database/ddl.ts` ALL_DDL 追加
+    - `apps/server/drizzle/0009_release_artifacts.sql` 迁移
+    - `apps/server/src/modules/sourcemap/storage.service.ts`：`S3StorageService implements StorageService`（put/get/delete/deletePrefix）+ `@aws-sdk/client-s3` 依赖 + onModuleInit 确保 bucket + NODE_ENV=test 跳过
+    - `apps/server/tests/modules/sourcemap/storage.service.spec.ts`：3 case（put+get round-trip mock / delete no-throw / deletePrefix 批量）
+  - 验收：`pnpm typecheck` 全绿；迁移 SQL 可执行；单测 3 case 通过
+  - 依赖：无
+
+- [x] **T1.5.2** ApiKeyGuard + SourcemapController（Release CRUD + Artifact multipart 上传） — 1.5d ✅ 2026-05-04
+  - 输入：T1.5.1（storage + schema）；`project_keys` 表已存在
+  - 输出：
+    - `apps/server/src/modules/sourcemap/api-key.guard.ts`：`@Injectable() ApiKeyGuard implements CanActivate`（读 `X-Api-Key` header → 查 `project_keys WHERE secret_key = $1 AND is_active` → 注入 projectId 到 request）
+    - `apps/server/src/modules/sourcemap/dto/create-release.dto.ts`：Zod `{ projectId, version, commitSha? }`
+    - `apps/server/src/modules/sourcemap/dto/upload-artifact.dto.ts`：Zod `{ filename }` + Fastify multipart 处理
+    - `apps/server/src/modules/sourcemap/dto/release-artifact.dto.ts`：响应 Schema
+    - `apps/server/src/modules/sourcemap/sourcemap.controller.ts`：`@Controller('sourcemap/v1')` 4 端点（POST releases / POST releases/:id/artifacts / GET releases/:id/artifacts / DELETE releases/:id）+ `@UseGuards(ApiKeyGuard)` + `@ApiTags('sourcemap')` + multipart 解析（`@fastify/multipart`）
+    - `apps/server/src/modules/sourcemap/sourcemap.module.ts` 扩展：imports StorageService + Controller + Guard
+    - `apps/server/tests/modules/sourcemap/sourcemap.controller.spec.ts`：6 case（创建 release 幂等 / 上传 artifact → storage.put / 列表 / 删除级联 / 重复 filename 覆盖 / 无效 API key 401）
+  - 验收：`typecheck` 全绿；单测 6 case 通过；Swagger `/api-docs` 可见 sourcemap tag
+  - 依赖：T1.5.1
+
+- [x] **T1.5.3** SourcemapService resolveFrames 真实实现（source-map v0.7 + LRU） — 1.5d ✅ 2026-05-04
+  - 输入：T1.5.1（storage）+ T1.5.2（controller 验证上传链路可用）
+  - 输出：
+    - `apps/server/package.json` 新增 `source-map@^0.7` + `lru-cache@^10` 依赖
+    - `packages/shared/src/env/server.ts` 新增 `SOURCEMAP_LRU_CAPACITY`（默认 100）
+    - `apps/server/src/modules/sourcemap/sourcemap.service.ts` 重写 resolveFrames：
+      - 按 `(projectId, release, filename)` 查 `release_artifacts` → `storage_key`
+      - LRU cache（key = `projectId:release:filename`，value = `SourceMapConsumer`，dispose 调 `.destroy()`）
+      - 逐 frame `originalPositionFor({ line, column })` → 替换 file/line/column/function
+      - 任何环节失败 → 原样返回该 frame + warn 日志
+    - `apps/server/tests/modules/sourcemap/sourcemap.service.spec.ts` 扩展：新增 8 case（正常还原 3 frame / release 不存在降级 / artifact 不存在降级 / storage get 失败降级 / consumer 解析失败降级 / LRU hit 不重复 get / 无 frames 事件跳过 / 无 release 事件跳过）+ 保留原 3 stub 契约测试
+    - `.env.example` 追加 `SOURCEMAP_LRU_CAPACITY=100`
+  - 验收：`typecheck` 全绿；11 case 全绿（3 旧 + 8 新）；resolveFrames 永不抛错（mock 各种失败场景）
+  - 依赖：T1.5.1, T1.5.2
+
+- [x] **T1.5.4** 端到端验证 + Demo 脚本 + 文档传导 — 0.8d ✅ 2026-05-04
+  - 输入：T1.5.3
+  - 输出：
+    - **Demo**：`examples/nextjs-demo/scripts/upload-sourcemap.sh`（curl 示例：创建 release → 上传 .map → 触发 error → 观察还原堆栈）+ `demo-scenarios.ts` 在 errors 分组追加 "Sourcemap 还原验证" 入口
+    - **Docs**：
+      - `apps/docs/docs/sdk/sourcemap.md` 更新为实际 API（替换占位）
+      - `apps/docs/docs/reference/sourcemap.md` 新增后端 API 参考（4 端点 + 鉴权 + 响应格式）
+    - **项目文档传导**：
+      - `docs/SPEC.md §9.1` releases 行更新 + §9.2 `release_artifacts` 从"规划"改为"已建表"
+      - `docs/ARCHITECTURE.md §3.1` SourcemapModule 从"stub"改为"已实现"
+      - `docs/decisions/0031-sourcemap-service.md` 状态 提议 → 采纳
+      - `CURRENT.md` T1.5.1~4 `[x]` + 当前焦点更新
+  - 验收：双向可追溯（ADR-0031 后续引用 demo + docs）；`pnpm typecheck` 全绿
+  - 依赖：T1.5.3
+
+- [ ] **T1.5.5** `@g-heal-claw/cli` 上传工具（登录 / upload release / upload artifacts）— 3d（推迟）
+- [ ] **T1.5.6** `@g-heal-claw/vite-plugin` 构建期上传钩子 — 2d（推迟）
 
 ### M1.6 Dashboard：异常模块
 
@@ -968,8 +1019,8 @@
 - 已完成（2026-04-30）：**TM.E ErrorProcessor BullMQ 接管（ADR-0026，7 子任务全部 `[x]`）** —— `shared/queue/queue.module.ts` 全局 BullMQ 连接（Redis URL + 默认 removeOnComplete/removeOnFail）；`modules/sourcemap/*` Service stub（本期原样返回，T1.5.3 替换实现体无需改 Processor）；`modules/errors/error.processor.ts` `@Processor(events-error)` + `concurrency=4` + `@OnWorkerEvent('failed')` 终态 → `DeadLetterService.enqueueEvents`；`modules/partitions/*` `@Cron('0 3 * * 1')` + onModuleInit 立即 tick + ISO 周工具（toIsoWeekMonday/addDays/weeklyPartitionName）+ LOOKAHEAD_WEEKS=8；`gateway.service.ts` `ERROR_PROCESSOR_MODE` 灰度（queue/sync/dual）+ Redis 失败降级 sync + 响应新增 `enqueued` 字段；`ddl.ts` 扩 5 张周分区（2026w21~2026w25，覆盖 2026-05-18~2026-06-22）；`shared/env/server.ts` 新增 5 键；server 260 单测 + 6 e2e + typecheck 全绿；ADR-0026 状态提议 → 采纳；SPEC §5.1 响应补 `enqueued`；ARCHITECTURE §3.4 events-error 🟡 → 🟢 + §4.1.1/§4.1.2 当前实现 vs 目标实现拆分；`.env.example` 追加 2 键；`apps/docs/docs/reference/error-processor.mdx` + `apps/docs/docs/guide/ops/partition-maintenance.mdx` 新建；demo `examples/nextjs-demo/app/errors/page.tsx` 注释追加 `[ErrorProcessor]` 日志观察指引
 - 已完成（2026-04-30）：**TM.2.D 转化漏斗切片（ADR-0027）** —— `TrackingService.aggregateFunnel`（动态 N 步 CTE，9 case 单测）+ `DashboardFunnelService/Controller`（4 case 装配层单测 · conversionFromPrev/conversionFromFirst/overallConversion 4 位小数 + 首末步 0 保护）+ Web `/tracking/funnel` live 页（URL 驱动配置表单 + SummaryCards + FunnelChart + StepsTable + 三态 SourceBadge）+ demo `/tracking/funnel` 3 按钮 + `apps/docs/docs/guide/tracking/funnel.md` + SPEC/ARCHITECTURE/ADR-0020 §8.1 同步；server 237+4/241 全绿 + web/demo typecheck 全绿
 - 已完成（2026-04-30）：**TM.2.A Visits 页面访问简化切片（ADR-0020 Tier 2.A）** —— SDK `pageViewPlugin`（硬刷新 + history patch，7 case 单测）；`page_view_raw` drizzle schema + DDL + migration 0008；`VisitsModule.VisitsService`（saveBatch + 4 聚合方法）；Gateway 分流；Dashboard `/dashboard/v1/visits/overview`；Web `/monitor/visits` live 页面（SummaryCards + TrendChart + TopPages + TopReferrers + 三态 SourceBadge）；demo 场景 `/visits/page-view`；server 单测 228/228 全绿 + sdk 97/97 全绿 + typecheck 8/8；推迟：GeoIP / page_duration / session_raw / UTM
-- 阶段主题：**Phase 1 收尾完成**（TM.E ErrorProcessor 接管 + 分区维护 cron 落地，`events-error` 由 🟡 → 🟢）+ **菜单完整化**（ADR-0020，Tier 1 + Tier 2.A + Tier 2.D 已交付）
-- 下一步候选：**M1.5 Sourcemap 服务**（T1.5.1 Release/multipart upload → T1.5.2 S3/MinIO 存储 → T1.5.3 source-map v0.7 还原，落地后仅替换 `SourcemapService.resolveFrames` 实现体）；或 **TM.2.B projects 应用管理**（前置 T1.1.7 RBAC）；或 **TM.2.C realtime**
+- 已完成（2026-05-04）：**M1.5 Sourcemap 服务实装（ADR-0031，T1.5.1~T1.5.4 全部 `[x]`）** —— `release_artifacts` Drizzle schema + DDL + 迁移 0009（T1.5.1）；`S3StorageService`（put/get/delete/deletePrefix + MinIO 兼容 + bucket 自动创建，5 case 单测）；`ApiKeyGuard`（X-Api-Key → project_keys.secret_key 校验 + test env bypass）；`SourcemapController` 4 端点（POST releases 幂等 / POST artifacts multipart + UPSERT / GET artifacts / DELETE releases 级联，7 case 单测）；`@fastify/multipart` 50MB 限制注册（T1.5.2）；`SourcemapService.resolveFrames` 真实实现（source-map v0.7 WASM + LRU 100 条 TTL 1h + dispose 回收 + 逐 frame 降级不抛错，11 case 单测）（T1.5.3）；`SOURCEMAP_LRU_CAPACITY` env 新增；demo `upload-sourcemap.sh` curl 脚本（T1.5.4）；`apps/docs/docs/sdk/sourcemap.md` 全量重写（HTTP API + CI 示例 + 还原原理 + 排查表）+ `apps/docs/docs/reference/sourcemap.md` 新建（4 端点完整说明 + 鉴权 + 还原流程 + 错误码）；SPEC §9.2 `release_artifacts` 标记已建表；ARCHITECTURE §4.1.2 SourcemapService 从 stub 切换为已实现；ADR-0031 提议 → 采纳；server 312 单测 + 6 e2e + typecheck 全绿
+- 阶段主题：**Phase 1 收尾完成**（M1.5 Sourcemap 为 Phase 1 最后一块核心拼图，已闭环）+ **菜单完整化 Tier 1~3 全部交付**（ADR-0020）
 - 备选（不阻塞）：GeoIP 地域分布 + page_duration + session_raw 作为 TM.2.A 的增量迭代独立拆任务
 - 最近完成（2026-04-29）：**Tier 1.A API 监控菜单 live 化（TM.1.A 全 6 子任务）** —— SDK `apiPlugin`（独立 `__ghcApiPatched` 标记与 `httpPlugin` 并存，共享 `http-capture.ts` 纯函数；12 case 单测）；`api_events_raw` 表 + drizzle 0004 迁移；`ApiMonitorService`（saveBatch + 4 聚合方法，10 case 单测）；`DashboardApiService` + `/dashboard/v1/api/overview`（summary + 5 状态码桶 + 小时趋势 + Top 慢请求 + 环比）；Web `/api` 页面 4 模块组件（summary-cards / status-buckets / trend-chart AntV 三折线 / top-slow-table）；demo `ghc-provider.tsx` 注册 `apiPlugin({ slowThresholdMs: 300 })`；全量 typecheck 7/7 + server 单元 15 files 123 tests + e2e 6 tests 全绿
 - 最近完成（2026-04-29）：**ADR-0020 菜单完整化交付路线图注册** —— `docs/decisions/0020-menu-delivery-roadmap.md` 三 Tier 分层（Tier 1: api/resources/custom/logs ~10d；Tier 2: visits/projects/realtime ~17d；Tier 3: overview 2d）；关键设计决策：`apiPlugin`（type='api' 采集成功请求）与现有 `httpPlugin`（type='error' 异常分流）并存 + raw 表统一设计 + 前端页面模板化复用 `errors` 结构；`docs/decisions/README.md` 索引更新；`docs/tasks/CURRENT.md` 注入 TM.1.A ~ TM.3.A 子任务树

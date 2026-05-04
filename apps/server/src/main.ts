@@ -6,6 +6,7 @@ import {
   type NestFastifyApplication,
 } from "@nestjs/platform-fastify";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import multipart from "@fastify/multipart";
 import { AppModule } from "./app.module.js";
 import { loadServerEnv } from "./config/env.js";
 
@@ -17,6 +18,9 @@ async function bootstrap(): Promise<void> {
     new FastifyAdapter({ logger: false, trustProxy: true }),
     { bufferLogs: true },
   );
+
+  // Sourcemap .map 文件上传（单文件 ≤ 50MB）
+  await app.register(multipart as never, { limits: { fileSize: 50 * 1024 * 1024 } });
 
   // CORS：允许 web 前台与 examples/nextjs-demo（3100）
   app.enableCors({

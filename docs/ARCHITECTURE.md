@@ -197,7 +197,7 @@ SDK (errorPlugin, window.error 冒泡/捕获 + unhandledrejection)
       · Redis 故障 → 本进程自动降级 sync，并记 WARN 日志
 
 BullMQ events-error ──▶ ErrorProcessor（concurrency=4, attempts=3 指数退避）
-  · SourcemapService.resolveFrames(events) 还原（当前 stub；T1.5.3 实装）
+  · SourcemapService.resolveFrames(events) 还原（✅ ADR-0031：source-map v0.7 WASM + LRU 100 条 TTL 1h + MinIO 存储）
   · ErrorsService.saveBatch() → error_events_raw UNIQUE · IssuesService.upsertBatch() · HLL pfadd
   · 失败耗尽 → @OnWorkerEvent('failed') → DeadLetterService(stage=error-raw-insert)
 

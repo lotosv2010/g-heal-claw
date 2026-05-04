@@ -760,7 +760,7 @@ heal:
 
 | 表 | 用途 | 落地阶段 |
 |---|---|---|
-| `release_artifacts` | Sourcemap / 构建产物元数据 | T1.5 |
+| `release_artifacts` | Sourcemap / 构建产物元数据 | ✅ 已建表（ADR-0031 T1.5.1） |
 | `metric_minute` | 性能指标分钟粒度预聚合 | T2.1.4 |
 | `sessions` | 会话聚合（页面数 / 错误数） | T2.2.x |
 | `alert_rules` / `alert_history` | 告警规则与历史 | Phase 3 |

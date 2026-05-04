@@ -75,6 +75,10 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   // 每 projectId 最大并发 SSE 连接（超过直接 429）
   REALTIME_MAX_CONN_PER_PROJECT: z.coerce.number().int().positive().default(10),
 
+  // -------- Sourcemap LRU 缓存（T1.5.3 / ADR-0031）--------
+  // SourceMapConsumer 在内存缓存容量（条数），dispose 时调 .destroy() 释放 WASM
+  SOURCEMAP_LRU_CAPACITY: z.coerce.number().int().positive().default(100),
+
   // -------- 通知渠道默认值（可选）--------
   DINGTALK_DEFAULT_WEBHOOK: z.url().optional().or(z.literal("")),
   WECHAT_WORK_DEFAULT_WEBHOOK: z.url().optional().or(z.literal("")),
