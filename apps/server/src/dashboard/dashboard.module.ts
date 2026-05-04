@@ -19,6 +19,8 @@ import { DashboardResourcesController } from "./monitor/resources.controller.js"
 import { DashboardResourcesService } from "./monitor/resources.service.js";
 import { DashboardVisitsController } from "./monitor/visits.controller.js";
 import { DashboardVisitsService } from "./monitor/visits.service.js";
+import { DashboardOverviewController } from "./dashboard/overview.controller.js";
+import { DashboardOverviewService } from "./dashboard/overview.service.js";
 import { DashboardCustomController } from "./tracking/custom.controller.js";
 import { DashboardCustomService } from "./tracking/custom.service.js";
 import { DashboardExposureController } from "./tracking/exposure.controller.js";
@@ -58,6 +60,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
     DashboardCustomController,
     DashboardLogsController,
     DashboardVisitsController,
+    DashboardOverviewController,
   ],
   providers: [
     DashboardPerformanceService,
@@ -71,6 +74,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
     DashboardCustomService,
     DashboardLogsService,
     DashboardVisitsService,
+    DashboardOverviewService,
   ],
 })
 export class DashboardModule {}

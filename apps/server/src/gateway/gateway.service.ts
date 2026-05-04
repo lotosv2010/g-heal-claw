@@ -26,6 +26,12 @@ import {
 import { ResourcesService } from "../modules/resources/resources.service.js";
 import { TrackingService } from "../modules/tracking/tracking.service.js";
 import { VisitsService } from "../modules/visits/visits.service.js";
+import { RealtimeService } from "../modules/realtime/realtime.service.js";
+import type {
+  RealtimeApiPayload,
+  RealtimeErrorPayload,
+  RealtimePerfPayload,
+} from "../modules/realtime/topics.js";
 import type { GatewayAuthContext } from "./dsn-auth.guard.js";
 import { IdempotencyService } from "./idempotency.service.js";
 import type { IngestRequest } from "./ingest.dto.js";
@@ -56,6 +62,7 @@ export class GatewayService {
     private readonly customMetrics: CustomMetricsService,
     private readonly logs: LogsService,
     private readonly visits: VisitsService,
+    private readonly realtime: RealtimeService,
     private readonly idempotency: IdempotencyService,
     @Inject(SERVER_ENV) private readonly env: ServerEnv,
     @InjectQueue(QueueName.EventsError)
@@ -135,6 +142,10 @@ export class GatewayService {
       customLogPersisted +
       pageViewPersisted;
 
+    // ADR-0030 / TM.2.C：入库后 fire-and-forget 推送到实时大盘
+    // publish 失败不影响入库 ack（RealtimeService 内已吞异常并日志降级）
+    this.publishRealtime(errorEvents, apiEvents, perfEvents);
+
     this.logger.log(
       `accepted=${total} deduped=${duplicates.length} perf=${perfEvents.length} ` +
         `errors=${errorEvents.length} errorMode=${mode} errorEnqueued=${errorEnqueued} ` +
@@ -152,6 +163,59 @@ export class GatewayService {
       duplicates: duplicates.length,
       enqueued: errorEnqueued,
     };
+  }
+
+  /**
+   * 将本批次 error / api / perf 事件推送到实时大盘（ADR-0030 §3）
+   *
+   * - 按 projectId 分桶；实际 publish 交由 RealtimeService 按 REALTIME_SAMPLE_RATE 采样
+   * - 不 await，publish 失败在 RealtimeService 内吞异常并日志降级
+   * - perf 仅挑 LCP/INP/CLS 三个核心 Web Vitals（其他指标噪声大不上大盘）
+   */
+  private publishRealtime(
+    errorEvents: readonly ErrorEvent[],
+    apiEvents: readonly ApiEvent[],
+    perfEvents: readonly PerfOrLongTaskEvent[],
+  ): void {
+    for (const event of errorEvents) {
+      const payload: { topic: "error" } & RealtimeErrorPayload = {
+        topic: "error",
+        ts: event.timestamp,
+        subType: event.subType,
+        messageHead: truncate(event.message, 160),
+        url: event.page.url,
+      };
+      void this.realtime.publish(event.projectId, payload);
+    }
+    for (const event of apiEvents) {
+      const payload: { topic: "api" } & RealtimeApiPayload = {
+        topic: "api",
+        ts: event.timestamp,
+        method: event.method,
+        pathTemplate: extractPath(event.url),
+        status: event.status,
+        durationMs: event.duration,
+      };
+      void this.realtime.publish(event.projectId, payload);
+    }
+    for (const event of perfEvents) {
+      if (event.type !== "performance") continue;
+      if (
+        event.metric !== "LCP" &&
+        event.metric !== "INP" &&
+        event.metric !== "CLS"
+      ) {
+        continue;
+      }
+      const payload: { topic: "perf" } & RealtimePerfPayload = {
+        topic: "perf",
+        ts: event.timestamp,
+        metric: event.metric,
+        value: event.value,
+        url: event.page.url,
+      };
+      void this.realtime.publish(event.projectId, payload);
+    }
   }
 
   /**
@@ -256,4 +320,18 @@ function isPageView(
   event: IngestRequest["events"][number],
 ): event is PageViewEvent {
   return event.type === "page_view";
+}
+
+function truncate(input: string, limit: number): string {
+  if (input.length <= limit) return input;
+  return `${input.slice(0, limit)}…`;
+}
+
+/** 从完整 URL 提取 pathname，解析失败回退原值 */
+function extractPath(url: string): string {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url;
+  }
 }

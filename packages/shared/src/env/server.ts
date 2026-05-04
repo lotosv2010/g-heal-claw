@@ -67,6 +67,14 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   // 标准 cron 表达式；默认每周一 03:00 预创建未来分区
   PARTITION_MAINTENANCE_CRON: z.string().min(1).default("0 3 * * 1"),
 
+  // -------- Realtime SSE 大盘（TM.2.C / ADR-0030）--------
+  // 采样率：Gateway 入库后按此概率 publish 到 Redis；0 关闭 realtime，1 全量
+  REALTIME_SAMPLE_RATE: sampleRate.default(1),
+  // Redis Streams 最大长度（每 project × topic）；MAXLEN 约束内存
+  REALTIME_STREAM_MAXLEN: z.coerce.number().int().positive().default(1000),
+  // 每 projectId 最大并发 SSE 连接（超过直接 429）
+  REALTIME_MAX_CONN_PER_PROJECT: z.coerce.number().int().positive().default(10),
+
   // -------- 通知渠道默认值（可选）--------
   DINGTALK_DEFAULT_WEBHOOK: z.url().optional().or(z.literal("")),
   WECHAT_WORK_DEFAULT_WEBHOOK: z.url().optional().or(z.literal("")),

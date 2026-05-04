@@ -9,6 +9,7 @@ import { ResourcesModule } from "../modules/resources/resources.module.js";
 import { CustomModule } from "../modules/custom/custom.module.js";
 import { LogsModule } from "../modules/logs/logs.module.js";
 import { VisitsModule } from "../modules/visits/visits.module.js";
+import { RealtimeModule } from "../modules/realtime/realtime.module.js";
 import { DsnAuthGuard } from "./dsn-auth.guard.js";
 import { GatewayController } from "./gateway.controller.js";
 import { GatewayService } from "./gateway.service.js";
@@ -27,6 +28,7 @@ import { RateLimitService } from "./rate-limit.service.js";
     CustomModule,
     LogsModule,
     VisitsModule,
+    RealtimeModule,
     // TM.E.1：Gateway 作为 events-error 队列 Producer
     BullModule.registerQueue({ name: QueueName.EventsError }),
   ],

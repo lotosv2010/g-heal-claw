@@ -558,9 +558,165 @@
     - 验收：双向可追溯；`pnpm -F @g-heal-claw/docs build` 全绿
     - 依赖：TM.2.E.4
 
-### Tier 3｜总览收口（~2d）
+### Tier 2.C｜实时监控（`/dashboard/realtime` 菜单，~3.5d，ADR-0030）
 
-- [ ] **TM.3.A** `overview` 数据总览：拼接前 9 个模块的汇总卡片 + 全站健康度 — 2d
+> 覆盖：Redis Pub/Sub + Streams 基础设施 + `RealtimeModule` 订阅池 + SSE `/api/v1/stream/realtime` + Gateway 入库后 publish + Web live 页面（EventSource + 虚拟列表 500 + 60s 滚动曲线）。协议范围：仅"平台实时大盘"（观察者视角），用户应用 WS/SSE 观测留独立切片。
+
+- [x] **TM.2.C.1** `RealtimeModule` 骨架 + topic 常量 + Redis Pub/Sub + Streams 封装 — 0.6d ✅ 2026-05-01
+  - 输入：`SharedModule.RedisService` 已提供 `ioredis` 连接（T1.3.5 幂等去重已使用）
+  - 输出：
+    - `apps/server/src/modules/realtime/realtime.module.ts`（@Module，导出 `RealtimeService` + `RealtimePublisher`）
+    - `apps/server/src/modules/realtime/topics.ts`（`REALTIME_TOPICS = { ERROR, API, PERF } as const` + 生成函数 `buildChannel(projectId, topic)` / `buildStreamKey(projectId)`）
+    - `apps/server/src/modules/realtime/realtime-publisher.ts`（`publish(projectId, topic, payload)` → `XADD MAXLEN ~ 1000` + `PUBLISH`，fire-and-forget，失败 WARN 日志）
+    - `app.module.ts` 注册 `RealtimeModule`
+  - 验收：`typecheck + build` 全绿；单测 3 case（MAXLEN 命令构造 / publish 失败吞错 / topic channel 格式）；Redis 离线时不抛错
+  - 依赖：无
+
+- [x] **TM.2.C.2** Gateway 入库后 publish（fire-and-forget） — 0.4d ✅ 2026-05-01
+  - 输入：TM.2.C.1；`GatewayService.ingest*` 现有 3 分流（error / api / perf）已稳定
+  - 输出：
+    - `GatewayService` 注入 `RealtimePublisher`
+    - `ingestError` 入库成功后 `realtime.publish(projectId, 'error', { ts, subType, category, messageHead: msg.slice(0,128), url })`
+    - `ingestApi` 同理 publish `'api'`（method/pathTemplate/status/durationMs）
+    - `ingestPerformance` 仅当 metric ∈ {LCP,INP,CLS} 时 publish `'perf'`（metric/value/url）
+    - `REALTIME_SAMPLE_RATE` env（默认 `1.0`，0~1 浮点）—— `Math.random() >= rate` 跳过 publish；Zod 校验
+    - `.env.example` 追加 `REALTIME_SAMPLE_RATE=1.0`
+  - 验收：单测 4 case（error/api/perf 各 1 + 采样跳过 1）；publish 失败不影响入库响应；payload 体积 ≤ 256 字节（assert 长度）
+  - 依赖：TM.2.C.1
+
+- [x] **TM.2.C.3** `RealtimeService` 订阅池 + Redis Streams 60s 回放 — 0.7d ✅ 2026-05-01
+  - 输入：TM.2.C.1
+  - 输出：
+    - `apps/server/src/modules/realtime/realtime.service.ts`：
+      - 持有一条独立 ioredis 订阅连接（`SUBSCRIBE` 必须专用连接）
+      - `subscribe(projectId, topics, onEvent): unsubscribe` —— 按 projectId psubscribe `rt:<pid>:*`，在内存 Map 里按 subscriberId 管理过滤器（topic 白名单）
+      - `replayFromStream(projectId, lastEventId): AsyncIterable<Event>` —— `XRANGE rt:<pid>:stream (lastEventId +` 读取；最多 1000 条
+      - 连接数限流：每 projectId 最多 10 条活跃订阅（`subscriberCounts: Map<projectId, number>`），超出 `subscribe()` 返回 null
+    - onModuleInit 建立 psubscribe；onModuleDestroy 关闭连接
+  - 验收：单测 5 case（psub 匹配 / topic 过滤 / 超限拒绝 / unsubscribe 释放计数 / replay 空流）；stale subscriber 注册 60s 扫描清理
+  - 依赖：TM.2.C.1
+
+- [x] **TM.2.C.4** SSE Controller `/api/v1/stream/realtime` — 0.5d ✅ 2026-05-01
+  - 输入：TM.2.C.3
+  - 输出：
+    - `apps/server/src/modules/realtime/realtime.controller.ts`：
+      - `@Controller('api/v1/stream')` · `@Get('realtime')`
+      - Zod query `{ projectId, topics?: 'error,api,perf', lastEventId?: string }`
+      - `reply.raw.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' })`
+      - 若带 `Last-Event-ID` 头则先 `replayFromStream` 写入历史；再订阅实时
+      - 心跳：`setInterval(() => reply.raw.write(': ping\n\n'), 15_000)`
+      - `reply.raw.on('close')` → unsubscribe + clear interval
+      - 429 响应：订阅数满时 `reply.code(429).send({ error: 'subscriber limit' })`
+    - Swagger `@ApiTags('realtime')` 标注（响应为 `text/event-stream`）
+  - 验收：e2e 3 case（连接 200 + 心跳 + 收到 publish 事件 / 超限 429 / Last-Event-ID 回放）；断连后服务端订阅计数正确释放
+  - 依赖：TM.2.C.3
+
+- [x] **TM.2.C.5** Web `/dashboard/realtime` live 页面 — 0.8d ✅ 2026-05-01
+  - 输入：TM.2.C.4；`apps/web/lib/nav.ts` `dashboard/realtime` 仍 `placeholder: "SPEC 待补齐（ADR-0013）"`
+  - 输出：
+    - `apps/web/lib/api/realtime.ts`：`createRealtimeStream({ projectId, topics }): { subscribe, close }` 封装 `EventSource`；自动重连（exponential backoff 1s→30s 上限 5 次）；`readyState` → 三态 source
+    - `app/(console)/dashboard/realtime/page.tsx`：`'use client'` + 顶部 `<SourceBadge>` + `StreamHeader`（连接状态 + QPS + topics 筛选 + pause/clear 按钮）
+    - `components/realtime/live-feed.tsx`（虚拟列表 500 条，FIFO 丢弃；按 topic 着色：error 红 / api 蓝 / perf 绿）
+    - `components/realtime/realtime-chart.tsx`（`@ant-design/plots` Line，前端每秒 tick 聚合 60s 窗口：err QPS / api err % / LCP p75）
+    - `lib/nav.ts` `dashboard/realtime` → `placeholder: null`
+  - 验收：`pnpm -F @g-heal-claw/web typecheck && build` 全绿；手动启动 demo + server 触发事件 → feed 实时滚动；断连 3s 内自动重连
+  - 依赖：TM.2.C.4
+
+- [x] **TM.2.C.6** Demo 场景 + docs — 0.3d ✅ 2026-05-01
+  - 输入：TM.2.C.5
+  - 输出：
+    - `examples/nextjs-demo/app/(demo)/dashboard/realtime/page.tsx`：3 按钮（触发 JS error / 发慢 API / 重载页面触发 LCP 上报）+ iframe 嵌入 `/dashboard/realtime` 对比
+    - `demo-scenarios.ts` `dashboard` 分组追加 1 条（若分组不存在则新建）
+    - `apps/docs/docs/guide/dashboard/realtime.mdx`：能力简介 + SSE 协议 + 3 topics payload + 前端接入最小代码 + 常见问题（断连 / 采样 / 429）
+    - `rspress.config.ts` 侧边栏注册
+  - 验收：`pnpm dev:demo` 点三按钮后 live feed 可见对应事件
+  - 依赖：TM.2.C.5
+
+- [x] **TM.2.C.7** 文档传导：SPEC / ARCHITECTURE / ADR — 0.2d ✅ 2026-05-01
+  - 输入：TM.2.C.6
+  - 输出：
+    - `docs/SPEC.md §5` 追加 SSE 端点行 `GET /api/v1/stream/realtime`（query + 事件类型 + 协议）
+    - `docs/ARCHITECTURE.md §3.1` 追加 `RealtimeModule`（从"规划"改"已实现 3 topics"）；§4.3 标注首版已落地
+    - `docs/decisions/0030-dashboard-realtime-slice.md` 状态 提议 → 采纳 + 「后续」引用 demo 路径 + apps/docs 页面
+    - `.env.example` 补 `REALTIME_SAMPLE_RATE`
+    - `CURRENT.md` TM.2.C.1~7 `[x]` + "当前焦点"更新
+  - 验收：双向可追溯；`pnpm -F docs build` 全绿
+  - 依赖：TM.2.C.6
+
+### Tier 3｜总览收口（~1.5d，ADR-0029）
+
+> 5 域 MVP（errors / performance / api / resources / visits）+ 全站健康度（加权公式 errors 40% + LCP 25% + API 20% + resources 15%）。放弃在 overview 拼 custom/logs/tracking。零 SDK / 零新表。
+
+- [x] **TM.3.A.1** `DashboardOverviewService` 装配层 + 健康度计算 — 0.5d
+  - 输入：5 域 service `aggregateSummary`/`aggregateVitals` 已全部就绪
+  - 输出：
+    - `apps/server/src/dashboard/dashboard/overview.service.ts`：
+      - `getOverview({ projectId, windowHours })` → `Promise.allSettled([errors, perf, api, resources, visits])`
+      - 每域 `source: 'live' | 'empty' | 'error'`（失败时 reason 落 WARN 日志）
+      - 健康度：`calcHealth({ errors, perf, api, resources })` 纯函数
+        - `errorRate = errors.totalEvents / max(errors.impactedSessions, 1)`（阈值 0.005 开始扣分，1.0 扣满）
+        - `lcpPenalty`：LCP p75 ≤ 2500 → 0；2500~4000 线性到 0.5；> 4000 → 1
+        - `apiErrorRatePenalty`：阈值 0.01 开始扣分，0.1 扣满
+        - `resourceFailurePenalty`：阈值 0.02 开始扣分，0.2 扣满
+        - 有效域权重动态归一化（空样本域的权重按比例挪给其他域）
+        - 返回 `{ score: round(0~100), tone, components: Array<{ key, contribution, penalty }> }`
+      - 全 5 域 empty → `tone: 'unknown'`, `score: null`
+    - 目录：新建 `apps/server/src/dashboard/dashboard/` 子树（对齐 web）
+  - 验收：单测 ≥8 case（每域 empty / error 各 1 + 全绿正常路径 + 全 empty unknown + 各 penalty 边界 3 case + 权重归一化）
+  - 依赖：无
+
+- [x] **TM.3.A.2** DTO + Controller + 路由 — 0.25d
+  - 输入：TM.3.A.1
+  - 输出：
+    - `apps/server/src/dashboard/dto/overview-summary.dto.ts`：Zod query + response Schema
+      ```ts
+      OverviewSummarySchema = z.object({
+        health: z.object({ score: z.number().nullable(), tone: z.enum(['good','warn','destructive','unknown']), components: z.array(HealthComponentSchema) }),
+        errors: ErrorsCardSchema,
+        performance: PerformanceCardSchema,
+        api: ApiCardSchema,
+        resources: ResourcesCardSchema,
+        visits: VisitsCardSchema,
+        generatedAtMs: z.number(),
+      })
+      ```
+    - `apps/server/src/dashboard/dashboard/overview.controller.ts`：`@Get('/dashboard/v1/overview/summary')` + Zod query pipe + Swagger
+    - `dashboard.module.ts` 追加 import + register
+  - 验收：Swagger 端点可见；Zod 校验失败 400；空 projectId 400
+  - 依赖：TM.3.A.1
+
+- [x] **TM.3.A.3** Web `/dashboard/overview` live 页面 — 0.5d
+  - 输入：TM.3.A.2
+  - 输出：
+    - `apps/web/lib/api/overview.ts`：`getOverviewSummary()` + `emptyOverviewSummary()` + 三态 source
+    - `app/(console)/dashboard/overview/page.tsx`：Server Component，`export const dynamic = 'force-dynamic'`
+    - `components/overview/health-hero-card.tsx`（大号 score + tone Badge + top 3 扣分项 tooltip）
+    - `components/overview/domain-summary-card.tsx`（通用 5 卡，接 `{ title, icon, metrics: [{label, value, tone?}], href, source }`）
+    - 5 个 card 入参：errors / performance / api / resources / visits
+    - `lib/nav.ts` `dashboard/overview` → `placeholder: null`
+  - 验收：`pnpm -F @g-heal-claw/web typecheck && build` 全绿；5 卡 tap 跳转对应子页；empty/error 态 graceful
+  - 依赖：TM.3.A.2
+
+- [x] **TM.3.A.4** Demo + 单测 e2e — 0.15d
+  - 输入：TM.3.A.3
+  - 输出：
+    - `examples/nextjs-demo/app/(demo)/dashboard/overview/page.tsx`：引导性按钮（触发 1 次 error + 1 次 api 500 + 1 次 LCP 上报 + 1 次页面访问）+ 刷新链接 `/dashboard/overview`
+    - `demo-scenarios.ts` 追加 1 条
+    - e2e（`apps/server/tests/e2e/overview.e2e-spec.ts`）：ingest 5 种事件后 GET overview → 5 域均 live + health score > 0
+  - 验收：`pnpm -F @g-heal-claw/server test` 新增 e2e 全绿
+  - 依赖：TM.3.A.3
+
+- [x] **TM.3.A.5** 文档传导 — 0.1d
+  - 输入：TM.3.A.4
+  - 输出：
+    - `apps/docs/docs/guide/dashboard/overview.mdx`：概念 + 5 域覆盖 + 健康度公式 + 权重说明 + FAQ
+    - `rspress.config.ts` 侧边栏注册
+    - `docs/SPEC.md §5` 追加 `/dashboard/v1/overview/summary` 行
+    - `docs/ARCHITECTURE.md §3.1` DashboardModule 描述补 overview 装配
+    - `docs/decisions/0029-dashboard-overview-slice.md` 状态 提议 → 采纳
+    - `CURRENT.md` TM.3.A.1~5 `[x]` + "当前焦点" 更新
+  - 验收：双向可追溯；`pnpm -F docs build` 全绿
+  - 依赖：TM.3.A.4
 
 ### 范围与非范围
 
@@ -806,7 +962,8 @@
 
 > 每周同步更新本节。
 
-- 进行中：（无）
+- 已完成（2026-05-01）：**TM.2.C 实时监控切片（ADR-0030，7 子任务全部 `[x]`）** —— `RealtimeModule` 骨架（topics.ts 常量 + channelKey/streamKey 生成）+ `RealtimeService`（Symbol-keyed 订阅池 + 独立 ioredis subscriber + psubscribe `rt:<pid>:*` + XRANGE 60s 回放 + 每 projectId 最多 10 并发 SSE）+ `RealtimeController` SSE `/api/v1/stream/realtime`（Fastify `reply.hijack()` + 手写 SSE 帧 + 15s 心跳 + Last-Event-ID 回放 + 429 限流）+ Gateway 入库后 fire-and-forget `realtime.publish()`（XADD MAXLEN ~1000 + PUBLISH；仅 error/api/perf(LCP|INP|CLS)；`REALTIME_SAMPLE_RATE` 控制）+ Web `/dashboard/realtime` live 页（EventSource 封装 + 指数退避重连 1s→30s 5 次 + 500 条 FIFO + 10s 窗口 QPS + topic 过滤 + pause/clear + 三态 SourceBadge）+ demo `/dashboard/realtime` 触发器 + `apps/docs/docs/guide/dashboard/realtime.md` 全量重写 + SPEC §5.3 SSE 端点行 + ARCHITECTURE §3.1/§4.3 已实现标注 + ADR-0030 采纳；server typecheck + 10 新增单测全绿 + web typecheck 全绿
+- 已完成（2026-04-30）：**TM.3.A 数据总览切片（ADR-0029，5 子任务全部 `[x]`）** —— `DashboardOverviewService`（`Promise.allSettled` 并发 5 域 + `calcHealth` 纯函数 + 权重重分配 + 11 case 单测）+ `overview-summary.dto.ts`（Zod query + response + HealthComponent）+ `DashboardOverviewController` `/dashboard/v1/overview/summary` + Web `/dashboard/overview` live 页（`lib/api/overview.ts` + `HealthHeroCard` + 5 张等宽 `DomainSummaryGrid` + 三态 SourceBadge）+ demo `/dashboard/overview`（一键触发 errors + api + resources + LCP 样本）+ `apps/docs/docs/guide/dashboard/overview.md` 全量重写（健康度公式 + 接口样例 + FAQ）+ ADR-0029 提议 → 采纳 + nav placeholder 清空；server typecheck + web typecheck + 单测 11/11 全绿
 - 已完成（2026-04-30）：**TM.2.E 用户留存切片（ADR-0028，5 子任务全部 `[x]`）** —— `VisitsService.aggregateRetention`（单次 CTE：scoped → first_seen（HAVING 约束首访在 cohort 窗口）→ visits；identity=session\|user 切换；7 case 单测）+ `DashboardRetentionService/Controller`（装配层 4 case 单测：空 rows/正常矩阵/加权平均/error 兜底 · `retentionByDay` day 0 恒为 1 + 缺失 offset 补 0 · `averageByDay` 按 cohortSize 加权而非简单平均 · 三态 source live/empty/error 不 5xx）+ Web `/tracking/retention` live 页（`lib/api/retention.ts` URL 解析夹紧 + Server Component + `retention-config-form.tsx` URL replace + `summary-cards.tsx` + `retention-heatmap.tsx` CSS Grid 绿色色阶热力图 + `retention-chart.tsx` AntV Line + 三态 SourceBadge）+ demo `/tracking/retention`（刷新 / SPA 导航 / 重置 session 3 触发器 + `README.md #留存造数` psql 3cohort×3session 脚本）+ `apps/docs/docs/guide/tracking/retention.md` 全量重写（URL 参数表 + 字段口径 + psql 验证链路 + FAQ）+ SPEC §5.3 新增 `/dashboard/v1/tracking/retention` 行 + ARCHITECTURE §3.1 VisitsModule 追加 aggregateRetention + §3.2 tracking/retention 从"规划"改为"✅ ADR-0028" + ADR-0020 §8.2 Tier 2.E 落地摘要 + ADR-0028 状态提议 → 采纳；server 7+4 新增单测全绿 + web typecheck & build 全绿
 - 已完成（2026-04-30）：**TM.E ErrorProcessor BullMQ 接管（ADR-0026，7 子任务全部 `[x]`）** —— `shared/queue/queue.module.ts` 全局 BullMQ 连接（Redis URL + 默认 removeOnComplete/removeOnFail）；`modules/sourcemap/*` Service stub（本期原样返回，T1.5.3 替换实现体无需改 Processor）；`modules/errors/error.processor.ts` `@Processor(events-error)` + `concurrency=4` + `@OnWorkerEvent('failed')` 终态 → `DeadLetterService.enqueueEvents`；`modules/partitions/*` `@Cron('0 3 * * 1')` + onModuleInit 立即 tick + ISO 周工具（toIsoWeekMonday/addDays/weeklyPartitionName）+ LOOKAHEAD_WEEKS=8；`gateway.service.ts` `ERROR_PROCESSOR_MODE` 灰度（queue/sync/dual）+ Redis 失败降级 sync + 响应新增 `enqueued` 字段；`ddl.ts` 扩 5 张周分区（2026w21~2026w25，覆盖 2026-05-18~2026-06-22）；`shared/env/server.ts` 新增 5 键；server 260 单测 + 6 e2e + typecheck 全绿；ADR-0026 状态提议 → 采纳；SPEC §5.1 响应补 `enqueued`；ARCHITECTURE §3.4 events-error 🟡 → 🟢 + §4.1.1/§4.1.2 当前实现 vs 目标实现拆分；`.env.example` 追加 2 键；`apps/docs/docs/reference/error-processor.mdx` + `apps/docs/docs/guide/ops/partition-maintenance.mdx` 新建；demo `examples/nextjs-demo/app/errors/page.tsx` 注释追加 `[ErrorProcessor]` 日志观察指引
 - 已完成（2026-04-30）：**TM.2.D 转化漏斗切片（ADR-0027）** —— `TrackingService.aggregateFunnel`（动态 N 步 CTE，9 case 单测）+ `DashboardFunnelService/Controller`（4 case 装配层单测 · conversionFromPrev/conversionFromFirst/overallConversion 4 位小数 + 首末步 0 保护）+ Web `/tracking/funnel` live 页（URL 驱动配置表单 + SummaryCards + FunnelChart + StepsTable + 三态 SourceBadge）+ demo `/tracking/funnel` 3 按钮 + `apps/docs/docs/guide/tracking/funnel.md` + SPEC/ARCHITECTURE/ADR-0020 §8.1 同步；server 237+4/241 全绿 + web/demo typecheck 全绿

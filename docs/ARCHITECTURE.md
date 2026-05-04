@@ -93,7 +93,7 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `SourcemapModule` | Sourcemap 上传/查询/堆栈还原 | HTTP `/sourcemap/*` + Service | Storage、Redis cache |
 | `AlertModule` | 告警规则评估、触发 | BullMQ `alert-evaluator` | DB、Notification |
 | `NotificationModule` | 通知渠道分发（邮件/钉钉/企微/Slack/Webhook/**短信**） | BullMQ `notifications` | 外部 HTTP / SMS Provider |
-| `RealtimeModule` | 将聚合事件通过 Redis Pub/Sub 扇出，向前端推送 SSE | HTTP `/api/v1/stream/*` · `/open/v1/events/stream` | Redis Pub/Sub |
+| `RealtimeModule` | 平台实时大盘（ADR-0030 TM.2.C · 已实现 3 topics：error/api/perf）：Gateway 入库后 fire-and-forget XADD + PUBLISH，SSE `/api/v1/stream/realtime` 订阅池 + Redis Streams MAXLEN 回放 + 15s 心跳 + Last-Event-ID 断线续传 + 每 projectId 连接上限 429 | HTTP `/api/v1/stream/realtime` · `/open/v1/events/stream`（规划） | Redis Pub/Sub + Streams |
 | `DashboardModule` | 面向 Web 的只读聚合 API（首版 ADR-0015 性能大盘直查 `perf_events_raw` + p75；首版 ADR-0016/0019 异常大盘直查 `error_events_raw` 按 9 类目 `category` 聚合 + `(sub_type, message_head)` 字面排行；T1.1.7 后并入 JWT + ProjectGuard） | HTTP `/dashboard/v1/*` → Phase 6 迁移至 `/api/v1/*` | DB、PerformanceService、ErrorsService |
 | `ErrorsModule` | 异常事件切片存储与聚合（ADR-0016 + ADR-0019）：`error_events_raw` 幂等落库（新增 Ajax/API code 列）+ 9 类目 `categoryCards` / `stackBuckets` / `ranking` / `dimensions` 聚合方法，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `PerformanceModule` | 性能事件切片存储与聚合（ADR-0013）：`perf_events_raw` 落库 + p75 / 趋势 / 瀑布 / 慢页面 Top N 聚合 | 进程内 Service | DB |
@@ -277,12 +277,16 @@ SDK ──batch──▶ Gateway ──▶ BullMQ: events-performance ──▶ 
 ### 4.3 实时推送链路
 
 ```
-Processor 写入 metric/issue 时 ──▶ Redis PUBLISH channel=`rt:<projectId>:<topic>`
-RealtimeModule (server) ── SUBSCRIBE ──▶ 维护订阅客户端 Map
-  ├─ SSE: /api/v1/stream/overview    (JWT 鉴权，推送聚合大盘变更)
-  ├─ SSE: /api/v1/stream/issues      (实时新增 Issue)
-  ├─ SSE: /api/v1/stream/heal/:jobId (heal_job 阶段变更)
-  └─ SSE: /open/v1/events/stream     (外部 API Token，事件级别推送，带采样)
+Gateway ingest 入库后 ──▶ Redis XADD rt:<projectId>:stream (MAXLEN ~ 1000) + PUBLISH rt:<projectId>:<topic>
+RealtimeModule (server) ── PSUBSCRIBE rt:<projectId>:* ──▶ 维护订阅客户端 Map（symbol-keyed）
+  ├─ SSE: /api/v1/stream/realtime    (ADR-0030 TM.2.C 已实现 · 3 topics: error/api/perf)
+  │   · Last-Event-ID 头触发 XRANGE 回放 60s 窗口
+  │   · 15s 空注释行心跳
+  │   · 每 projectId 连接上限 REALTIME_MAX_CONN_PER_PROJECT（默认 10），超出 429
+  ├─ SSE: /api/v1/stream/overview    (规划：JWT 鉴权，推送聚合大盘变更)
+  ├─ SSE: /api/v1/stream/issues      (规划：实时新增 Issue)
+  ├─ SSE: /api/v1/stream/heal/:jobId (规划：heal_job 阶段变更)
+  └─ SSE: /open/v1/events/stream     (规划：外部 API Token，事件级别推送，带采样)
 ```
 
 - 订阅客户端在 Redis Key `rt:subs:<projectId>` 以 Set 维护，多 server 实例之间通过 Pub/Sub 自然去中心化。

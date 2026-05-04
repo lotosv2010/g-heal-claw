@@ -11,6 +11,7 @@
  */
 
 export type ScenarioGroupKey =
+  | "dashboard"
   | "performance"
   | "errors"
   | "api"
@@ -37,6 +38,25 @@ export interface ScenarioGroup {
 }
 
 export const SCENARIO_GROUPS: readonly ScenarioGroup[] = [
+  {
+    key: "dashboard",
+    title: "数据总览",
+    description:
+      "5 域一键触发 · 驱动后台「Dashboard → 数据总览」健康度与环比（ADR-0029）",
+    accent: "indigo",
+    routes: [
+      {
+        href: "/dashboard/overview",
+        label: "数据总览触发器",
+        hint: "errors + api + resources + LCP 一键生成 · /dashboard/overview 实时刷新",
+      },
+      {
+        href: "/dashboard/realtime",
+        label: "实时监控触发器",
+        hint: "触发 error / api / perf 样本 · /dashboard/realtime SSE 大盘实时滚动（ADR-0030）",
+      },
+    ],
+  },
   {
     key: "performance",
     title: "页面性能",

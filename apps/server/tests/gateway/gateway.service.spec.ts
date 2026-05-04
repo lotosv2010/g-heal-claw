@@ -11,6 +11,7 @@ import type { PerformanceService } from "../../src/modules/performance/performan
 import type { ResourcesService } from "../../src/modules/resources/resources.service.js";
 import type { TrackingService } from "../../src/modules/tracking/tracking.service.js";
 import type { VisitsService } from "../../src/modules/visits/visits.service.js";
+import type { RealtimeService } from "../../src/modules/realtime/realtime.service.js";
 import type { IdempotencyService } from "../../src/gateway/idempotency.service.js";
 import type { ErrorJobPayload } from "../../src/modules/errors/error.processor.js";
 import { buildErrorEvent } from "../fixtures.js";
@@ -35,6 +36,7 @@ interface Stubs {
   customMetrics: CustomMetricsService;
   logs: LogsService;
   visits: VisitsService;
+  realtime: RealtimeService;
   idempotency: IdempotencyService;
   queue: Queue<ErrorJobPayload>;
   errorsSaveBatch: ReturnType<typeof vi.fn>;
@@ -63,6 +65,9 @@ function buildStubs(opts: { queueThrows?: boolean } = {}): Stubs {
     } as unknown as CustomMetricsService,
     logs: { saveBatch: vi.fn(async () => 0) } as unknown as LogsService,
     visits: { saveBatch: vi.fn(async () => 0) } as unknown as VisitsService,
+    realtime: {
+      publish: vi.fn(async () => undefined),
+    } as unknown as RealtimeService,
     idempotency: {
       dedup: vi.fn(async (events: readonly unknown[]) => ({
         first: events,
@@ -97,6 +102,7 @@ function buildGateway(
     s.customMetrics,
     s.logs,
     s.visits,
+    s.realtime,
     s.idempotency,
     buildEnv(mode),
     s.queue,
