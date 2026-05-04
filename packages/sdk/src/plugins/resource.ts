@@ -59,6 +59,7 @@ interface ResolvedOptions {
   readonly maxBatch: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface ResourceEntry extends PerformanceResourceTiming {
   // 继承 PerformanceResourceTiming，无额外扩展
 }

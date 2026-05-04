@@ -21,10 +21,8 @@ export function loadServerEnv(): ServerEnv {
     return parseEnv(ServerEnvSchema, process.env);
   } catch (err) {
     if (err instanceof EnvValidationError) {
-      // eslint-disable-next-line no-console
       console.error(err.message);
     } else {
-      // eslint-disable-next-line no-console
       console.error(err);
     }
     process.exit(1);

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { SourcemapController } from "../../../src/modules/sourcemap/sourcemap.controller.js";
 import { ApiKeyGuard, type ApiKeyAuthedRequest } from "../../../src/modules/sourcemap/api-key.guard.js";
 import type { DatabaseService } from "../../../src/shared/database/database.service.js";

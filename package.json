@@ -1,6 +1,7 @@
 {
   "name": "g-heal-claw",
   "version": "0.0.1",
+  "type": "module",
   "private": true,
   "description": "Self-healing production monitoring platform — web vitals, error tracking, API performance, and AI-assisted auto-fix for modern web apps.",
   "author": {
@@ -45,10 +46,16 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\""
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/node": "^25.6.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.15.0",
     "prettier": "^3.5.3",
     "turbo": "^2.9.6",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.1"
   },
   "packageManager": "pnpm@10.33.2",
   "engines": {

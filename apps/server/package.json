@@ -40,7 +40,7 @@
     "dev": "nest start --watch",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint .",
     "test": "vitest run && vitest run --config vitest.e2e.config.ts",
     "test:unit": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",

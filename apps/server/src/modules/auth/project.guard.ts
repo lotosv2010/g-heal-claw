@@ -8,7 +8,7 @@ import {
 import { sql } from "drizzle-orm";
 import type { FastifyRequest } from "fastify";
 import { DatabaseService } from "../../shared/database/database.service.js";
-import type { JwtAuthContext, JwtAuthedRequest } from "./jwt-auth.guard.js";
+import type { JwtAuthContext } from "./jwt-auth.guard.js";
 import type { ProjectRole } from "./roles.decorator.js";
 
 export interface ProjectMemberContext {

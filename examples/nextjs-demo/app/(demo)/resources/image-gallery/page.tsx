@@ -63,7 +63,6 @@ export default function ImageGalleryPage() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {images.map((src) => (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             key={src}
             src={src}

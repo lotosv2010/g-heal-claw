@@ -65,7 +65,7 @@
     "build": "vite build",
     "clean": "rimraf dist .turbo",
     "dev": "vite build --watch",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

@@ -27,7 +27,6 @@ export default function ImageLoadPage() {
         刷新（第 {nonce + 1} 次）
       </button>
       <div className="rounded border border-dashed border-emerald-400 p-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={nonce}
           src={broken}

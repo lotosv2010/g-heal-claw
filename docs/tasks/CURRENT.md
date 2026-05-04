@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-04-30（TM.2.A Visits 页面访问简化切片完成：SDK pageViewPlugin + page_view_raw + VisitsModule + /dashboard/v1/visits/overview + Web /monitor/visits live 页面 + demo 场景 + 单测 / typecheck 全绿；推迟 GeoIP / page_duration / session 聚合 / UTM；ADR-0020 Tier 2.A 闭环）
+> 最后更新: 2026-05-04（T1.1.7 认证与项目管理 MVP + T1.1.8 CI 流水线全部完成：JWT 登录/注册/刷新/登出、项目 CRUD、成员 RBAC（owner/admin/member/viewer）、API Token 管理、Web 登录/注册页、ESLint 9 flat config、GitHub Actions CI（lint/typecheck/test/build）、Turbo Remote Cache、370 测试用例全绿；Phase 1 M1.1 基础设施里程碑闭环）
 
 ## 状态说明
 
@@ -218,7 +218,42 @@
         - `CURRENT.md` T1.1.7.1~8 `[x]` + 当前焦点更新
     - 验收：双向可追溯；`pnpm typecheck` 全绿
     - 依赖：T1.1.7.7
-- [ ] **T1.1.8** CI 流水线（Turbo + Lint + Test + Build）— 1d
+- [x] **T1.1.8** CI 流水线（Turbo + Lint + Test + Build）— 1d（2026-05-04 完成）
+  - [x] **T1.1.8.1** 统一 ESLint flat config（eslint.config.js + React + TypeScript 规则）— 0.3d
+    - 输入：apps/web lint 临时 skip，需统一
+    - 输出：
+      - `eslint.config.js`（ESLint 9 flat config）
+      - 覆盖 packages/sdk、shared、cli + apps/server、web、ai-agent + examples/nextjs-demo
+      - 所有 package.json `"lint": "eslint ."`
+      - 根 `package.json` 添加 `"type": "module"`
+    - 验收：`pnpm lint` 全部通过，无错误
+    - 依赖：无
+  - [x] **T1.1.8.2** 创建 GitHub Actions CI workflow（.github/workflows/ci.yml）— 0.2d
+    - 输入：T1.1.8.1 lint 可用
+    - 输出：
+      - `.github/workflows/ci.yml`（3 并行 job：lint-and-typecheck / test / build）
+      - PostgreSQL 16 + Redis 7 服务容器（test job）
+      - pnpm cache 配置
+    - 验收：workflow 文件语法正确，触发条件覆盖 main/dev 分支
+    - 依赖：T1.1.8.1
+  - [x] **T1.1.8.3** 配置 Turbo Remote Caching（turbo.json + CI 环境变量）— 0.2d
+    - 输入：T1.1.8.2 CI workflow 就绪
+    - 输出：
+      - `turbo.json` 启用 `remoteCache: { signature: true }`
+      - CI workflow 所有任务注入 `TURBO_TOKEN` / `TURBO_TEAM`
+      - `docs/CI_SETUP.md` 配置文档
+    - 验收：本地 `turbo link` 可用，CI 注入环境变量正确
+    - 依赖：T1.1.8.2
+  - [x] **T1.1.8.4** 本地验证 CI 流程（lint / typecheck / test / build 全通过）— 0.3d
+    - 输入：T1.1.8.1~3
+    - 输出：
+      - `pnpm lint` 全绿
+      - `pnpm typecheck` 全绿
+      - `pnpm test` 全绿（370 测试用例）
+      - `pnpm turbo build --concurrency=2` 全绿（避免 Next.js worker 冲突）
+      - 修复 auth.service 测试（对齐 dev 环境 admin 默认角色）
+    - 验收：本地执行 4 条命令无错误
+    - 依赖：T1.1.8.1~3
 
 ### M1.2 SDK 核心
 
@@ -1100,8 +1135,9 @@
 - 已完成（2026-04-30）：**TM.E ErrorProcessor BullMQ 接管（ADR-0026，7 子任务全部 `[x]`）** —— `shared/queue/queue.module.ts` 全局 BullMQ 连接（Redis URL + 默认 removeOnComplete/removeOnFail）；`modules/sourcemap/*` Service stub（本期原样返回，T1.5.3 替换实现体无需改 Processor）；`modules/errors/error.processor.ts` `@Processor(events-error)` + `concurrency=4` + `@OnWorkerEvent('failed')` 终态 → `DeadLetterService.enqueueEvents`；`modules/partitions/*` `@Cron('0 3 * * 1')` + onModuleInit 立即 tick + ISO 周工具（toIsoWeekMonday/addDays/weeklyPartitionName）+ LOOKAHEAD_WEEKS=8；`gateway.service.ts` `ERROR_PROCESSOR_MODE` 灰度（queue/sync/dual）+ Redis 失败降级 sync + 响应新增 `enqueued` 字段；`ddl.ts` 扩 5 张周分区（2026w21~2026w25，覆盖 2026-05-18~2026-06-22）；`shared/env/server.ts` 新增 5 键；server 260 单测 + 6 e2e + typecheck 全绿；ADR-0026 状态提议 → 采纳；SPEC §5.1 响应补 `enqueued`；ARCHITECTURE §3.4 events-error 🟡 → 🟢 + §4.1.1/§4.1.2 当前实现 vs 目标实现拆分；`.env.example` 追加 2 键；`apps/docs/docs/reference/error-processor.mdx` + `apps/docs/docs/guide/ops/partition-maintenance.mdx` 新建；demo `examples/nextjs-demo/app/errors/page.tsx` 注释追加 `[ErrorProcessor]` 日志观察指引
 - 已完成（2026-04-30）：**TM.2.D 转化漏斗切片（ADR-0027）** —— `TrackingService.aggregateFunnel`（动态 N 步 CTE，9 case 单测）+ `DashboardFunnelService/Controller`（4 case 装配层单测 · conversionFromPrev/conversionFromFirst/overallConversion 4 位小数 + 首末步 0 保护）+ Web `/tracking/funnel` live 页（URL 驱动配置表单 + SummaryCards + FunnelChart + StepsTable + 三态 SourceBadge）+ demo `/tracking/funnel` 3 按钮 + `apps/docs/docs/guide/tracking/funnel.md` + SPEC/ARCHITECTURE/ADR-0020 §8.1 同步；server 237+4/241 全绿 + web/demo typecheck 全绿
 - 已完成（2026-04-30）：**TM.2.A Visits 页面访问简化切片（ADR-0020 Tier 2.A）** —— SDK `pageViewPlugin`（硬刷新 + history patch，7 case 单测）；`page_view_raw` drizzle schema + DDL + migration 0008；`VisitsModule.VisitsService`（saveBatch + 4 聚合方法）；Gateway 分流；Dashboard `/dashboard/v1/visits/overview`；Web `/monitor/visits` live 页面（SummaryCards + TrendChart + TopPages + TopReferrers + 三态 SourceBadge）；demo 场景 `/visits/page-view`；server 单测 228/228 全绿 + sdk 97/97 全绿 + typecheck 8/8；推迟：GeoIP / page_duration / session_raw / UTM
+- 已完成（2026-05-04）：**T1.1.7 认证与项目管理 MVP（ADR-0032）+ T1.1.8 CI 流水线全部完成** —— AuthModule（注册/登录/刷新/登出 + bcrypt + JWT 双 token + Refresh Redis）；JwtAuthGuard + ProjectGuard + RolesGuard + @Roles() 四角色 RBAC（owner/admin/member/viewer）；ProjectsService CRUD + 创建事务 4 表联写；MembersService 邀请/列表/角色更新/移除；TokensService API Token CRUD；DashboardModule 全量接入三层 Guard；Web `/login` + `/register` 页（shadcn Card + 预填测试账号 admin@example.com / admin123）+ middleware `/` → `/login` 重定向 + token 双写 localStorage + cookie；ESLint 9 flat config（覆盖 packages/sdk、shared + apps/server、web、ai-agent + examples/nextjs-demo）；GitHub Actions CI workflow（3 并行 job：lint-and-typecheck / test / build + PostgreSQL 16 + Redis 7 服务容器）；Turbo Remote Cache 配置（`turbo.json` + `TURBO_TOKEN` / `TURBO_TEAM`）；`docs/CI_SETUP.md` 配置文档；本地验证 370 测试用例全绿 + `pnpm turbo build --concurrency=2` 避免 Next.js worker 冲突；ADR-0032 提议 → 采纳；`apps/docs/docs/reference/auth.md` + demo 脚本；**Phase 1 M1.1 基础设施里程碑完整闭环**
 - 已完成（2026-05-04）：**M1.5 Sourcemap 服务实装（ADR-0031，T1.5.1~T1.5.4 全部 `[x]`）** —— `release_artifacts` Drizzle schema + DDL + 迁移 0009（T1.5.1）；`S3StorageService`（put/get/delete/deletePrefix + MinIO 兼容 + bucket 自动创建，5 case 单测）；`ApiKeyGuard`（X-Api-Key → project_keys.secret_key 校验 + test env bypass）；`SourcemapController` 4 端点（POST releases 幂等 / POST artifacts multipart + UPSERT / GET artifacts / DELETE releases 级联，7 case 单测）；`@fastify/multipart` 50MB 限制注册（T1.5.2）；`SourcemapService.resolveFrames` 真实实现（source-map v0.7 WASM + LRU 100 条 TTL 1h + dispose 回收 + 逐 frame 降级不抛错，11 case 单测）（T1.5.3）；`SOURCEMAP_LRU_CAPACITY` env 新增；demo `upload-sourcemap.sh` curl 脚本（T1.5.4）；`apps/docs/docs/sdk/sourcemap.md` 全量重写（HTTP API + CI 示例 + 还原原理 + 排查表）+ `apps/docs/docs/reference/sourcemap.md` 新建（4 端点完整说明 + 鉴权 + 还原流程 + 错误码）；SPEC §9.2 `release_artifacts` 标记已建表；ARCHITECTURE §4.1.2 SourcemapService 从 stub 切换为已实现；ADR-0031 提议 → 采纳；server 312 单测 + 6 e2e + typecheck 全绿
-- 阶段主题：**Phase 1 收尾完成**（M1.5 Sourcemap 为 Phase 1 最后一块核心拼图，已闭环）+ **菜单完整化 Tier 1~3 全部交付**（ADR-0020）
+- 阶段主题：**Phase 1 M1.1 基础设施 + M1.5 Sourcemap 完整闭环**（JWT 认证 + CI/CD + Sourcemap 还原三项基础设施全部就绪，Phase 1 核心任务完成）+ **菜单完整化 Tier 1~3 全部交付**（ADR-0020）
 - 备选（不阻塞）：GeoIP 地域分布 + page_duration + session_raw 作为 TM.2.A 的增量迭代独立拆任务
 - 最近完成（2026-04-29）：**Tier 1.A API 监控菜单 live 化（TM.1.A 全 6 子任务）** —— SDK `apiPlugin`（独立 `__ghcApiPatched` 标记与 `httpPlugin` 并存，共享 `http-capture.ts` 纯函数；12 case 单测）；`api_events_raw` 表 + drizzle 0004 迁移；`ApiMonitorService`（saveBatch + 4 聚合方法，10 case 单测）；`DashboardApiService` + `/dashboard/v1/api/overview`（summary + 5 状态码桶 + 小时趋势 + Top 慢请求 + 环比）；Web `/api` 页面 4 模块组件（summary-cards / status-buckets / trend-chart AntV 三折线 / top-slow-table）；demo `ghc-provider.tsx` 注册 `apiPlugin({ slowThresholdMs: 300 })`；全量 typecheck 7/7 + server 单元 15 files 123 tests + e2e 6 tests 全绿
 - 最近完成（2026-04-29）：**ADR-0020 菜单完整化交付路线图注册** —— `docs/decisions/0020-menu-delivery-roadmap.md` 三 Tier 分层（Tier 1: api/resources/custom/logs ~10d；Tier 2: visits/projects/realtime ~17d；Tier 3: overview 2d）；关键设计决策：`apiPlugin`（type='api' 采集成功请求）与现有 `httpPlugin`（type='error' 异常分流）并存 + raw 表统一设计 + 前端页面模板化复用 `errors` 结构；`docs/decisions/README.md` 索引更新；`docs/tasks/CURRENT.md` 注入 TM.1.A ~ TM.3.A 子任务树

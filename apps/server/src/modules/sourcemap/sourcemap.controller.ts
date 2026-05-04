@@ -7,7 +7,6 @@ import {
   Logger,
   Param,
   Post,
-  Query,
   Req,
   Res,
   UseGuards,

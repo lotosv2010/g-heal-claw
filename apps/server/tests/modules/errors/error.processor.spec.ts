@@ -17,7 +17,7 @@ import { buildErrorEvent } from "../../fixtures.js";
  *  4. 非终态失败：不入 DLQ（交给 BullMQ 继续重试）
  */
 
-function buildEnv(overrides: Partial<ServerEnv> = {}): ServerEnv {
+function buildEnv(_overrides: Partial<ServerEnv> = {}): ServerEnv {
   return {
     ERROR_PROCESSOR_ATTEMPTS: 3,
     ERROR_PROCESSOR_BACKOFF_MS: 2000,

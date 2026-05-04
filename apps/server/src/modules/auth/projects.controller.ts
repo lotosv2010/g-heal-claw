@@ -15,7 +15,7 @@ import {
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
 import { JwtAuthGuard, type JwtAuthedRequest } from "./jwt-auth.guard.js";
-import { ProjectGuard, type ProjectAuthedRequest } from "./project.guard.js";
+import { ProjectGuard } from "./project.guard.js";
 import { RolesGuard } from "./roles.guard.js";
 import { Roles } from "./roles.decorator.js";
 import { ProjectsService } from "./projects.service.js";

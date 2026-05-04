@@ -66,9 +66,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     const code = (err as { code?: string } | null)?.code;
     const message = (err as Error | null)?.message ?? String(err);
 
-    // eslint-disable-next-line no-console
     console.error(`\n[DatabaseService] 连接或建表失败：${masked}`);
-    // eslint-disable-next-line no-console
     console.error(`  code=${code ?? "unknown"}  message=${message}`);
 
     const hints: Record<string, string> = {
@@ -83,10 +81,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     };
     const hint = code ? hints[code] : undefined;
     if (hint) {
-      // eslint-disable-next-line no-console
       console.error(`\n  → ${hint}\n`);
     } else {
-      // eslint-disable-next-line no-console
       console.error("");
     }
   }

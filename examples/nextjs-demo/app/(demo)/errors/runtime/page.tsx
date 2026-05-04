@@ -23,7 +23,6 @@ export default function RuntimeErrorPage() {
     // 故意深取一个不存在的属性
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const bad = (user.profile as any).nickname as string;
-    // eslint-disable-next-line no-console
     console.log(bad.toUpperCase());
   };
 

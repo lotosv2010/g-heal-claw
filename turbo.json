@@ -1,9 +1,13 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "remoteCache": {
+    "signature": true
+  },
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["NODE_ENV"]
     },
     "dev": {
       "cache": false,

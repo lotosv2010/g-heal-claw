@@ -23,7 +23,6 @@ export default function PromiseErrorPage() {
     const run = async () => {
       throw new Error(`[demo] async throw #${count + 1}`);
     };
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     run();
   };
 

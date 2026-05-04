@@ -3,7 +3,6 @@ import {
   Inject,
   Injectable,
   Logger,
-  NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
 import { randomBytes } from "node:crypto";

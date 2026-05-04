@@ -9,7 +9,6 @@ import {
 import { sql } from "drizzle-orm";
 import { SERVER_ENV, type ServerEnv } from "../../config/env.js";
 import { DatabaseService } from "../../shared/database/database.service.js";
-import type { ProjectRole } from "./roles.decorator.js";
 
 export interface MemberItem {
   readonly userId: string;

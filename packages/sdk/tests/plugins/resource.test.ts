@@ -23,6 +23,7 @@ import type { Transport } from "../../src/transport/types.js";
  *  - 幂等 setup（同一 hub 只订阅一次）
  */
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface FakeResourceEntry extends PerformanceResourceTiming {
   // 已由 PerformanceResourceTiming 覆盖所有字段
 }

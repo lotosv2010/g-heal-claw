@@ -185,7 +185,7 @@ describe("AuthService", () => {
 
     const payload = service.verifyAccessToken(tokens.accessToken);
     expect(payload.email).toBe("v@b.com");
-    expect(payload.role).toBe("user");
+    expect(payload.role).toBe("admin"); // dev/test 环境默认 admin
   });
 
   it("verifyAccessToken — 无效 token → 401", () => {

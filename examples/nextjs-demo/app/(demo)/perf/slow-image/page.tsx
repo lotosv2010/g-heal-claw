@@ -41,7 +41,6 @@ export default function SlowImagePage() {
           </button>
         ))}
       </div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt="LCP 目标"

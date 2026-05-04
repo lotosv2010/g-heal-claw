@@ -135,9 +135,9 @@ describe("RealtimeService.subscribe", () => {
     });
     // 使用私有 dispatch 走正常路径：通过手工触发 pmessage 回调语义
     // 这里直接调用内部 dispatch（通过 any 桥）验证过滤
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     (service as any).dispatch("rt:p:error", JSON.stringify(errorPayload));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     (service as any).dispatch(
       "rt:p:api",
       JSON.stringify({

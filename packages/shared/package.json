@@ -63,7 +63,7 @@
     "build": "tsc --build",
     "clean": "rimraf dist .turbo",
     "dev": "tsc --build --watch",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

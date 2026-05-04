@@ -38,7 +38,7 @@
     "build": "next build",
     "start": "next start -p 3000",
     "clean": "rimraf .next .turbo",
-    "lint": "echo \"(web) lint skipped — Next 16 removed next lint; ESLint flat config 待在 T1.1.7 统一接入\"",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

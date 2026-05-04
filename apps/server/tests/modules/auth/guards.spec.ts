@@ -4,11 +4,11 @@ import { Reflector } from "@nestjs/core";
 import { JwtAuthGuard } from "../../../src/modules/auth/jwt-auth.guard.js";
 import { ProjectGuard } from "../../../src/modules/auth/project.guard.js";
 import { RolesGuard } from "../../../src/modules/auth/roles.guard.js";
-import { ROLES_KEY } from "../../../src/modules/auth/roles.decorator.js";
+import { _ROLES_KEY } from "../../../src/modules/auth/roles.decorator.js";
 
 // ---- mock 辅助 ----
 
-function makeEnv() {
+function _makeEnv() {
   return {
     JWT_SECRET: "0123456789012345678901234567890123",
     JWT_EXPIRES_IN: "1h",
@@ -23,7 +23,7 @@ function makeDb(db: { execute: ReturnType<typeof vi.fn> } | null = null) {
   return { db } as never;
 }
 
-function makeRedis() {
+function _makeRedis() {
   const store = new Map<string, string>();
   return {
     client: {

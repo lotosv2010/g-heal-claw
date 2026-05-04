@@ -18,7 +18,6 @@ export default function JsLoadPage() {
     s.src = url;
     s.async = true;
     s.onerror = () => {
-      // eslint-disable-next-line no-console
       console.info(`[demo] script 加载失败：${url}`);
     };
     document.head.appendChild(s);

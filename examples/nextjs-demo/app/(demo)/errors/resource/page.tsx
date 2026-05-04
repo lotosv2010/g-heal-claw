@@ -28,7 +28,6 @@ export default function ResourceErrorPage() {
         重试加载（第 {nonce + 1} 次）
       </button>
       <div className="rounded border border-dashed border-red-400 p-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={nonce}
           src={broken}

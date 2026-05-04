@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { ProjectRole } from "../roles.decorator.js";
 
 export const InviteMemberSchema = z.object({
   email: z.string().email("邮箱格式无效"),
