@@ -1,10 +1,12 @@
-import { Controller, Get, Query, UsePipes } from "@nestjs/common";
+import { Controller, Get, Query, UseGuards, UsePipes } from "@nestjs/common";
 import {
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
 } from "@nestjs/swagger";
+import { JwtAuthGuard } from "../../modules/auth/jwt-auth.guard.js";
+import { ProjectGuard } from "../../modules/auth/project.guard.js";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
 import { DashboardFunnelService } from "./funnel.service.js";
 import {
@@ -20,6 +22,7 @@ import {
  * 零新表 / 零 SDK / 零 RBAC 依赖；漏斗定义由 URL steps CSV 传入，天然可分享。
  */
 @ApiTags("dashboard")
+@UseGuards(JwtAuthGuard, ProjectGuard)
 @Controller("dashboard/v1/tracking/funnel")
 export class DashboardFunnelController {
   public constructor(private readonly service: DashboardFunnelService) {}

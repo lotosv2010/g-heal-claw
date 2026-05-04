@@ -29,16 +29,16 @@ export const BaseEnvSchema = z.object({
   // -------- 基础设施：Redis --------
   REDIS_URL: z.url(),
 
-  // -------- 基础设施：MinIO / S3 对象存储 --------
-  MINIO_ROOT_USER: z.string().min(1),
-  MINIO_ROOT_PASSWORD: z.string().min(1),
-  MINIO_ENDPOINT: z.url(),
+  // -------- 基础设施：MinIO / S3 对象存储（可选，未配置时 Sourcemap 功能降级跳过）--------
+  MINIO_ROOT_USER: z.string().min(1).optional(),
+  MINIO_ROOT_PASSWORD: z.string().min(1).optional(),
+  MINIO_ENDPOINT: z.url().optional(),
   MINIO_REGION: z.string().min(1).default("us-east-1"),
-  MINIO_ACCESS_KEY: z.string().min(1),
-  MINIO_SECRET_KEY: z.string().min(1),
-  MINIO_BUCKET_SOURCEMAPS: z.string().min(1),
-  MINIO_BUCKET_EVENTS: z.string().min(1),
-  MINIO_BUCKET_HEAL: z.string().min(1),
+  MINIO_ACCESS_KEY: z.string().min(1).optional(),
+  MINIO_SECRET_KEY: z.string().min(1).optional(),
+  MINIO_BUCKET_SOURCEMAPS: z.string().min(1).optional(),
+  MINIO_BUCKET_EVENTS: z.string().min(1).optional(),
+  MINIO_BUCKET_HEAL: z.string().min(1).optional(),
 
   // -------- 应用运行时 --------
   NODE_ENV: z

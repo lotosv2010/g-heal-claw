@@ -11,6 +11,7 @@
  */
 
 import type { OverviewSource } from "./performance";
+import { buildServerHeaders } from "./server-fetch";
 
 export type RetentionIdentity = "session" | "user";
 
@@ -123,7 +124,7 @@ export async function getRetentionOverview(
   try {
     const response = await fetch(url, {
       cache: "no-store",
-      headers: { accept: "application/json" },
+      headers: buildServerHeaders(),
     });
     if (!response.ok) {
       console.error(

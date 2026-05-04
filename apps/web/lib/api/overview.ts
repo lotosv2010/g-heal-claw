@@ -7,6 +7,7 @@
  */
 
 import type { OverviewSource } from "./performance";
+import { buildServerHeaders } from "./server-fetch";
 
 export type HealthTone = "good" | "warn" | "destructive" | "unknown";
 export type DeltaDirection = "up" | "down" | "flat";
@@ -89,7 +90,7 @@ export async function getOverviewSummary(): Promise<OverviewSummaryResult> {
   try {
     const response = await fetch(url, {
       cache: "no-store",
-      headers: { accept: "application/json" },
+      headers: buildServerHeaders(),
     });
     if (!response.ok) {
       console.error(

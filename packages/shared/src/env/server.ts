@@ -22,6 +22,7 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   JWT_EXPIRES_IN: durationString.default("1h"),
   REFRESH_TOKEN_SECRET: z.string().min(32),
   REFRESH_TOKEN_EXPIRES_IN: durationString.default("7d"),
+  BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(31).default(12),
 
   // -------- 限流与采样 --------
   GATEWAY_RATE_LIMIT_PER_SEC: z.coerce.number().int().positive().default(100),

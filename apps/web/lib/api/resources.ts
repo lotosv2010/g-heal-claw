@@ -8,6 +8,7 @@
  */
 
 import type { OverviewSource } from "./performance";
+import { buildServerHeaders } from "./server-fetch";
 
 export type DeltaDirection = "up" | "down" | "flat";
 
@@ -126,7 +127,7 @@ export async function getResourcesOverview(): Promise<ResourcesOverviewResult> {
   try {
     const response = await fetch(url, {
       cache: "no-store",
-      headers: { accept: "application/json" },
+      headers: buildServerHeaders(),
     });
     if (!response.ok) {
       console.error(

@@ -40,12 +40,17 @@ export class S3StorageService implements StorageService, OnModuleInit {
   public constructor(
     @Inject(SERVER_ENV) private readonly env: ServerEnv,
   ) {
-    this.bucket = env.MINIO_BUCKET_SOURCEMAPS;
+    this.bucket = env.MINIO_BUCKET_SOURCEMAPS ?? "sourcemaps";
   }
 
   public async onModuleInit(): Promise<void> {
     if (this.env.NODE_ENV === "test") {
       this.logger.log("NODE_ENV=test，跳过 S3 初始化");
+      return;
+    }
+    // MinIO 未配置时降级跳过，Sourcemap 上传/解析不可用
+    if (!this.env.MINIO_ENDPOINT || !this.env.MINIO_ACCESS_KEY || !this.env.MINIO_SECRET_KEY) {
+      this.logger.warn("MINIO_ENDPOINT / ACCESS_KEY / SECRET_KEY 未配置，Sourcemap 存储不可用");
       return;
     }
     this.client = new S3Client({
@@ -57,7 +62,13 @@ export class S3StorageService implements StorageService, OnModuleInit {
       },
       forcePathStyle: true, // MinIO 必须
     });
-    await this.ensureBucket();
+    try {
+      await this.ensureBucket();
+    } catch (err) {
+      // MinIO 不可达时降级，不阻塞 server 启动
+      this.logger.warn(`MinIO 连接失败，Sourcemap 存储不可用：${(err as Error).message}`);
+      this.client = null;
+    }
   }
 
   public async put(

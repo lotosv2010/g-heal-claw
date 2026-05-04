@@ -9,6 +9,7 @@
  */
 
 import type { OverviewSource } from "./performance";
+import { buildServerHeaders } from "./server-fetch";
 
 /**
  * 服务端子类型 —— 与 `ErrorEventSchema.subType` 同构（共 7 种）
@@ -239,7 +240,7 @@ export async function getErrorOverview(): Promise<ErrorOverviewResult> {
   try {
     const response = await fetch(url, {
       cache: "no-store",
-      headers: { accept: "application/json" },
+      headers: buildServerHeaders(),
     });
     if (!response.ok) {
       console.error(

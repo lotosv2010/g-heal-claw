@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 
@@ -13,10 +14,20 @@ import { Topbar } from "@/components/dashboard/topbar";
  * Topbar 使用 `useSearchParams()` 订阅 URL 时间参数；Next 16 要求其必须位于
  * Suspense 边界内，否则静态预渲染会命中 CSR bailout 导致构建失败。
  * 外层占位保持 Topbar 尺寸（h-14 + border-b），避免 hydration 闪烁。
+ *
+ * 认证令牌注入：
+ *  - 从 cookie 读取 accessToken，注入 globalThis 供服务端组件的 fetch 调用使用
  */
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // 从 cookie 读取 accessToken 并注入全局（供服务端组件 getAccessToken() 使用）
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get("ghc-at")?.value;
+  if (accessToken) {
+    globalThis._serverAccessToken = accessToken;
+  }
+
   return (
     <div className="bg-background min-h-screen">
       <Sidebar />

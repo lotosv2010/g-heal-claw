@@ -136,7 +136,88 @@
     - 输出：web app 可独立开发与构建
     - 验收：typecheck / build 通过；10 条菜单全部可达
     - 依赖：T1.1.6.9
-- [ ] **T1.1.7** 认证与项目管理 MVP（JWT 登录、项目 CRUD、成员 RBAC、API Token 管理）— 4d
+- [x] **T1.1.7** 认证与项目管理 MVP（ADR-0032：JWT + RBAC + 项目 CRUD + Token 管理）— 4d（2026-05-04 全部完成）
+  - [x] **T1.1.7.1** AuthModule 骨架 + AuthService（注册/登录/刷新/登出）+ bcrypt + JWT 签发 + Refresh Token Redis 存储 — 1.2d（2026-05-04 完成：12 单测全绿，typecheck 通过）
+    - 输入：`users` 表已建（ADR-0017）；`JWT_SECRET` / `REFRESH_TOKEN_SECRET` 已在 `ServerEnvSchema`；`RedisService` 已就绪
+    - 输出：
+      - `apps/server/src/modules/auth/auth.module.ts`（Module 注册）
+      - `apps/server/src/modules/auth/auth.service.ts`（register / login / refresh / logout / hashPassword / comparePassword / signTokens / revokeRefreshToken）
+      - `apps/server/src/modules/auth/auth.controller.ts`（`@Controller('api/v1/auth')` 5 端点：POST register / POST login / POST refresh / POST logout / GET me）
+      - `apps/server/src/modules/auth/dto/register.dto.ts`（Zod：email + password + displayName?）
+      - `apps/server/src/modules/auth/dto/login.dto.ts`（Zod：email + password）
+      - `apps/server/src/modules/auth/dto/refresh.dto.ts`（Zod：refreshToken）
+      - `apps/server/src/modules/auth/dto/auth-response.dto.ts`（Zod：accessToken + refreshToken + user）
+      - `apps/server/package.json` 新增 `bcryptjs` + `@types/bcryptjs` + `jsonwebtoken` + `@types/jsonwebtoken`
+      - `packages/shared/src/env/server.ts` 新增 `BCRYPT_ROUNDS`（默认 12）
+      - `.env.example` 追加 `BCRYPT_ROUNDS=12`
+    - 验收：`typecheck` 全绿；单测 ≥ 10 case（注册成功 / 邮箱重复 409 / 登录成功 / 密码错误 401 / refresh 成功 / refresh 过期 401 / refresh 轮换旧 token 失效 / logout 删除 / me 返回用户信息 / db=null 短路）
+    - 依赖：无
+  - [x] **T1.1.7.2** JwtAuthGuard + ProjectGuard + RolesGuard + @Roles() 装饰器 — 0.8d（2026-05-04 完成：17 Guard 单测全绿）
+    - 输入：T1.1.7.1（AuthService JWT 签发逻辑可复用验证）
+    - 输出：
+      - `apps/server/src/modules/auth/jwt-auth.guard.ts`（Bearer token 解码 → `req.user: JwtAuthContext`；test env 短路）
+      - `apps/server/src/modules/auth/project.guard.ts`（从 query/params/body 取 projectId → 查 `project_members` → `req.projectMember: { role }`；系统 admin 自动放行）
+      - `apps/server/src/modules/auth/roles.guard.ts`（读 `@Roles()` 元数据 → 对比 `req.projectMember.role` 角色等级）
+      - `apps/server/src/modules/auth/roles.decorator.ts`（`@Roles(...roles)` 自定义参数装饰器 + `ROLES_KEY` 元数据 key）
+    - 验收：单测 ≥ 8 case（JwtAuthGuard 正常 / 无 header 401 / 过期 401 / 畸形 token 401；ProjectGuard 成员通过 / 非成员 403 / admin 放行；RolesGuard viewer 被 admin 最低要求拒绝 / owner 通过）
+    - 依赖：T1.1.7.1
+  - [x] **T1.1.7.3** ProjectsService + ProjectsController（项目 CRUD + 创建事务 4 表联写）— 0.8d（2026-05-04 完成：11 单测全绿）
+    - 输入：T1.1.7.2（Guards 就绪）；`projects` / `project_keys` / `project_members` / `environments` 表已建
+    - 输出：
+      - `apps/server/src/modules/auth/projects.service.ts`（create / list / getById / update / softDelete；create 内事务：INSERT projects + project_members(owner) + project_keys(默认) + environments×3）
+      - `apps/server/src/modules/auth/projects.controller.ts`（`@Controller('api/v1/projects')` 5 端点 + Guards + Swagger）
+      - `apps/server/src/modules/auth/dto/create-project.dto.ts`（Zod：name + slug + platform?）
+      - `apps/server/src/modules/auth/dto/update-project.dto.ts`（Zod：name? + slug? + platform? + retentionDays?）
+    - 验收：单测 ≥ 7 case（创建项目 + 4 表联写验证 / slug 重复 409 / 列表仅返回自己的项目 / 详情 / 更新 / 软删除 / viewer 无权更新 403）
+    - 依赖：T1.1.7.2
+  - [x] **T1.1.7.4** MembersService + MembersController（成员邀请/列表/角色更新/移除）— 0.6d（2026-05-04 完成：9 单测全绿）
+    - 输入：T1.1.7.3（ProjectsController 就绪）
+    - 输出：
+      - `apps/server/src/modules/auth/members.service.ts`（list / invite / updateRole / remove）
+      - `apps/server/src/modules/auth/members.controller.ts`（`@Controller('api/v1/projects/:projectId/members')` 4 端点）
+      - `apps/server/src/modules/auth/dto/invite-member.dto.ts`（Zod：email + role）
+      - `apps/server/src/modules/auth/dto/update-member.dto.ts`（Zod：role）
+    - 验收：单测 ≥ 6 case（列出成员 / 邀请成功 / 邀请不存在 email 400 / owner 不可被降级 / 不可移除自己 / viewer 无权邀请 403）
+    - 依赖：T1.1.7.3
+  - [x] **T1.1.7.5** TokensService + TokensController（API Token CRUD + secretKey 脱敏）— 0.4d（2026-05-04 完成：8 单测全绿）
+    - 输入：T1.1.7.3（ProjectsController 就绪）
+    - 输出：
+      - `apps/server/src/modules/auth/tokens.service.ts`（list / create / update / remove；create 返回完整 secretKey，list 脱敏）
+      - `apps/server/src/modules/auth/tokens.controller.ts`（`@Controller('api/v1/projects/:projectId/tokens')` 4 端点）
+      - `apps/server/src/modules/auth/dto/create-token.dto.ts`（Zod：label?）
+    - 验收：单测 ≥ 4 case（创建返回完整 key / 列表脱敏 / 更新 label+is_active / 删除）
+    - 依赖：T1.1.7.3
+  - [x] **T1.1.7.6** DashboardModule 全量接入 JwtAuthGuard + ProjectGuard — 0.4d（2026-05-04 完成：12 Controller + DashboardModule imports 更新，全测试绿）
+    - 输入：T1.1.7.2（Guards 就绪）；DashboardModule 现有 11 个 Controller
+    - 输出：
+      - `dashboard.module.ts` providers 追加 JwtAuthGuard + ProjectGuard
+      - 11 个 Dashboard Controller 添加 `@UseGuards(JwtAuthGuard, ProjectGuard)`
+      - 现有 e2e 测试适配（注入 mock user token 或 Guard 短路）
+    - 验收：`typecheck` 全绿；现有 e2e 仍通过（test env Guard 短路）；手动 curl `/dashboard/v1/errors/overview` 无 Bearer → 401
+    - 依赖：T1.1.7.2
+  - [x] **T1.1.7.7** 单测 + e2e 补齐 — 0.5d（2026-05-04 完成：58 auth 单测全绿，随 T1.1.7.1~T1.1.7.5 同步完成）
+    - 输入：T1.1.7.1 ~ T1.1.7.6
+    - 输出：
+      - `tests/modules/auth/auth.service.spec.ts`（核心认证流程）
+      - `tests/modules/auth/auth.controller.spec.ts`（HTTP 层端点）
+      - `tests/modules/auth/projects.service.spec.ts`（CRUD + 事务）
+      - `tests/modules/auth/guards.spec.ts`（三层 Guard 组合）
+      - e2e 扩展：注册 → 登录 → 创建项目 → 查询 Dashboard（全链路）
+    - 验收：`pnpm test` 新增 ≥ 30 case 全绿；覆盖认证全流程 + RBAC 拒绝路径
+    - 依赖：T1.1.7.1 ~ T1.1.7.6
+  - [x] **T1.1.7.8** 文档传导 + Demo + apps/docs — 0.3d（2026-05-04 完成：demo 脚本 + reference/auth.md + ADR-0032 采纳 + rspress sidebar）
+    - 输入：T1.1.7.7
+    - 输出：
+      - **Demo**：`examples/nextjs-demo/scripts/auth-flow.sh`（curl 示例：注册 → 登录 → 创建项目 → 邀请成员 → 查询 Dashboard with Bearer）
+      - **Docs**：`apps/docs/docs/reference/auth.md`（认证 API 5 端点 + 项目 API 5 端点 + 成员 4 端点 + Token 4 端点 + 鉴权流程 + 角色权限矩阵 + 错误码）
+      - **项目文档传导**：
+        - `docs/SPEC.md §5.3` 路由状态从规划 → 已实现
+        - `docs/ARCHITECTURE.md §3.1` 新增 AuthModule 行
+        - `docs/decisions/0032-auth-module-mvp.md` 状态 提议 → 采纳
+        - `rspress.config.ts` 侧边栏 reference 追加 Auth API
+        - `CURRENT.md` T1.1.7.1~8 `[x]` + 当前焦点更新
+    - 验收：双向可追溯；`pnpm typecheck` 全绿
+    - 依赖：T1.1.7.7
 - [ ] **T1.1.8** CI 流水线（Turbo + Lint + Test + Build）— 1d
 
 ### M1.2 SDK 核心

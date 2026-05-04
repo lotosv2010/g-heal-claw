@@ -1,10 +1,12 @@
-import { Controller, Get, Query, UsePipes } from "@nestjs/common";
+import { Controller, Get, Query, UseGuards, UsePipes } from "@nestjs/common";
 import {
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
 } from "@nestjs/swagger";
+import { JwtAuthGuard } from "../../modules/auth/jwt-auth.guard.js";
+import { ProjectGuard } from "../../modules/auth/project.guard.js";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
 import { DashboardVisitsService } from "./visits.service.js";
 import {
@@ -19,6 +21,7 @@ import {
  * 本期仅面向 Web 前端；鉴权 / 项目隔离交给 T1.1.7。
  */
 @ApiTags("dashboard")
+@UseGuards(JwtAuthGuard, ProjectGuard)
 @Controller("dashboard/v1/visits")
 export class DashboardVisitsController {
   public constructor(private readonly service: DashboardVisitsService) {}

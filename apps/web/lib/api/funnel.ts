@@ -11,6 +11,7 @@
  */
 
 import type { OverviewSource } from "./performance";
+import { buildServerHeaders } from "./server-fetch";
 
 export interface FunnelStep {
   readonly index: number;
@@ -128,7 +129,7 @@ export async function getFunnelOverview(
   try {
     const response = await fetch(url, {
       cache: "no-store",
-      headers: { accept: "application/json" },
+      headers: buildServerHeaders(),
     });
     if (!response.ok) {
       console.error(

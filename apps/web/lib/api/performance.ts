@@ -5,6 +5,8 @@
  * 后端契约稳定后可抽入 packages/shared，当前保留两侧演进自由度。
  */
 
+import { buildServerHeaders } from "./server-fetch";
+
 /**
  * 性能指标枚举（与后端 DTO `apps/server/src/dashboard/dto/overview.dto.ts` 对齐）
  *
@@ -203,7 +205,7 @@ export async function getPerformanceOverview(
   try {
     const response = await fetch(url, {
       cache: "no-store",
-      headers: { accept: "application/json" },
+      headers: buildServerHeaders(),
     });
     if (!response.ok) {
       // eslint-disable-next-line no-console

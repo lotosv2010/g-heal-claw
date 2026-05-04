@@ -8,6 +8,7 @@
  */
 
 import type { OverviewSource } from "./performance";
+import { buildServerHeaders } from "./server-fetch";
 
 export type DeltaDirection = "up" | "down" | "flat";
 export type StatusBucket = "2xx" | "3xx" | "4xx" | "5xx" | "0" | "other";
@@ -142,7 +143,7 @@ export async function getApiOverview(): Promise<ApiOverviewResult> {
   try {
     const response = await fetch(url, {
       cache: "no-store",
-      headers: { accept: "application/json" },
+      headers: buildServerHeaders(),
     });
     if (!response.ok) {
       console.error(

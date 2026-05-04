@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { AuthModule } from "../modules/auth/auth.module.js";
 import { ApiModule } from "../modules/api/api.module.js";
 import { CustomModule } from "../modules/custom/custom.module.js";
 import { ErrorsModule } from "../modules/errors/errors.module.js";
@@ -39,6 +40,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
  */
 @Module({
   imports: [
+    AuthModule,
     PerformanceModule,
     ErrorsModule,
     ApiModule,

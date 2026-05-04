@@ -1,5 +1,7 @@
-import { Controller, Get, Query, UsePipes } from "@nestjs/common";
+import { Controller, Get, Query, UseGuards, UsePipes } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { JwtAuthGuard } from "../../modules/auth/jwt-auth.guard.js";
+import { ProjectGuard } from "../../modules/auth/project.guard.js";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
 import { DashboardOverviewService } from "./overview.service.js";
 import {
@@ -16,6 +18,7 @@ import {
  * - 无 RBAC（T1.1.7 未交付），沿用 `NEXT_PUBLIC_DEFAULT_PROJECT_ID`
  */
 @ApiTags("dashboard")
+@UseGuards(JwtAuthGuard, ProjectGuard)
 @Controller("dashboard/v1/overview")
 export class DashboardOverviewController {
   public constructor(private readonly service: DashboardOverviewService) {}

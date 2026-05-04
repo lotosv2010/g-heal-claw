@@ -1,10 +1,12 @@
-import { Controller, Get, Query, UsePipes } from "@nestjs/common";
+import { Controller, Get, Query, UseGuards, UsePipes } from "@nestjs/common";
 import {
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
 } from "@nestjs/swagger";
+import { JwtAuthGuard } from "../../modules/auth/jwt-auth.guard.js";
+import { ProjectGuard } from "../../modules/auth/project.guard.js";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
 import { DashboardRetentionService } from "./retention.service.js";
 import {
@@ -23,6 +25,7 @@ import {
  *     Controller 仍挂在 tracking/ 用户视角菜单，形成 domain=Visits / presentation=Tracking。
  */
 @ApiTags("dashboard")
+@UseGuards(JwtAuthGuard, ProjectGuard)
 @Controller("dashboard/v1/tracking/retention")
 export class DashboardRetentionController {
   public constructor(

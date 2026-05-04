@@ -1,10 +1,12 @@
-import { Controller, Get, Query, UsePipes } from "@nestjs/common";
+import { Controller, Get, Query, UseGuards, UsePipes } from "@nestjs/common";
 import {
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
 } from "@nestjs/swagger";
+import { JwtAuthGuard } from "../../modules/auth/jwt-auth.guard.js";
+import { ProjectGuard } from "../../modules/auth/project.guard.js";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
 import { DashboardExposureService } from "./exposure.service.js";
 import {
@@ -20,6 +22,7 @@ import {
  * 子集，不新增 schema / 队列 / SDK 能力。鉴权 / 项目隔离交给 T1.1.7。
  */
 @ApiTags("dashboard")
+@UseGuards(JwtAuthGuard, ProjectGuard)
 @Controller("dashboard/v1/tracking/exposure")
 export class DashboardExposureController {
   public constructor(private readonly service: DashboardExposureService) {}

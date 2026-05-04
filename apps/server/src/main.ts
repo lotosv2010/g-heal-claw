@@ -26,7 +26,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: [env.PUBLIC_WEB_BASE_URL, "http://localhost:3100"],
     credentials: true,
-    methods: ["GET", "POST", "OPTIONS"],
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   });
 
   // Swagger 仅非生产环境挂载

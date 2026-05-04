@@ -3,13 +3,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { DateRange } from "react-day-picker";
-import { ChevronDown, Clock, RefreshCw } from "lucide-react";
+import { ChevronDown, Clock, LogOut, RefreshCw, User } from "lucide-react";
 import { GithubIcon } from "@/components/dashboard/github-icon";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { findNavByPathname } from "@/lib/nav";
+import { apiLogout, getAccessToken } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_PRESET,
@@ -110,6 +119,23 @@ export function Topbar() {
   const canApply = !!(draftRange?.from && draftRange.to);
   const activePreset: PresetKey | null =
     selection.kind === "preset" ? selection.preset : null;
+
+  // 用户信息：从 access token payload 解析（简易方式，仅获取 email）
+  const userEmail = useMemo(() => {
+    const token = getAccessToken();
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.email as string | undefined;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await apiLogout();
+    router.push("/login");
+  }, [router]);
 
   return (
     // Topbar：磨砂半透明背景（macOS 窗口 toolbar 风），极弱底部分割
@@ -270,6 +296,23 @@ export function Topbar() {
             <GithubIcon className="size-4" aria-hidden />
           </a>
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" aria-label="用户菜单">
+              <User className="size-4" aria-hidden />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={6}>
+            <DropdownMenuLabel className="text-[13px] font-normal">
+              {userEmail || "用户"}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="gap-2">
+              <LogOut className="size-3.5" aria-hidden />
+              登出
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <ThemeToggle />
       </div>
     </header>
