@@ -390,6 +390,16 @@
     - 验收：≥ 12 case 全绿
     - 依赖：T1.2.3.1~4
 - [ ] **T1.2.4** 设备与页面上下文采集（ua-parser / viewport / network / page info）— 1d
+  - [ ] **T1.2.4.1** `contextPlugin`（UA 轻量解析 + viewport + network + page 信息注入 BaseEvent）— 0.7d
+    - 输入：`createBaseEvent` 已有 device/page 骨架字段
+    - 输出：`packages/sdk/src/plugins/context.ts`（正则 UA 解析 browser/os/device + `navigator.connection` + `screen` + `location`）
+    - 验收：事件 payload 含 `device.browser` / `device.os` / `device.deviceType` / `page.url` / `network.effectiveType`；SSR 降级；体积 +<0.5KB
+    - 依赖：无
+  - [ ] **T1.2.4.2** 单测 + demo 注册 + 体积验证 — 0.3d
+    - 输入：T1.2.4.1
+    - 输出：`tests/plugins/context.test.ts`（≥6 case）+ demo `ghc-provider.tsx` 注册
+    - 验收：SDK 全量 gzip 增幅 < 1KB
+    - 依赖：T1.2.4.1
 - [x] **T1.2.5** 上报传输层（ADR-0034：批量队列 + 多通道协商）— 3d（2026-05-06 完成：queue + sender + transport factory）
   - [ ] **T1.2.5.1** `transport/queue.ts` 事件队列（内存 buffer + maxBatchSize + flushInterval + pagehide flush）— 0.8d
     - 输入：Transport interface 已定义
@@ -1079,7 +1089,27 @@
   - [x] **T2.1.6.5** `apps/web/lib/api/performance.ts` 改为真实 fetch + `emptyOverview()` 降级 + `source` 三态；`apps/web/.env.example` 新增 `NEXT_PUBLIC_DEFAULT_PROJECT_ID=proj_demo`；移除 `lib/fixtures/performance.ts` — 0.2d（完成 2026-04-27）
   - [x] **T2.1.6.6** `apps/web/app/(console)/monitor/performance/page.tsx`（ADR-0021 菜单重组后路由迁移自 `(dashboard)/performance/`）处理 live/empty/error 三态；`export const dynamic = "force-dynamic"` 避免 SSG 冻结 — 0.2d（完成 2026-04-27）
   - [x] **T2.1.6.7** 端到端验证：server typecheck/build/test（5/5 全绿）；web typecheck/build（`/performance` 标记 ƒ Dynamic）— 0.4d（完成 2026-04-27）
-- [ ] **T2.1.7** web/performance 页面增强（环比切换 / 分页面瀑布图 / ECharts 深度定制）— 5d
+- [ ] **T2.1.7** web/performance 页面增强（环比切换 / 分页面瀑布图 / 图表定制）— 5d
+  - [ ] **T2.1.7.1** 环比视图组件（当前 vs 前周期切换 Tab + 指标卡 delta 高亮）— 1d
+    - 输入：后端已返回 `deltaPercent` / `deltaDirection`；前端已渲染但无切换交互
+    - 输出：`core-vitals-panel.tsx` 增加"环比"Tab 切换 + 前周期数据并列展示
+    - 验收：点击环比 Tab 显示两列数据对比；无数据态正常
+    - 依赖：无
+  - [ ] **T2.1.7.2** 分页面瀑布图（按 URL path 分组 + 可展开子瀑布）— 1.5d
+    - 输入：后端 `aggregateWaterfallSamples` 已按 path 可分组
+    - 输出：`page-waterfall.tsx` 改造为可选择页面路径 + 独立瀑布渲染
+    - 验收：下拉选择具体页面后瀑布图更新；默认展示全局聚合
+    - 依赖：无
+  - [ ] **T2.1.7.3** 趋势图增强（多指标叠加 + tooltip 丰富 + 时间轴联动）— 1.5d
+    - 输入：前端 AntV Line 已渲染基础趋势
+    - 输出：`trend-chart.tsx` 支持 legend 切换多指标 + crosshair tooltip + 时间轴缩放
+    - 验收：可同时展示 LCP + FCP + TTFB 趋势；tooltip 显示精确值
+    - 依赖：无
+  - [ ] **T2.1.7.4** 收尾（typecheck + build + 体验微调）— 1d
+    - 输入：T2.1.7.1~3
+    - 输出：全部组件 typecheck 通过 + build 通过 + 响应式适配
+    - 验收：`pnpm -F @g-heal-claw/web typecheck && build` 全绿
+    - 依赖：T2.1.7.1~3
 - [x] **T2.1.8** 性能模块完整性切片（ADR-0018；SDK 已落地 longTaskPlugin / speedIndexPlugin，本切片补齐 FSP + 长任务分级 + SI 趋势白名单 + 回归测试 + 面板润色）— 5d（2026-05-06 全部完成）
   - **P0（指标矩阵完整性，阻断）**
     - [x] **T2.1.8.P0.1** 核实 SI 后端聚合路径：`aggregateTrend` 白名单已含 `'SI'`（第 284 行）；`aggregateVitals` 通过 `metric IS NOT NULL` 自动纳入 — 已验证
@@ -1275,8 +1305,16 @@
 ## 跨 Phase 持续事项
 
 - [ ] **TX.1** 文档：每个模块完成后更新 `SPEC.md` / `ARCHITECTURE.md` / `DESIGN.md` 对应章节
-- [ ] **TX.2** 每双周压测 Gateway + Processor，记录基线
-- [ ] **TX.3** SDK 体积预算 CI Gate（变更超 1KB 需审批）
+- [ ] **TX.2** 压测基线更新（k6 Gateway + Processor 指标刷新）— 0.5d
+  - 输入：`apps/server/bench/ingest.k6.js` 已存在
+  - 输出：执行压测并记录基线数字到 bench/README.md
+  - 验收：p95 / p99 / 吞吐量数字记录
+  - 依赖：无
+- [ ] **TX.3** SDK 体积预算 CI Gate（变更超 1KB 需审批）— 0.5d
+  - 输入：CI workflow 已就绪
+  - 输出：`.github/workflows/ci.yml` 追加 SDK size check step
+  - 验收：PR 中 SDK 体积增幅 > 1KB 时 CI 标红
+  - 依赖：无
 - [ ] **TX.4** 灰度发布流程（自研功能开关服务或 GrowthBook 接入评估）
 - [ ] **TX.5** `docs/decisions/` 补全关键决策 ADR-0001 ~ ADR-0008
 
