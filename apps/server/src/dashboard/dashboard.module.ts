@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../modules/auth/auth.module.js";
+import { SourcemapModule } from "../modules/sourcemap/sourcemap.module.js";
 import { ApiModule } from "../modules/api/api.module.js";
 import { CustomModule } from "../modules/custom/custom.module.js";
 import { ErrorsModule } from "../modules/errors/errors.module.js";
@@ -30,6 +31,8 @@ import { DashboardFunnelController } from "./tracking/funnel.controller.js";
 import { DashboardFunnelService } from "./tracking/funnel.service.js";
 import { DashboardRetentionController } from "./tracking/retention.controller.js";
 import { DashboardRetentionService } from "./tracking/retention.service.js";
+import { DashboardSourcemapController } from "./settings/sourcemap.controller.js";
+import { DashboardSourcemapService } from "./settings/sourcemap.service.js";
 import { DashboardTrackingController } from "./tracking/tracking.controller.js";
 import { DashboardTrackingService } from "./tracking/tracking.service.js";
 
@@ -49,6 +52,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
     CustomModule,
     LogsModule,
     VisitsModule,
+    SourcemapModule,
   ],
   controllers: [
     DashboardPerformanceController,
@@ -63,6 +67,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
     DashboardLogsController,
     DashboardVisitsController,
     DashboardOverviewController,
+    DashboardSourcemapController,
   ],
   providers: [
     DashboardPerformanceService,
@@ -77,6 +82,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
     DashboardLogsService,
     DashboardVisitsService,
     DashboardOverviewService,
+    DashboardSourcemapService,
   ],
 })
 export class DashboardModule {}

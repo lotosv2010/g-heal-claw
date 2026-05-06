@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,8 @@ import { apiLogin, AuthApiError } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const reason = searchParams.get("reason");
   const [email, setEmail] = useState("admin@example.com");
   const [password, setPassword] = useState("admin123");
   const [error, setError] = useState("");
@@ -29,7 +31,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await apiLogin(email, password);
-      router.push("/monitor/performance");
+      const from = searchParams.get("from");
+      router.push(from ?? "/monitor/performance");
     } catch (err) {
       if (err instanceof AuthApiError) {
         setError(err.message || "登录失败，请检查邮箱和密码");
@@ -49,6 +52,11 @@ export default function LoginPage() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          {reason === "session_expired" && !error && (
+            <div className="rounded-lg bg-amber-50 px-3 py-2 text-[13px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+              登录已过期，请重新登录
+            </div>
+          )}
           {error && (
             <div className="bg-destructive/10 text-destructive rounded-lg px-3 py-2 text-[13px]">
               {error}

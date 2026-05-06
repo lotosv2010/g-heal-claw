@@ -11,7 +11,8 @@
  */
 
 import type { OverviewSource } from "./performance";
-import { buildServerHeaders } from "./server-fetch";
+import { getActiveProjectId, getActiveEnvironment } from "./context";
+import { dashboardFetch } from "./server-fetch";
 
 export type RetentionIdentity = "session" | "user";
 
@@ -110,9 +111,11 @@ export async function getRetentionOverview(
 ): Promise<RetentionOverviewResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-  const projectId = process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID ?? "demo";
+  const projectId = getActiveProjectId();
+  const environment = getActiveEnvironment();
   const params = new URLSearchParams({
     projectId,
+    environment,
     cohortDays: String(query.cohortDays),
     returnDays: String(query.returnDays),
     identity: query.identity,
@@ -122,10 +125,7 @@ export async function getRetentionOverview(
   const url = `${baseUrl}/dashboard/v1/tracking/retention?${params.toString()}`;
 
   try {
-    const response = await fetch(url, {
-      cache: "no-store",
-      headers: buildServerHeaders(),
-    });
+    const response = await dashboardFetch(url);
     if (!response.ok) {
       console.error(
         `[retention-overview] ${response.status} ${response.statusText} @ ${url}`,

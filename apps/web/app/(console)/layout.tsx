@@ -21,16 +21,26 @@ import { Topbar } from "@/components/dashboard/topbar";
 export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // 从 cookie 读取 accessToken 并注入全局（供服务端组件 getAccessToken() 使用）
+  // 从 cookie 读取 accessToken / projectId / environment 并注入全局
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("ghc-at")?.value;
   if (accessToken) {
     globalThis._serverAccessToken = accessToken;
   }
+  const projectId = cookieStore.get("ghc-project")?.value;
+  if (projectId) {
+    globalThis._serverProjectId = projectId;
+  }
+  const environment = cookieStore.get("ghc-env")?.value;
+  if (environment) {
+    globalThis._serverEnvironment = environment;
+  }
 
   return (
     <div className="bg-background min-h-screen">
-      <Sidebar />
+      <Suspense fallback={<div className="fixed inset-y-0 left-0 z-30 hidden w-60 md:block" />}>
+        <Sidebar />
+      </Suspense>
       <div className="flex h-screen flex-col md:pl-60">
         <Suspense
           fallback={

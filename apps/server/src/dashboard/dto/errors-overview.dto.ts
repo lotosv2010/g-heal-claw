@@ -20,6 +20,8 @@ export const ErrorsOverviewQuerySchema = z.object({
   windowHours: z.coerce.number().int().min(1).max(168).default(24),
   /** topGroups 返回条数，默认 10，最大 50 */
   limitGroups: z.coerce.number().int().min(1).max(50).default(10),
+  /** 环境过滤（可选，如 'production' / 'staging'） */
+  environment: z.string().optional(),
 });
 export type ErrorsOverviewQuery = z.infer<typeof ErrorsOverviewQuerySchema>;
 

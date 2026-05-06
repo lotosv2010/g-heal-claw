@@ -8,7 +8,8 @@
  */
 
 import type { OverviewSource } from "./performance";
-import { buildServerHeaders } from "./server-fetch";
+import { getActiveProjectId, getActiveEnvironment } from "./context";
+import { dashboardFetch } from "./server-fetch";
 
 export type DeltaDirection = "up" | "down" | "flat";
 export type StatusBucket = "2xx" | "3xx" | "4xx" | "5xx" | "0" | "other";
@@ -135,16 +136,13 @@ export const STATUS_BUCKET_TONE: Record<StatusBucket, string> = {
 export async function getApiOverview(): Promise<ApiOverviewResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-  const projectId = process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID ?? "demo";
-  const url = `${baseUrl}/dashboard/v1/api/overview?projectId=${encodeURIComponent(
-    projectId,
-  )}`;
+  const projectId = getActiveProjectId();
+  const environment = getActiveEnvironment();
+  const qs = new URLSearchParams({ projectId, environment });
+  const url = `${baseUrl}/dashboard/v1/api/overview?${qs.toString()}`;
 
   try {
-    const response = await fetch(url, {
-      cache: "no-store",
-      headers: buildServerHeaders(),
-    });
+    const response = await dashboardFetch(url);
     if (!response.ok) {
       console.error(
         `[api-overview] ${response.status} ${response.statusText} @ ${url}`,

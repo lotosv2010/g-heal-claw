@@ -12,6 +12,8 @@ export interface VisitsWindowParams {
   readonly projectId: string;
   readonly sinceMs: number;
   readonly untilMs: number;
+  readonly granularity?: "hour" | "day";
+  readonly environment?: string;
 }
 
 /** 聚合：总览 PV / UV / 硬刷新占比 */
@@ -158,19 +160,23 @@ export class VisitsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
+    const trunc = params.granularity === "day"
+      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
+      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
     const rows = await db.execute<{
       hour: Date | string;
       pv: string | number;
       uv: string | number;
     }>(sql`
       SELECT
-        date_trunc('hour', to_timestamp(ts_ms / 1000.0))  AS hour,
+        ${trunc}                                          AS hour,
         COUNT(*)                                          AS pv,
         COUNT(DISTINCT session_id)                        AS uv
       FROM page_view_raw
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
       GROUP BY hour
       ORDER BY hour ASC
     `);

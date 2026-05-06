@@ -23,6 +23,8 @@ export const ResourcesOverviewQuerySchema = z.object({
   limitSlow: z.coerce.number().int().min(1).max(50).default(10),
   /** topFailingHosts 返回条数，默认 10，最大 50 */
   limitHosts: z.coerce.number().int().min(1).max(50).default(10),
+  /** 环境过滤（可选，如 'production' / 'staging'） */
+  environment: z.string().optional(),
 });
 export type ResourcesOverviewQuery = z.infer<
   typeof ResourcesOverviewQuerySchema

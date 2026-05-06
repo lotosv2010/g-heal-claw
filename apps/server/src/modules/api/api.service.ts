@@ -12,6 +12,8 @@ export interface ApiWindowParams {
   readonly projectId: string;
   readonly sinceMs: number;
   readonly untilMs: number;
+  readonly granularity?: "hour" | "day";
+  readonly environment?: string;
 }
 
 /** 聚合：总览（样本量 / 慢占比 / 错误率 / p75） */
@@ -215,6 +217,9 @@ export class ApiService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
+    const trunc = params.granularity === "day"
+      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
+      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
     const rows = await db.execute<{
       hour: Date | string;
       n: string | number;
@@ -224,7 +229,7 @@ export class ApiService {
       ok: string | number;
     }>(sql`
       SELECT
-        date_trunc('hour', to_timestamp(ts_ms / 1000.0))                  AS hour,
+        ${trunc}                                                          AS hour,
         COUNT(*)                                                          AS n,
         COUNT(*) FILTER (WHERE slow = true)                               AS slow,
         COUNT(*) FILTER (WHERE failed = true)                             AS failed,
@@ -234,6 +239,7 @@ export class ApiService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
       GROUP BY hour
       ORDER BY hour ASC
     `);

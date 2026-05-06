@@ -5,6 +5,8 @@
  * 从 globalThis 读取 token（由 (console)/layout 注入）。
  */
 
+import { redirect } from "next/navigation";
+
 /**
  * 构建请求头，自动注入 Authorization（如有 token）
  */
@@ -22,17 +24,35 @@ export function buildServerHeaders(extra?: Record<string, string>): Record<strin
 }
 
 /**
- * 服务端 fetch 包装：自动注入 token，统一错误处理
+ * 服务端 fetch 包装：自动注入 token，401 时重定向到登录页
  */
 export async function serverFetch<T>(url: string): Promise<T> {
   const response = await fetch(url, {
     cache: "no-store",
     headers: buildServerHeaders(),
   });
+  if (response.status === 401) {
+    redirect("/login?reason=session_expired");
+  }
   if (!response.ok) {
     throw new Error(`${response.status} ${response.statusText}`);
   }
   return response.json() as Promise<T>;
+}
+
+/**
+ * 服务端 dashboard fetch：包含 401 → redirect 逻辑
+ * 各 API 客户端统一调用此函数替代裸 fetch
+ */
+export async function dashboardFetch(url: string): Promise<Response> {
+  const response = await fetch(url, {
+    cache: "no-store",
+    headers: buildServerHeaders(),
+  });
+  if (response.status === 401) {
+    redirect("/login?reason=session_expired");
+  }
+  return response;
 }
 
 // globalThis 类型声明

@@ -120,13 +120,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         slug: "settings/projects",
         label: "应用管理",
         icon: FolderKanban,
-        placeholder: "Phase 1 交付",
+        placeholder: null,
       },
       {
         slug: "settings/sourcemaps",
         label: "Source Map",
         icon: UploadCloud,
-        placeholder: "Phase 1 交付",
+        placeholder: null,
       },
       {
         slug: "settings/alerts",
@@ -144,7 +144,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         slug: "settings/members",
         label: "成员与权限",
         icon: ShieldCheck,
-        placeholder: "Phase 1 交付",
+        placeholder: null,
       },
       {
         slug: "settings/ai",
@@ -156,7 +156,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         slug: "settings/tokens",
         label: "API Keys",
         icon: KeyRound,
-        placeholder: "Phase 1 交付",
+        placeholder: null,
       },
     ],
   },

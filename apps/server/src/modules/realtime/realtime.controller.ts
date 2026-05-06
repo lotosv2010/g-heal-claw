@@ -85,11 +85,15 @@ export class RealtimeController {
     // 先尝试注册订阅者；超限立即 429（此时还未写任何 SSE header）
     // 注意：listener 必须同步可用 —— 先准备 writer 再注册
     const raw = reply.raw;
+    // EventSource 跨域时浏览器可能不发 Origin；直接允许请求来源或回退通配
+    const origin = (req.headers.origin as string | undefined) ?? "*";
     raw.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Credentials": origin !== "*" ? "true" : undefined,
     });
     // Fastify 需要主动切到 hijack 语义，否则框架会再写一次响应
     reply.hijack();

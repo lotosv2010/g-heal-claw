@@ -1,7 +1,35 @@
-import { PlaceholderPage } from "@/components/dashboard/placeholder-page";
-import { findNav } from "@/lib/nav";
+import { listMembers } from "@/lib/api/members";
+import { listProjects } from "@/lib/api/projects";
+import { MembersClient } from "@/components/settings/members-client";
+import { Badge } from "@/components/ui/badge";
 
-export default function Page() {
-  const nav = findNav("settings/members")!;
-  return <PlaceholderPage title={nav.label} phase={nav.placeholder ?? ""} />;
+export const dynamic = "force-dynamic";
+
+export default async function MembersPage() {
+  const projectsResult = await listProjects();
+  const projectId = projectsResult.data[0]?.id;
+
+  if (!projectId) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <h1 className="mb-4 text-lg font-semibold">成员与权限</h1>
+        <p className="text-muted-foreground py-20 text-center text-sm">
+          请先创建项目后再管理成员
+        </p>
+      </div>
+    );
+  }
+
+  const result = await listMembers(projectId);
+
+  return (
+    <div className="mx-auto max-w-3xl">
+      {result.source === "error" && (
+        <Badge variant="destructive" className="mb-4">
+          数据加载失败
+        </Badge>
+      )}
+      <MembersClient projectId={projectId} initialMembers={[...result.data]} />
+    </div>
+  );
 }

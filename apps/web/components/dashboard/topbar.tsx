@@ -20,6 +20,8 @@ import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { findNavByPathname } from "@/lib/nav";
 import { apiLogout, getAccessToken } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { ProjectSwitcher } from "./project-switcher";
+import { EnvironmentSwitcher } from "./environment-switcher";
 import {
   DEFAULT_PRESET,
   TIME_PRESETS,
@@ -140,40 +142,14 @@ export function Topbar() {
   return (
     // Topbar：磨砂半透明背景（macOS 窗口 toolbar 风），极弱底部分割
     <header className="bg-background/75 sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between border-b border-black/[0.04] px-8 backdrop-blur-xl dark:border-white/[0.06]">
-      {/* 左：页面名 + 项目/DNS/环境（占位） */}
+      {/* 左：页面名 + 项目切换 + 环境切换 */}
       <div className="flex min-w-0 items-center gap-4">
         <h1 className="text-foreground truncate text-[15px] font-semibold tracking-tight">
           {pageTitle}
         </h1>
         <span className="bg-border/70 h-4 w-px" aria-hidden />
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          aria-label="切换项目（占位）"
-        >
-          <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden />
-          <span>demo · production</span>
-          <ChevronDown className="text-muted-foreground size-3.5" aria-hidden />
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          aria-label="切换 DNS（占位）"
-        >
-          <span>DNS: 默认</span>
-          <ChevronDown className="text-muted-foreground size-3.5" aria-hidden />
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          aria-label="切换环境（占位）"
-        >
-          <span>环境: production</span>
-          <ChevronDown className="text-muted-foreground size-3.5" aria-hidden />
-        </Button>
+        <ProjectSwitcher />
+        <EnvironmentSwitcher />
       </div>
 
       {/* 右：时间选择器（单 Popover：左快捷按钮 / 右日期范围）+ 刷新 */}

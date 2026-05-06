@@ -11,6 +11,8 @@ export interface LogsWindowParams {
   readonly projectId: string;
   readonly sinceMs: number;
   readonly untilMs: number;
+  readonly granularity?: "hour" | "day";
+  readonly environment?: string;
 }
 
 export interface LogsSummaryRow {
@@ -156,6 +158,9 @@ export class LogsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
+    const trunc = params.granularity === "day"
+      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
+      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
     const rows = await db.execute<{
       hour: Date | string;
       info: string | number;
@@ -163,7 +168,7 @@ export class LogsService {
       err: string | number;
     }>(sql`
       SELECT
-        date_trunc('hour', to_timestamp(ts_ms / 1000.0)) AS hour,
+        ${trunc} AS hour,
         COUNT(*) FILTER (WHERE level = 'info')           AS info,
         COUNT(*) FILTER (WHERE level = 'warn')           AS warn,
         COUNT(*) FILTER (WHERE level = 'error')          AS err
@@ -171,6 +176,7 @@ export class LogsService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
       GROUP BY hour
       ORDER BY hour ASC
     `);

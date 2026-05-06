@@ -9,7 +9,8 @@
  */
 
 import type { OverviewSource } from "./performance";
-import { buildServerHeaders } from "./server-fetch";
+import { getActiveProjectId, getActiveEnvironment } from "./context";
+import { dashboardFetch } from "./server-fetch";
 
 /**
  * 服务端子类型 —— 与 `ErrorEventSchema.subType` 同构（共 7 种）
@@ -232,16 +233,13 @@ export const CATEGORY_COLLECTED: Record<ErrorCategory, boolean> = {
 export async function getErrorOverview(): Promise<ErrorOverviewResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-  const projectId = process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID ?? "demo";
-  const url = `${baseUrl}/dashboard/v1/errors/overview?projectId=${encodeURIComponent(
-    projectId,
-  )}`;
+  const projectId = getActiveProjectId();
+  const environment = getActiveEnvironment();
+  const qs = new URLSearchParams({ projectId, environment });
+  const url = `${baseUrl}/dashboard/v1/errors/overview?${qs.toString()}`;
 
   try {
-    const response = await fetch(url, {
-      cache: "no-store",
-      headers: buildServerHeaders(),
-    });
+    const response = await dashboardFetch(url);
     if (!response.ok) {
       console.error(
         `[errors] ${response.status} ${response.statusText} @ ${url}`,

@@ -7,7 +7,8 @@
  */
 
 import type { OverviewSource } from "./performance";
-import { buildServerHeaders } from "./server-fetch";
+import { getActiveProjectId, getActiveEnvironment } from "./context";
+import { dashboardFetch } from "./server-fetch";
 
 export type HealthTone = "good" | "warn" | "destructive" | "unknown";
 export type DeltaDirection = "up" | "down" | "flat";
@@ -82,16 +83,13 @@ export interface OverviewSummaryResult {
 export async function getOverviewSummary(): Promise<OverviewSummaryResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-  const projectId = process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID ?? "demo";
-  const url = `${baseUrl}/dashboard/v1/overview/summary?projectId=${encodeURIComponent(
-    projectId,
-  )}`;
+  const projectId = getActiveProjectId();
+  const environment = getActiveEnvironment();
+  const qs = new URLSearchParams({ projectId, environment });
+  const url = `${baseUrl}/dashboard/v1/overview/summary?${qs.toString()}`;
 
   try {
-    const response = await fetch(url, {
-      cache: "no-store",
-      headers: buildServerHeaders(),
-    });
+    const response = await dashboardFetch(url);
     if (!response.ok) {
       console.error(
         `[overview-summary] ${response.status} ${response.statusText} @ ${url}`,

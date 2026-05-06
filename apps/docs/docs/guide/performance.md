@@ -9,7 +9,7 @@
 1. **常用指标卡** —— FMP / TTFB / DOM Ready / 页面完全加载 / 采样数量
 2. **性能视图** —— Web Vitals 24h 趋势（p75 多指标折线）
 3. **页面加载瀑布图** —— Navigation Timing 各阶段耗时
-4. **Core Web Vitals（三段式）** —— LCP / FID / CLS / FCP / TTI / INP，分「优 / 中 / 差」三段占比
+4. **Core Web Vitals（三段式）** —— LCP / INP / CLS / FCP / TTFB + TBT / SI（活跃指标）；FID / TTI 标记 `Deprecated`，仅渲染历史数据
 5. **首屏时间 FMP Top** —— 按页面聚合，FMP p75 倒序
 6. **维度分布** —— 浏览器 / OS / 平台（已接入）+ 6 占位维度
 

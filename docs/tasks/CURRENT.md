@@ -667,8 +667,76 @@
   - [x] **TM.2.A.6** Web `/monitor/visits` live 页面（SummaryCards + TrendChart + TopPages + TopReferrers + 三态 SourceBadge）— 0.5d（完成 2026-04-30）
   - [x] **TM.2.A.7** Demo 场景 `/visits/page-view` + SDK/Server 单测 + docs 传导 — 0.3d（完成 2026-04-30）
   - 推迟：GeoIP 地域分布、page_duration 停留时长、session_raw 会话聚合、UTM 渠道归因（后续单独拆任务）
-- [ ] **TM.2.B** `projects` 应用管理（项目 CRUD + API Token + RBAC）— 7d
-  - **前置**：T1.1.7 JWT + RBAC 认证 MVP（4d）必须先行
+- [x] **TM.2.B** Settings 管理页面 Web UI（ADR-0033：projects / members / tokens / sourcemaps 4 页 CRUD）— ~4d（2026-05-06 完成）
+  - **前置**：T1.1.7 ✅ + M1.5 ✅（后端全部就绪）
+  - [x] **TM.2.B.1** UI 原语补齐 + API 客户端基础设施 — 0.4d（2026-05-06 完成：dialog + select + confirm-dialog + 4 API 客户端，typecheck 全绿）
+    - 输入：shadcn/ui 已有 button/card/badge/table/tabs/input/label/skeleton；`lib/api/server-fetch.ts` 已就绪
+    - 输出：
+      - `apps/web/components/ui/dialog.tsx`（shadcn/ui Dialog）
+      - `apps/web/components/ui/select.tsx`（shadcn/ui Select）
+      - `apps/web/components/settings/confirm-dialog.tsx`（通用确认弹窗：title + description + onConfirm + destructive variant）
+      - `apps/web/lib/api/projects.ts`（`listProjects / createProject / updateProject / deleteProject` + 三态 source）
+      - `apps/web/lib/api/members.ts`（`listMembers / inviteMember / updateMemberRole / removeMember`）
+      - `apps/web/lib/api/tokens.ts`（`listTokens / createToken / deleteToken`）
+      - `apps/web/lib/api/sourcemaps.ts`（`listReleases / listArtifacts / deleteRelease`）
+    - 验收：`pnpm -F @g-heal-claw/web typecheck` 全绿；4 个 API 客户端导出类型完整
+    - 依赖：无
+  - [x] **TM.2.B.2** 后端 Sourcemap Dashboard 代理端点 — 0.4d（2026-05-06 完成：DashboardSourcemapController 3 端点 + DashboardSourcemapService + SourcemapModule export STORAGE_SERVICE；370+6 测试全绿）
+    - 输入：`releases` / `release_artifacts` 表已建；`dashboard/settings/.gitkeep` 占位已存在
+    - 输出：
+      - `apps/server/src/dashboard/settings/sourcemap.controller.ts`（`@Controller('dashboard/v1/settings/sourcemaps')` + `@UseGuards(JwtAuthGuard, ProjectGuard)` + 3 端点：GET releases / GET releases/:id/artifacts / DELETE releases/:id）
+      - `apps/server/src/dashboard/settings/sourcemap.service.ts`（薄代理：listReleases / listArtifacts / deleteRelease — 直查 DB，删除时级联清理 MinIO）
+      - `dashboard.module.ts` 注册 Controller + Service
+      - `apps/server/tests/dashboard/settings/sourcemap.controller.spec.ts`（4 case：列表 / artifacts / 删除级联 / 无权 403）
+    - 验收：`pnpm -F @g-heal-claw/server typecheck && test` 全绿；Swagger `/api-docs` 可见 3 端点
+    - 依赖：无
+  - [x] **TM.2.B.3** `/settings/projects` 应用管理页面 — 0.8d（2026-05-06 完成）
+    - 输入：TM.2.B.1 API 客户端就绪
+    - 输出：
+      - `apps/web/components/settings/project-card.tsx`（项目卡片：name + slug + platform + 创建时间 + 操作按钮）
+      - `apps/web/components/settings/create-project-dialog.tsx`（表单：name + slug + platform 下拉）
+      - `apps/web/components/settings/edit-project-dialog.tsx`（表单：name + slug + platform + retentionDays）
+      - `apps/web/app/(console)/settings/projects/page.tsx`（Server Component 首屏 fetch + Client 交互组件）
+    - 验收：`typecheck && build` 全绿；创建/编辑/删除流程可交互；空项目态展示引导
+    - 依赖：TM.2.B.1
+  - [x] **TM.2.B.4** `/settings/members` 成员权限页面 — 0.7d（2026-05-06 完成）
+    - 输入：TM.2.B.1 + TM.2.B.3（需要 projectId 来源）
+    - 输出：
+      - `apps/web/components/settings/member-table.tsx`（成员表格：email + displayName + role Badge + 操作列）
+      - `apps/web/components/settings/invite-member-dialog.tsx`（表单：email + role 下拉）
+      - `apps/web/components/settings/role-select.tsx`（角色选择下拉：owner/admin/member/viewer + 权限说明）
+      - `apps/web/app/(console)/settings/members/page.tsx`（含 projectId 读取 + 空态引导）
+    - 验收：`typecheck && build` 全绿；邀请/改角色/移除流程可交互；owner 不可被降级（UI 层灰显）
+    - 依赖：TM.2.B.1, TM.2.B.3
+  - [x] **TM.2.B.5** `/settings/tokens` API Keys 页面 — 0.5d（2026-05-06 完成）
+    - 输入：TM.2.B.1
+    - 输出：
+      - `apps/web/components/settings/token-table.tsx`（Token 表格：label + 脱敏 key + 创建时间 + 操作）
+      - `apps/web/components/settings/create-token-dialog.tsx`（表单：label 可选 + 创建后一次性展示完整 secretKey + 复制按钮）
+      - `apps/web/app/(console)/settings/tokens/page.tsx`
+    - 验收：`typecheck && build` 全绿；创建后 secretKey 仅展示一次（关闭后不可再查看）；删除确认
+    - 依赖：TM.2.B.1
+  - [x] **TM.2.B.6** `/settings/sourcemaps` Source Map 管理页面 — 0.5d（2026-05-06 完成）
+    - 输入：TM.2.B.1 + TM.2.B.2（代理端点就绪）
+    - 输出：
+      - `apps/web/components/settings/release-list.tsx`（Release 列表：version + commitSha + artifact 数量 + 创建时间 + 删除按钮）
+      - `apps/web/components/settings/artifact-table.tsx`（展开式 Artifact 表格：filename + fileSize + 上传时间）
+      - `apps/web/app/(console)/settings/sourcemaps/page.tsx`
+    - 验收：`typecheck && build` 全绿；展开 Release 可查看 Artifacts；删除 Release 级联确认
+    - 依赖：TM.2.B.1, TM.2.B.2
+  - [x] **TM.2.B.7** nav.ts 清空 + 收尾验证 + 文档传导 — 0.3d（2026-05-06 完成）
+    - 输入：TM.2.B.3 ~ TM.2.B.6 全部完成
+    - 输出：
+      - `lib/nav.ts`：4 个 settings 菜单 `placeholder` → `null`
+      - `pnpm typecheck` 全绿 + `pnpm build` 全绿
+      - `apps/docs/docs/guide/dashboard/settings.md`（4 页使用说明）
+      - `rspress.config.ts` 侧边栏注册
+      - `docs/SPEC.md §5.3` 追加 3 个 sourcemap dashboard 端点
+      - `docs/ARCHITECTURE.md §3.1` DashboardModule settings 子目录标记已实现
+      - `docs/decisions/0033-settings-web-ui.md` 状态 提议 → 采纳 + 「后续」引用 demo + docs
+      - `docs/tasks/CURRENT.md` TM.2.B.1~7 `[x]` + 当前焦点更新
+    - 验收：双向可追溯；4 个 settings 菜单均 live
+    - 依赖：TM.2.B.3 ~ TM.2.B.6
 - [ ] **TM.2.C** `realtime` 通信监控（WebSocket/SSE 采集）— 5d
   - **前置**：新 ADR（例如 ADR-0021）定协议范围 + 采集边界
 - [x] **TM.2.D** `tracking/funnel` 转化漏斗分析（ADR-0027，无状态 URL 驱动 + CTE 逐步推进）— ~1.8d · 2026-04-30

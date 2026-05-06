@@ -19,6 +19,6 @@ import { ApiKeyGuard } from "./api-key.guard.js";
     { provide: STORAGE_SERVICE, useClass: S3StorageService },
     ApiKeyGuard,
   ],
-  exports: [SourcemapService],
+  exports: [SourcemapService, STORAGE_SERVICE],
 })
 export class SourcemapModule {}

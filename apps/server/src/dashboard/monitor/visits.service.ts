@@ -34,15 +34,21 @@ export class DashboardVisitsService {
     const { projectId, windowHours, limitPages, limitReferrers } = query;
     const now = Date.now();
     const windowMs = windowHours * 3600_000;
+    const granularity = windowHours > 24 ? "day" as const : "hour" as const;
+    const environment = query.environment;
     const current: VisitsWindowParams = {
       projectId,
       sinceMs: now - windowMs,
       untilMs: now,
+      granularity,
+      environment,
     };
     const previous: VisitsWindowParams = {
       projectId,
       sinceMs: now - 2 * windowMs,
       untilMs: now - windowMs,
+      granularity,
+      environment,
     };
 
     const [summaryCurrent, summaryPrevious, trendRows, topPageRows, topRefRows] =

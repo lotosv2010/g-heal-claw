@@ -61,11 +61,15 @@ export class DashboardOverviewService {
     const now = Date.now();
     const windowMs = windowHours * 3600_000;
 
-    const current = { projectId, sinceMs: now - windowMs, untilMs: now };
+    const granularity = windowHours > 24 ? "day" as const : "hour" as const;
+    const environment = query.environment;
+    const current = { projectId, sinceMs: now - windowMs, untilMs: now, granularity, environment };
     const previous = {
       projectId,
       sinceMs: now - 2 * windowMs,
       untilMs: now - windowMs,
+      granularity,
+      environment,
     };
 
     const [

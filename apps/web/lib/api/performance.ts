@@ -5,7 +5,8 @@
  * 后端契约稳定后可抽入 packages/shared，当前保留两侧演进自由度。
  */
 
-import { buildServerHeaders } from "./server-fetch";
+import { getActiveProjectId, getActiveEnvironment } from "./context";
+import { dashboardFetch } from "./server-fetch";
 
 /**
  * 性能指标枚举（与后端 DTO `apps/server/src/dashboard/dto/overview.dto.ts` 对齐）
@@ -192,21 +193,18 @@ export async function getPerformanceOverview(
   // 部署时通过 NEXT_PUBLIC_API_BASE_URL 覆盖
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-  // 默认值与 examples/nextjs-demo 的 DSN 尾段（`/demo`）保持一致 —— SDK 上报时 projectId=demo
-  const projectId =
-    process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID ?? "demo";
+  const projectId = getActiveProjectId();
+  const environment = getActiveEnvironment();
 
   const qs = new URLSearchParams({ projectId });
+  qs.set("environment", environment);
   if (params.windowHours != null && Number.isFinite(params.windowHours)) {
     qs.set("windowHours", String(params.windowHours));
   }
   const url = `${baseUrl}/dashboard/v1/performance/overview?${qs.toString()}`;
 
   try {
-    const response = await fetch(url, {
-      cache: "no-store",
-      headers: buildServerHeaders(),
-    });
+    const response = await dashboardFetch(url);
     if (!response.ok) {
       // eslint-disable-next-line no-console
       console.error(

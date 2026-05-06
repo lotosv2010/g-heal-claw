@@ -20,6 +20,7 @@ export const ExposureOverviewQuerySchema = z.object({
   projectId: z.string().min(1, "projectId 必填"),
   /** 聚合窗口（小时），默认 24，最大 168（7d） */
   windowHours: z.coerce.number().int().min(1).max(168).default(24),
+  environment: z.string().optional(),
   /** topSelectors 返回条数，默认 10，最大 50 */
   limitSelectors: z.coerce.number().int().min(1).max(50).default(10),
   /** topPages 返回条数，默认 10，最大 50 */

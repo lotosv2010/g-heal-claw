@@ -28,6 +28,8 @@ export const ApiOverviewQuerySchema = z.object({
   limitErrorStatus: z.coerce.number().int().min(1).max(50).default(10),
   /** 每个维度 Tab 保留条数，默认 10，最大 50 */
   limitDimension: z.coerce.number().int().min(1).max(50).default(10),
+  /** 环境过滤（可选，如 'production' / 'staging'） */
+  environment: z.string().optional(),
 });
 export type ApiOverviewQuery = z.infer<typeof ApiOverviewQuerySchema>;
 

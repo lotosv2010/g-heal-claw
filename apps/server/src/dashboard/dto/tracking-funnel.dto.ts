@@ -27,6 +27,7 @@ export const FunnelOverviewQuerySchema = z.object({
   projectId: z.string().min(1, "projectId 必填"),
   /** 聚合窗口（小时），默认 24，最大 168（7d） */
   windowHours: z.coerce.number().int().min(1).max(168).default(24),
+  environment: z.string().optional(),
   /**
    * 步骤事件名 CSV：`steps=view_home,click_cta,submit_form`
    * 解析规则：split(',') → trim → 过滤空串；再校验 2~8 项，每项长度 1~128

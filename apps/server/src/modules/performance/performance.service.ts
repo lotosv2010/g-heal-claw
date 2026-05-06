@@ -78,6 +78,8 @@ export interface WindowParams {
   readonly projectId: string;
   readonly sinceMs: number;
   readonly untilMs: number;
+  readonly granularity?: "hour" | "day";
+  readonly environment?: string;
 }
 
 /** Dashboard 聚合：长任务摘要（type = 'long_task'） */
@@ -265,13 +267,16 @@ export class PerformanceService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
+    const trunc = params.granularity === "day"
+      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
+      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
     const rows = await db.execute<{
       hour: Date | string;
       metric: string;
       p75: string | number | null;
     }>(sql`
       SELECT
-        date_trunc('hour', to_timestamp(ts_ms / 1000.0)) AS hour,
+        ${trunc} AS hour,
         metric,
         percentile_cont(0.75) WITHIN GROUP (ORDER BY value) AS p75
       FROM perf_events_raw
@@ -281,6 +286,7 @@ export class PerformanceService {
         AND value IS NOT NULL
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
       GROUP BY hour, metric
       ORDER BY hour ASC
     `);
@@ -310,6 +316,9 @@ export class PerformanceService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
+    const trunc = params.granularity === "day"
+      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
+      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
     const rows = await db.execute<{
       hour: Date | string;
       dns_p75: string | number | null;
@@ -321,7 +330,7 @@ export class PerformanceService {
       n: string | number;
     }>(sql`
       SELECT
-        date_trunc('hour', to_timestamp(ts_ms / 1000.0)) AS hour,
+        ${trunc} AS hour,
         percentile_cont(0.75) WITHIN GROUP (ORDER BY COALESCE((navigation->>'dns')::numeric, 0)) AS dns_p75,
         percentile_cont(0.75) WITHIN GROUP (ORDER BY COALESCE((navigation->>'tcp')::numeric, 0)) AS tcp_p75,
         percentile_cont(0.75) WITHIN GROUP (ORDER BY COALESCE((navigation->>'ssl')::numeric, 0)) AS ssl_p75,
@@ -336,6 +345,7 @@ export class PerformanceService {
         AND navigation IS NOT NULL
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
       GROUP BY hour
       ORDER BY hour ASC
     `);

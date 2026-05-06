@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { NAV_GROUPS, findGroupKeyByPathname, type NavChild } from "@/lib/nav";
@@ -18,8 +18,12 @@ const STORAGE_KEY = "ghc:sidebar:expanded-groups";
  *  - 二级：叶子菜单（原交互保留：圆角 8px、浅蓝激活态）
  *  - 折叠状态：localStorage 持久化，默认展开命中当前 pathname 的分组
  */
+/** 需要跨页面保留的 URL 参数（时间范围） */
+const PERSISTENT_PARAMS = ["range", "from", "to"] as const;
+
 export function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   // 由 pathname 反查当前命中分组（URL 首段即分组 key），用于默认展开
   const activeGroupKey = useMemo(() => {
@@ -116,6 +120,7 @@ export function Sidebar() {
                       key={child.slug}
                       child={child}
                       pathname={pathname}
+                      persistentQuery={searchParams}
                     />
                   ))}
                 </div>
@@ -144,17 +149,29 @@ export function Sidebar() {
   );
 }
 
-/** 叶子菜单链接；激活判定兼容嵌套路径 */
+/** 叶子菜单链接；激活判定兼容嵌套路径；保留时间范围参数 */
 function SidebarLink({
   child,
   pathname,
+  persistentQuery,
 }: {
   readonly child: NavChild;
   readonly pathname: string;
+  readonly persistentQuery: ReturnType<typeof useSearchParams>;
 }) {
-  const href = `/${child.slug}`;
-  const active = pathname === href || pathname.startsWith(`${href}/`);
+  const basePath = `/${child.slug}`;
+  const active = pathname === basePath || pathname.startsWith(`${basePath}/`);
   const Icon = child.icon;
+
+  // 保留时间范围参数
+  const qs = new URLSearchParams();
+  for (const key of PERSISTENT_PARAMS) {
+    const val = persistentQuery.get(key);
+    if (val) qs.set(key, val);
+  }
+  const qsStr = qs.toString();
+  const href = qsStr ? `${basePath}?${qsStr}` : basePath;
+
   return (
     <Link
       href={href}

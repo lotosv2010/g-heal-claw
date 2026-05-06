@@ -42,15 +42,21 @@ export class DashboardResourcesService {
     const now = Date.now();
     const windowMs = windowHours * 3600_000;
 
+    const granularity = windowHours > 24 ? "day" as const : "hour" as const;
+    const environment = query.environment;
     const current: ResourceWindowParams = {
       projectId,
       sinceMs: now - windowMs,
       untilMs: now,
+      granularity,
+      environment,
     };
     const previous: ResourceWindowParams = {
       projectId,
       sinceMs: now - 2 * windowMs,
       untilMs: now - windowMs,
+      granularity,
+      environment,
     };
 
     const [

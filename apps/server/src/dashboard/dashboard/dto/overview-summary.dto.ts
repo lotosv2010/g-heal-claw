@@ -32,6 +32,8 @@ export const OverviewSummaryQuerySchema = z.object({
   projectId: z.string().min(1),
   /** 时间窗口（小时），默认 24h，范围 [1, 168] */
   windowHours: z.coerce.number().int().min(1).max(168).default(24),
+  /** 环境过滤（可选，如 'production' / 'staging'） */
+  environment: z.string().optional(),
 });
 export type OverviewSummaryQuery = z.infer<typeof OverviewSummaryQuerySchema>;
 

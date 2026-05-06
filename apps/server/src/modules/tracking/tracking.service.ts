@@ -12,6 +12,8 @@ export interface TrackWindowParams {
   readonly projectId: string;
   readonly sinceMs: number;
   readonly untilMs: number;
+  readonly granularity?: "hour" | "day";
+  readonly environment?: string;
 }
 
 /** 聚合：总览 */
@@ -221,19 +223,23 @@ export class TrackingService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
+    const trunc = params.granularity === "day"
+      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
+      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
     const rows = await db.execute<{
       hour: Date | string;
       n: string | number;
       users: string | number;
     }>(sql`
       SELECT
-        date_trunc('hour', to_timestamp(ts_ms / 1000.0))     AS hour,
+        ${trunc}                                              AS hour,
         COUNT(*)                                              AS n,
         COUNT(DISTINCT COALESCE(user_id, session_id))         AS users
       FROM track_events_raw
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
       GROUP BY hour
       ORDER BY hour ASC
     `);
@@ -383,13 +389,16 @@ export class TrackingService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
+    const trunc = params.granularity === "day"
+      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
+      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
     const rows = await db.execute<{
       hour: Date | string;
       n: string | number;
       users: string | number;
     }>(sql`
       SELECT
-        date_trunc('hour', to_timestamp(ts_ms / 1000.0))     AS hour,
+        ${trunc}                                              AS hour,
         COUNT(*)                                              AS n,
         COUNT(DISTINCT COALESCE(user_id, session_id))         AS users
       FROM track_events_raw
@@ -397,6 +406,7 @@ export class TrackingService {
         AND track_type = 'expose'
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
       GROUP BY hour
       ORDER BY hour ASC
     `);

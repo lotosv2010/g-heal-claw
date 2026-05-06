@@ -15,6 +15,8 @@ export interface ErrorWindowParams {
   readonly projectId: string;
   readonly sinceMs: number;
   readonly untilMs: number;
+  readonly granularity?: "hour" | "day";
+  readonly environment?: string;
 }
 
 /** 聚合：总事件数 + 影响会话数 */
@@ -218,19 +220,23 @@ export class ErrorsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
+    const trunc = params.granularity === "day"
+      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
+      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
     const rows = await db.execute<{
       hour: Date | string;
       sub_type: string;
       n: string | number;
     }>(sql`
       SELECT
-        date_trunc('hour', to_timestamp(ts_ms / 1000.0)) AS hour,
+        ${trunc} AS hour,
         sub_type,
         COUNT(*) AS n
       FROM error_events_raw
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
       GROUP BY hour, sub_type
       ORDER BY hour ASC
     `);
@@ -327,6 +333,9 @@ export class ErrorsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
+    const trunc = params.granularity === "day"
+      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
+      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
     const rows = await db.execute<{
       hour: Date | string;
       sub_type: string;
@@ -334,7 +343,7 @@ export class ErrorsService {
       n: string | number;
     }>(sql`
       SELECT
-        date_trunc('hour', to_timestamp(ts_ms / 1000.0)) AS hour,
+        ${trunc} AS hour,
         sub_type,
         resource_kind,
         COUNT(*) AS n
@@ -342,6 +351,7 @@ export class ErrorsService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
       GROUP BY hour, sub_type, resource_kind
       ORDER BY hour ASC
     `);
