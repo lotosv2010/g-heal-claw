@@ -1147,21 +1147,62 @@
 
 **目标**：告警规则配置、评估、多渠道通知。
 
-### M4.1 告警引擎
+### M4.1 告警引擎（ADR-0035）
 
-- [ ] **T4.1.1** AlertModule + `alert_rules` / `alert_history` / `channels` Schema — 2d
-- [ ] **T4.1.2** 告警评估 Worker（每分钟 cron 扫描规则）— 3d
-- [ ] **T4.1.3** 规则 DSL 与查询抽象（错误率 / API 成功率 / Web Vital / Issue 计数 / 自定义指标）— 3d
-- [ ] **T4.1.4** 静默期与状态机（firing → resolved）— 1d
+- [x] **T4.1.1** Drizzle Schema + DDL + 迁移（`alert_rules` / `alert_history` / `channels` 3 表）+ shared 队列名常量 — 1d（2026-05-06 完成：3 schema + ALERT_DDL + 0010 迁移 + 3 ID 前缀 alr/alh/ch）
+  - 输入：ADR-0035 §2 DDL 定义
+  - 输出：`apps/server/src/shared/database/schema/alert-rules.ts` + `alert-history.ts` + `channels.ts` + `drizzle/0010_alert_tables.sql` + `packages/shared` 追加 `QueueName.AlertEvaluator` / `QueueName.Notifications`
+  - 验收：`pnpm typecheck` 全绿；DDL 幂等执行无报错
+  - 依赖：无
+- [ ] **T4.1.2** AlertModule 骨架（AlertService CRUD + AlertController + Zod DTO）— 1.5d
+  - 输入：T4.1.1
+  - 输出：`apps/server/src/modules/alert/alert.module.ts` + `alert.service.ts` + `alert.controller.ts` + `dto/`（CreateAlertRuleSchema / UpdateAlertRuleSchema / AlertHistoryQuerySchema）
+  - 验收：Swagger 可见 5 端点（GET list / POST create / PATCH update / DELETE / GET history）；Zod 校验生效
+  - 依赖：T4.1.1
+- [ ] **T4.1.3** 告警评估引擎（cron + 5 种 target 查询抽象 + 状态机）— 2d
+  - 输入：T4.1.2；各域 Service 的 aggregate 方法已就绪
+  - 输出：`apps/server/src/modules/alert/alert-evaluator.service.ts`（`@Cron('*/1 * * * *')` + evaluateAll + target→SQL 映射 + cooldown 判定 + firing/resolved 状态机）
+  - 验收：单测覆盖 5 种 target 评估 + cooldown 静默 + resolved 自动标记；`pnpm test` 全绿
+  - 依赖：T4.1.2
+- [ ] **T4.1.4** 预置规则下发（ProjectsService.create 内自动插入 6 条模板）— 0.5d
+  - 输入：T4.1.2
+  - 输出：`apps/server/src/modules/alert/preset-rules.ts`（6 条规则定义）+ `projects.service.ts` create 事务追加
+  - 验收：创建新项目后 `alert_rules` 表有 6 条 `enabled=false` 记录
+  - 依赖：T4.1.2
 
-### M4.2 通知渠道
+### M4.2 通知渠道（ADR-0035）
 
-- [ ] **T4.2.1** NotificationModule 骨架 + `notifications` 队列消费 — 2d
-- [ ] **T4.2.2** 渠道实现：邮件（SMTP） / 钉钉机器人 / 企业微信机器人 / Slack Incoming Webhook / 自定义 Webhook — 3d
-- [ ] **T4.2.3** 短信渠道（阿里云 / 腾讯云 Provider 抽象 + 模板 ID 配置）— 2d
-- [ ] **T4.2.4** 告警模板渲染 + 变量占位 — 1d
-- [ ] **T4.2.5** 项目初始化时下发的**预置告警规则模板**（错误率突增 / Web Vital 劣化 / API 成功率下降）— 1d
-- [ ] **T4.2.6** web/alerts：规则 CRUD + 触发历史 + 渠道测试发送 — 5d
+- [ ] **T4.2.1** NotificationModule 骨架（ChannelService CRUD + NotificationWorker + BullMQ）— 1.5d
+  - 输入：T4.1.1（队列名 + channels 表）
+  - 输出：`apps/server/src/modules/notification/notification.module.ts` + `channel.service.ts` + `channel.controller.ts` + `notification.worker.ts`（`@Processor(QueueName.Notifications)`）
+  - 验收：渠道 CRUD 端点可用；Worker 消费日志可见
+  - 依赖：T4.1.1
+- [ ] **T4.2.2** 5 种 Provider 实现 + 模板渲染 — 2d
+  - 输入：T4.2.1
+  - 输出：`providers/email.provider.ts` + `dingtalk.provider.ts` + `wecom.provider.ts` + `slack.provider.ts` + `webhook.provider.ts` + `template.ts`（变量替换引擎）
+  - 验收：每种 Provider 有独立单测 mock HTTP 验证 payload 格式；模板 `{{rule.name}}` 正确替换
+  - 依赖：T4.2.1
+- [ ] **T4.2.3** 评估 → 通知联动（AlertEvaluator 触发时向 notifications 队列投递）— 0.5d
+  - 输入：T4.1.3 + T4.2.1
+  - 输出：`alert-evaluator.service.ts` 命中后 `this.notificationQueue.add(...)`
+  - 验收：规则命中后 notifications Worker 日志输出对应渠道发送记录
+  - 依赖：T4.1.3, T4.2.1
+- [-] **T4.2.4** 短信渠道 — 推迟（需真实 API Key）
+- [ ] **T4.2.5** Web `/settings/alerts` 规则管理页面 — 1.5d
+  - 输入：T4.1.2 API 就绪
+  - 输出：`apps/web/app/(console)/settings/alerts/page.tsx` + `components/settings/alert-*`（规则表格 + 创建/编辑对话框 + 启停开关 + 历史列表）+ `lib/api/alerts.ts`
+  - 验收：`typecheck && build` 全绿；规则 CRUD 可交互；nav.ts placeholder 清空
+  - 依赖：T4.1.2
+- [ ] **T4.2.6** Web `/settings/channels` 渠道管理页面 — 1.5d
+  - 输入：T4.2.1 API 就绪
+  - 输出：`apps/web/app/(console)/settings/channels/page.tsx` + `components/settings/channel-*`（渠道表格 + 创建对话框含类型选择 + 测试发送按钮）+ `lib/api/channels.ts`
+  - 验收：`typecheck && build` 全绿；5 种渠道类型可创建；测试发送按钮触发 Worker；nav.ts placeholder 清空
+  - 依赖：T4.2.1
+- [ ] **T4.2.7** 单测 + 文档传导 — 1d
+  - 输入：T4.1.1 ~ T4.2.6 全部完成
+  - 输出：`tests/modules/alert/` + `tests/modules/notification/`（≥ 20 case）+ `apps/docs/docs/guide/dashboard/alerts.md` + `apps/docs/docs/reference/alerts.md` + SPEC/ARCHITECTURE 同步 + CURRENT.md 更新 + ADR-0035 状态采纳
+  - 验收：`pnpm test` 全绿；双向可追溯；nav.ts alerts + channels 均 live
+  - 依赖：T4.1.1 ~ T4.2.6
 
 ---
 

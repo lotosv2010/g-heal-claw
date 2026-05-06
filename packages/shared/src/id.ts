@@ -23,6 +23,9 @@ export const ISSUE_ID_PREFIX = "iss" as const;
 export const ENVIRONMENT_ID_PREFIX = "env" as const;
 export const NOTIFICATION_ID_PREFIX = "notif" as const;
 export const ARTIFACT_ID_PREFIX = "art" as const;
+export const ALERT_RULE_ID_PREFIX = "alr" as const;
+export const ALERT_HISTORY_ID_PREFIX = "alh" as const;
+export const CHANNEL_ID_PREFIX = "ch" as const;
 
 export const ID_PREFIXES = [
   PROJECT_ID_PREFIX,
@@ -33,6 +36,9 @@ export const ID_PREFIXES = [
   ENVIRONMENT_ID_PREFIX,
   NOTIFICATION_ID_PREFIX,
   ARTIFACT_ID_PREFIX,
+  ALERT_RULE_ID_PREFIX,
+  ALERT_HISTORY_ID_PREFIX,
+  CHANNEL_ID_PREFIX,
 ] as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[number];
@@ -69,3 +75,6 @@ export const generateProjectKeyId = (): string =>
 export const generateReleaseId = (): string => generateId(RELEASE_ID_PREFIX);
 export const generateIssueId = (): string => generateId(ISSUE_ID_PREFIX);
 export const generateArtifactId = (): string => generateId(ARTIFACT_ID_PREFIX);
+export const generateAlertRuleId = (): string => generateId(ALERT_RULE_ID_PREFIX);
+export const generateAlertHistoryId = (): string => generateId(ALERT_HISTORY_ID_PREFIX);
+export const generateChannelId = (): string => generateId(CHANNEL_ID_PREFIX);

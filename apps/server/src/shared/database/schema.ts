@@ -22,3 +22,6 @@ export * from "./schema/custom-events-raw.js";
 export * from "./schema/custom-metrics-raw.js";
 export * from "./schema/custom-logs-raw.js";
 export * from "./schema/page-view-raw.js";
+export * from "./schema/alert-rules.js";
+export * from "./schema/alert-history.js";
+export * from "./schema/channels.js";
