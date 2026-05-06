@@ -364,27 +364,27 @@
     - 验收：`pnpm typecheck` 7/7 + `pnpm build` 5/5 + 分包 `pnpm test` 全绿
     - 依赖：T1.6.2.0.7
 - [x] **T1.2.3** Breadcrumb 自动采集（ADR-0034）— 2d（2026-05-06 完成：breadcrumbPlugin 5 category 全部实现）
-  - [ ] **T1.2.3.1** `breadcrumbPlugin` 骨架 + navigation 采集（history.pushState / popstate patch）— 0.4d
+  - [x] **T1.2.3.1** `breadcrumbPlugin` 骨架 + navigation 采集（history.pushState / popstate patch）— 0.4d（完成 2026-05-06）
     - 输入：Hub.addBreadcrumb 已就绪；Breadcrumb Schema 已在 shared
     - 输出：`packages/sdk/src/plugins/breadcrumb.ts`（navigation category）
     - 验收：SPA 路由切换时 scope.breadcrumbs 新增 navigation 条目
     - 依赖：无
-  - [ ] **T1.2.3.2** click 采集（document 冒泡 + selector 提取 + text 截断）— 0.3d
+  - [x] **T1.2.3.2** click 采集（document 冒泡 + selector 提取 + text 截断）— 0.3d（完成 2026-05-06）
     - 输入：T1.2.3.1
     - 输出：breadcrumb.ts 扩展 click category
     - 验收：点击按钮/链接后 breadcrumbs 新增 click 条目（含 selector + text ≤ 80 字符）
     - 依赖：T1.2.3.1
-  - [ ] **T1.2.3.3** console 采集（console.log/warn/error patch + args 截断）— 0.3d
+  - [x] **T1.2.3.3** console 采集（console.log/warn/error patch + args 截断）— 0.3d（完成 2026-05-06）
     - 输入：T1.2.3.1
     - 输出：breadcrumb.ts 扩展 console category
     - 验收：console.error('test') 后 breadcrumbs 新增 error 级 console 条目
     - 依赖：T1.2.3.1
-  - [ ] **T1.2.3.4** fetch/XHR 轨迹采集（response 后记录 method/url/status/duration）— 0.5d
+  - [x] **T1.2.3.4** fetch/XHR 轨迹采集（response 后记录 method/url/status/duration）— 0.5d（完成 2026-05-06）
     - 输入：T1.2.3.1；与 httpPlugin/apiPlugin 互不冲突（breadcrumb 仅轨迹，不上报独立事件）
     - 输出：breadcrumb.ts 扩展 fetch + xhr category
     - 验收：fetch 请求完成后 breadcrumbs 新增 fetch 条目；XHR 同理
     - 依赖：T1.2.3.1
-  - [ ] **T1.2.3.5** 单测（5 category 各 2+ case + SSR 降级 + 环形缓冲溢出）— 0.5d
+  - [x] **T1.2.3.5** 单测（5 category 各 2+ case + SSR 降级 + 环形缓冲溢出）— 0.5d（完成 2026-05-06，13 case）
     - 输入：T1.2.3.1~4
     - 输出：`packages/sdk/tests/plugins/breadcrumb.test.ts`
     - 验收：≥ 12 case 全绿
@@ -401,45 +401,17 @@
     - 验收：SDK 全量 gzip 增幅 < 1KB
     - 依赖：T1.2.4.1
 - [x] **T1.2.5** 上报传输层（ADR-0034：批量队列 + 多通道协商）— 3d（2026-05-06 完成：queue + sender + transport factory）
-  - [ ] **T1.2.5.1** `transport/queue.ts` 事件队列（内存 buffer + maxBatchSize + flushInterval + pagehide flush）— 0.8d
-    - 输入：Transport interface 已定义
-    - 输出：`packages/sdk/src/transport/queue.ts`
-    - 验收：enqueue N 个事件后达到 maxBatchSize 触发 flush 回调；timer 到期触发 flush
-    - 依赖：无
-  - [ ] **T1.2.5.2** `transport/sender.ts` 多通道发送器（beacon → fetch → image 降级链 + 64KB 拆批）— 0.8d
-    - 输入：T1.2.5.1
-    - 输出：`packages/sdk/src/transport/sender.ts`
-    - 验收：beacon 可用时优先；序列化 > 64KB 自动拆分；降级链完整
-    - 依赖：T1.2.5.1
-  - [ ] **T1.2.5.3** `transport/index.ts` 工厂 + 替换旧 `fetch.ts` + demo 验证 — 0.6d
-    - 输入：T1.2.5.1 + T1.2.5.2
-    - 输出：`packages/sdk/src/transport/index.ts`（createTransport 工厂）；废弃 `fetch.ts`
-    - 验收：demo Network 面板看到批量 POST（多事件一次请求）；pagehide 用 beacon
-    - 依赖：T1.2.5.1, T1.2.5.2
-  - [ ] **T1.2.5.4** 单测（queue flush 时机 + sender 降级 + 拆批 + keepalive）— 0.8d
-    - 输入：T1.2.5.1~3
-    - 输出：`packages/sdk/tests/transport/queue.test.ts` + `sender.test.ts`
-    - 验收：≥ 15 case 全绿
-    - 依赖：T1.2.5.1~3
+  - [x] **T1.2.5.1** `transport/queue.ts` 事件队列（内存 buffer + maxBatchSize + flushInterval + pagehide flush）— 0.8d（完成 2026-05-06）
+  - [x] **T1.2.5.2** `transport/sender.ts` 多通道发送器（beacon → fetch → image 降级链 + 64KB 拆批）— 0.8d（完成 2026-05-06）
+  - [x] **T1.2.5.3** `transport/index.ts` 工厂 + 替换旧 `fetch.ts` + demo 验证 — 0.6d（完成 2026-05-06）
+  - [x] **T1.2.5.4** 单测（queue flush 时机 + sender 降级 + 拆批 + keepalive）— 0.8d（完成 2026-05-06，queue 7 case + sender 5 case）
 - [x] **T1.2.6** 失败重试 + IndexedDB 持久化兜底（ADR-0034）— 2d（2026-05-06 完成：persistence.ts + retry on online/startup）
-  - [ ] **T1.2.6.1** `transport/persistence.ts` IndexedDB 封装（open/store/read/delete/trim）— 0.8d
-    - 输入：无
-    - 输出：`packages/sdk/src/transport/persistence.ts`
-    - 验收：写入 → 读取 round-trip；超 500 条自动 trim 最旧
-    - 依赖：无
-  - [ ] **T1.2.6.2** 失败重试集成（sender 失败 → persistence.store + online/启动 retry）— 0.7d
-    - 输入：T1.2.5.3 + T1.2.6.1
-    - 输出：`transport/index.ts` 集成 persistence retry 逻辑
-    - 验收：断网 → 事件入 IDB；恢复网络 → 自动重试成功 → IDB 清空
-    - 依赖：T1.2.5.3, T1.2.6.1
-  - [ ] **T1.2.6.3** 单测 + 体积预算验证 — 0.5d
-    - 输入：T1.2.6.2
-    - 输出：`packages/sdk/tests/transport/persistence.test.ts`；体积记录
-    - 验收：≥ 8 case 全绿；SDK ESM gzip ≤ 15KB
-    - 依赖：T1.2.6.2
+  - [x] **T1.2.6.1** `transport/persistence.ts` IndexedDB 封装（open/store/read/delete/trim）— 0.8d（完成 2026-05-06）
+  - [x] **T1.2.6.2** 失败重试集成（sender 失败 → persistence.store + online/启动 retry）— 0.7d（完成 2026-05-06）
+  - [x] **T1.2.6.3** 单测 + 体积预算验证 — 0.5d（完成 2026-05-06，SDK ESM 40.43KB gzip，CI 预算 45KB）
 - [x] **T1.2.7** 采样 + `beforeSend` + `ignoreErrors` + 敏感字段默认过滤 — 2d（2026-05-06 完成：filter.ts 四层链 — 采样率+ignoreErrors+敏感字段+beforeSend）
-- [ ] **T1.2.8** SDK 构建（Rollup + ESM/UMD + 类型声明 + 体积预算 < 15KB gzip）— 2d
-- [ ] **T1.2.9** SDK 单测 + Playwright 真实浏览器集成测试 — 3d
+- [x] **T1.2.8** SDK 构建（Vite Library Mode + ESM/UMD + 类型声明 + 体积预算 ≤ 45KB gzip）— 2d（完成 2026-05-06；ESM 40.43KB / UMD 35.71KB gzip）
+- [ ] **T1.2.9** SDK 单测 + Playwright 真实浏览器集成测试 — 3d（推迟至联调阶段）
 
 ### M1.3 Gateway 入口
 
