@@ -1,5 +1,6 @@
 import { listAlertRules, listAlertHistory } from "@/lib/api/alerts";
 import { listProjects } from "@/lib/api/projects";
+import { getActiveProjectId } from "@/lib/api/context";
 import { AlertsClient } from "@/components/settings/alerts-client";
 import { Badge } from "@/components/ui/badge";
 
@@ -7,7 +8,9 @@ export const dynamic = "force-dynamic";
 
 export default async function AlertsPage() {
   const projectsResult = await listProjects();
-  const projectId = projectsResult.data[0]?.id;
+  const activeSlug = await getActiveProjectId();
+  const currentProject = projectsResult.data.find((p) => p.slug === activeSlug);
+  const projectId = currentProject?.id ?? projectsResult.data[0]?.id;
 
   if (!projectId) {
     return (

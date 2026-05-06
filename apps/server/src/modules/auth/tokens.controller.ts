@@ -8,7 +8,6 @@ import {
   Param,
   Post,
   UseGuards,
-  UsePipes,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
@@ -39,11 +38,10 @@ export class TokensController {
   @HttpCode(201)
   @UseGuards(RolesGuard)
   @Roles("admin")
-  @UsePipes(new ZodValidationPipe(CreateTokenSchema))
   @ApiOperation({ summary: "创建 API Token（admin+，返回完整 secretKey）" })
   public async create(
     @Param("projectId") projectId: string,
-    @Body() body: CreateTokenInput,
+    @Body(new ZodValidationPipe(CreateTokenSchema)) body: CreateTokenInput,
   ) {
     const token = await this.tokens.create(projectId, body.label);
     return { data: token };

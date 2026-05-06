@@ -1,5 +1,6 @@
 import { listReleases } from "@/lib/api/sourcemaps";
 import { listProjects } from "@/lib/api/projects";
+import { getActiveProjectId } from "@/lib/api/context";
 import { SourcemapsClient } from "@/components/settings/sourcemaps-client";
 import { Badge } from "@/components/ui/badge";
 
@@ -7,7 +8,9 @@ export const dynamic = "force-dynamic";
 
 export default async function SourcemapsPage() {
   const projectsResult = await listProjects();
-  const projectId = projectsResult.data[0]?.id;
+  const activeSlug = await getActiveProjectId();
+  const currentProject = projectsResult.data.find((p) => p.slug === activeSlug);
+  const projectId = currentProject?.id ?? projectsResult.data[0]?.id;
 
   if (!projectId) {
     return (

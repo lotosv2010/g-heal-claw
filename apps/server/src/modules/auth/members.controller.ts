@@ -9,7 +9,6 @@ import {
   Post,
   Req,
   UseGuards,
-  UsePipes,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
@@ -44,12 +43,11 @@ export class MembersController {
   @HttpCode(201)
   @UseGuards(RolesGuard)
   @Roles("admin")
-  @UsePipes(new ZodValidationPipe(InviteMemberSchema))
   @ApiOperation({ summary: "邀请成员（admin+）" })
   public async invite(
     @Param("projectId") projectId: string,
     @Req() req: JwtAuthedRequest,
-    @Body() body: InviteMemberInput,
+    @Body(new ZodValidationPipe(InviteMemberSchema)) body: InviteMemberInput,
   ) {
     const member = await this.members.invite(
       projectId,
@@ -63,12 +61,11 @@ export class MembersController {
   @Patch(":userId")
   @UseGuards(RolesGuard)
   @Roles("admin")
-  @UsePipes(new ZodValidationPipe(UpdateMemberSchema))
   @ApiOperation({ summary: "更新成员角色（admin+）" })
   public async updateRole(
     @Param("projectId") projectId: string,
     @Param("userId") userId: string,
-    @Body() body: UpdateMemberInput,
+    @Body(new ZodValidationPipe(UpdateMemberSchema)) body: UpdateMemberInput,
   ) {
     await this.members.updateRole(projectId, userId, body.role);
     return { data: { success: true } };

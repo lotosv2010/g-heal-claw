@@ -10,7 +10,6 @@ import {
   Patch,
   Post,
   UseGuards,
-  UsePipes,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
@@ -47,11 +46,10 @@ export class ChannelController {
   @HttpCode(201)
   @UseGuards(RolesGuard)
   @Roles("admin")
-  @UsePipes(new ZodValidationPipe(CreateChannelSchema))
   @ApiOperation({ summary: "创建通知渠道（admin+）" })
   public async create(
     @Param("projectId") projectId: string,
-    @Body() body: CreateChannelInput,
+    @Body(new ZodValidationPipe(CreateChannelSchema)) body: CreateChannelInput,
   ) {
     const channel = await this.channelService.createChannel(projectId, body);
     return { data: channel };
@@ -60,11 +58,10 @@ export class ChannelController {
   @Patch(":channelId")
   @UseGuards(RolesGuard)
   @Roles("admin")
-  @UsePipes(new ZodValidationPipe(UpdateChannelSchema))
   @ApiOperation({ summary: "更新通知渠道（admin+）" })
   public async update(
     @Param("channelId") channelId: string,
-    @Body() body: UpdateChannelInput,
+    @Body(new ZodValidationPipe(UpdateChannelSchema)) body: UpdateChannelInput,
   ) {
     const channel = await this.channelService.updateChannel(channelId, body);
     if (!channel) {

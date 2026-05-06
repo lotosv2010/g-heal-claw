@@ -1,5 +1,6 @@
 import { listMembers } from "@/lib/api/members";
 import { listProjects } from "@/lib/api/projects";
+import { getActiveProjectId } from "@/lib/api/context";
 import { MembersClient } from "@/components/settings/members-client";
 import { Badge } from "@/components/ui/badge";
 
@@ -7,7 +8,11 @@ export const dynamic = "force-dynamic";
 
 export default async function MembersPage() {
   const projectsResult = await listProjects();
-  const projectId = projectsResult.data[0]?.id;
+  const activeSlug = await getActiveProjectId();
+
+  // 根据 Cookie 中的 slug 查找对应的 project.id
+  const currentProject = projectsResult.data.find((p) => p.slug === activeSlug);
+  const projectId = currentProject?.id ?? projectsResult.data[0]?.id;
 
   if (!projectId) {
     return (

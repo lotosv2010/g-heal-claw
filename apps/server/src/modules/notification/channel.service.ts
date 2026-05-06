@@ -60,7 +60,7 @@ export class ChannelService {
       updated_at: string;
     }>(sql`
       SELECT id, project_id, name, type, config, created_at, updated_at
-      FROM notification_channels
+      FROM channels
       WHERE project_id = ${projectId}
       ORDER BY created_at DESC
     `);
@@ -87,7 +87,7 @@ export class ChannelService {
     const id = generateChannelId();
 
     await db.execute(sql`
-      INSERT INTO notification_channels (id, project_id, name, type, config, created_at, updated_at)
+      INSERT INTO channels (id, project_id, name, type, config, created_at, updated_at)
       VALUES (
         ${id},
         ${projectId},
@@ -121,7 +121,7 @@ export class ChannelService {
     if (!db) return null;
 
     await db.execute(sql`
-      UPDATE notification_channels
+      UPDATE channels
       SET name = COALESCE(${input.name ?? null}, name),
           type = COALESCE(${input.type ?? null}, type),
           config = COALESCE(${input.config ? JSON.stringify(input.config) : null}::jsonb, config),
@@ -140,7 +140,7 @@ export class ChannelService {
       updated_at: string;
     }>(sql`
       SELECT id, project_id, name, type, config, created_at, updated_at
-      FROM notification_channels
+      FROM channels
       WHERE id = ${channelId}
       LIMIT 1
     `);
@@ -165,7 +165,7 @@ export class ChannelService {
     if (!db) return false;
 
     const rows = await db.execute<{ id: string }>(sql`
-      DELETE FROM notification_channels
+      DELETE FROM channels
       WHERE id = ${channelId}
       RETURNING id
     `);
@@ -193,7 +193,7 @@ export class ChannelService {
       updated_at: string;
     }>(sql`
       SELECT id, project_id, name, type, config, created_at, updated_at
-      FROM notification_channels
+      FROM channels
       WHERE id = ANY(${ids as string[]}::text[])
     `);
 

@@ -70,11 +70,10 @@ export class ProjectsController {
   @Patch(":projectId")
   @UseGuards(ProjectGuard, RolesGuard)
   @Roles("admin")
-  @UsePipes(new ZodValidationPipe(UpdateProjectSchema))
   @ApiOperation({ summary: "更新项目配置（admin+）" })
   public async update(
     @Param("projectId") projectId: string,
-    @Body() body: UpdateProjectInput,
+    @Body(new ZodValidationPipe(UpdateProjectSchema)) body: UpdateProjectInput,
   ) {
     const project = await this.projects.update(projectId, body);
     if (!project) {

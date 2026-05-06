@@ -10,7 +10,6 @@ import {
   Post,
   Query,
   UseGuards,
-  UsePipes,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
@@ -49,11 +48,10 @@ export class AlertController {
   @HttpCode(201)
   @UseGuards(RolesGuard)
   @Roles("admin")
-  @UsePipes(new ZodValidationPipe(CreateAlertRuleSchema))
   @ApiOperation({ summary: "创建告警规则（admin+）" })
   public async createRule(
     @Param("projectId") projectId: string,
-    @Body() body: CreateAlertRuleInput,
+    @Body(new ZodValidationPipe(CreateAlertRuleSchema)) body: CreateAlertRuleInput,
   ) {
     const rule = await this.alertService.createRule(projectId, body);
     return { data: rule };
@@ -62,11 +60,10 @@ export class AlertController {
   @Patch(":ruleId")
   @UseGuards(RolesGuard)
   @Roles("admin")
-  @UsePipes(new ZodValidationPipe(UpdateAlertRuleSchema))
   @ApiOperation({ summary: "更新告警规则（admin+）" })
   public async updateRule(
     @Param("ruleId") ruleId: string,
-    @Body() body: UpdateAlertRuleInput,
+    @Body(new ZodValidationPipe(UpdateAlertRuleSchema)) body: UpdateAlertRuleInput,
   ) {
     const rule = await this.alertService.updateRule(ruleId, body);
     return { data: rule };

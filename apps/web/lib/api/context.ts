@@ -33,10 +33,10 @@ export async function getActiveProjectId(): Promise<string> {
 export async function getActiveEnvironment(): Promise<string> {
   if (typeof window === "undefined") {
     const val = await readServerCookie(ENV_COOKIE);
-    return val ?? "production";
+    return val ?? "development";
   }
   const match = document.cookie
     .split("; ")
     .find((row) => row.startsWith(`${ENV_COOKIE}=`));
-  return match?.split("=")[1] ?? "production";
+  return match?.split("=")[1] ?? "development";
 }
