@@ -587,12 +587,12 @@
 
 ### M1.6 Dashboard：异常模块
 
-- [ ] **T1.6.1** DashboardModule 基础框架（统一响应、JWT、ProjectGuard、Swagger）— 2d
-- [ ] **T1.6.2** Issues 列表 API（筛选：环境、状态、level、时间范围；排序：last_seen、count）— 2d
-- [ ] **T1.6.3** Issue 详情 API（代表事件、堆栈、breadcrumbs、设备分布、趋势）— 2d
-- [ ] **T1.6.4** web/errors 列表页 UI（表格 + 筛选 + 分页）— 3d
-- [ ] **T1.6.5** web/errors 详情页 UI（堆栈高亮、breadcrumbs 时间轴、设备标签云）— 4d
-- [ ] **T1.6.6** 异常状态机（open / resolved / ignored）+ 批量操作 — 2d
+- [x] **T1.6.1** DashboardModule 基础框架（统一响应、JWT、ProjectGuard、Swagger）— 2d（完成 2026-04-27）
+- [x] **T1.6.2** Issues 列表 API（筛选：状态、subType；排序：last_seen、event_count；分页）— 2d（完成 2026-05-06）
+- [x] **T1.6.3** Issue 详情 API（含近期事件样本、设备信息）— 2d（完成 2026-05-06）
+- [x] **T1.6.4** web/errors/issues 列表页 UI（表格 + 状态筛选 + 分页）— 3d（完成 2026-05-06）
+- [x] **T1.6.5** web/errors/issues 详情页 UI（概览卡片 + 堆栈 + 设备标签）— 4d（完成 2026-05-06）
+- [x] **T1.6.6** 异常状态机（open / resolved / ignored）+ UI 操作按钮 — 2d（完成 2026-05-06）
 
 ---
 
@@ -1336,6 +1336,8 @@
 
 > 每周同步更新本节。
 
+- 已完成（2026-05-06）：**T1.6.2~T1.6.6 Issues CRUD 全部完成** —— DashboardIssuesController + Service（GET 列表分页/筛选/排序 + GET 详情含近期事件 + PATCH 状态变更）；Zod DTO（IssuesListQuerySchema / IssueStatusUpdateSchema）；Web Issues 列表页（状态 Tab 筛选 + 分页 + 相对时间）+ 详情页（概览卡片 + 堆栈 + 设备标签 + 状态操作按钮）；异常分析页增加 Issues 入口链接；server + web typecheck 全绿
+- 已完成（2026-05-06）：**T1.2.4 contextPlugin（UTM + 搜索引擎 + 流量渠道归因）**
 - 已完成（2026-05-01）：**TM.2.C 实时监控切片（ADR-0030，7 子任务全部 `[x]`）** —— `RealtimeModule` 骨架（topics.ts 常量 + channelKey/streamKey 生成）+ `RealtimeService`（Symbol-keyed 订阅池 + 独立 ioredis subscriber + psubscribe `rt:<pid>:*` + XRANGE 60s 回放 + 每 projectId 最多 10 并发 SSE）+ `RealtimeController` SSE `/api/v1/stream/realtime`（Fastify `reply.hijack()` + 手写 SSE 帧 + 15s 心跳 + Last-Event-ID 回放 + 429 限流）+ Gateway 入库后 fire-and-forget `realtime.publish()`（XADD MAXLEN ~1000 + PUBLISH；仅 error/api/perf(LCP|INP|CLS)；`REALTIME_SAMPLE_RATE` 控制）+ Web `/dashboard/realtime` live 页（EventSource 封装 + 指数退避重连 1s→30s 5 次 + 500 条 FIFO + 10s 窗口 QPS + topic 过滤 + pause/clear + 三态 SourceBadge）+ demo `/dashboard/realtime` 触发器 + `apps/docs/docs/guide/dashboard/realtime.md` 全量重写 + SPEC §5.3 SSE 端点行 + ARCHITECTURE §3.1/§4.3 已实现标注 + ADR-0030 采纳；server typecheck + 10 新增单测全绿 + web typecheck 全绿
 - 已完成（2026-04-30）：**TM.3.A 数据总览切片（ADR-0029，5 子任务全部 `[x]`）** —— `DashboardOverviewService`（`Promise.allSettled` 并发 5 域 + `calcHealth` 纯函数 + 权重重分配 + 11 case 单测）+ `overview-summary.dto.ts`（Zod query + response + HealthComponent）+ `DashboardOverviewController` `/dashboard/v1/overview/summary` + Web `/dashboard/overview` live 页（`lib/api/overview.ts` + `HealthHeroCard` + 5 张等宽 `DomainSummaryGrid` + 三态 SourceBadge）+ demo `/dashboard/overview`（一键触发 errors + api + resources + LCP 样本）+ `apps/docs/docs/guide/dashboard/overview.md` 全量重写（健康度公式 + 接口样例 + FAQ）+ ADR-0029 提议 → 采纳 + nav placeholder 清空；server typecheck + web typecheck + 单测 11/11 全绿
 - 已完成（2026-04-30）：**TM.2.E 用户留存切片（ADR-0028，5 子任务全部 `[x]`）** —— `VisitsService.aggregateRetention`（单次 CTE：scoped → first_seen（HAVING 约束首访在 cohort 窗口）→ visits；identity=session\|user 切换；7 case 单测）+ `DashboardRetentionService/Controller`（装配层 4 case 单测：空 rows/正常矩阵/加权平均/error 兜底 · `retentionByDay` day 0 恒为 1 + 缺失 offset 补 0 · `averageByDay` 按 cohortSize 加权而非简单平均 · 三态 source live/empty/error 不 5xx）+ Web `/tracking/retention` live 页（`lib/api/retention.ts` URL 解析夹紧 + Server Component + `retention-config-form.tsx` URL replace + `summary-cards.tsx` + `retention-heatmap.tsx` CSS Grid 绿色色阶热力图 + `retention-chart.tsx` AntV Line + 三态 SourceBadge）+ demo `/tracking/retention`（刷新 / SPA 导航 / 重置 session 3 触发器 + `README.md #留存造数` psql 3cohort×3session 脚本）+ `apps/docs/docs/guide/tracking/retention.md` 全量重写（URL 参数表 + 字段口径 + psql 验证链路 + FAQ）+ SPEC §5.3 新增 `/dashboard/v1/tracking/retention` 行 + ARCHITECTURE §3.1 VisitsModule 追加 aggregateRetention + §3.2 tracking/retention 从"规划"改为"✅ ADR-0028" + ADR-0020 §8.2 Tier 2.E 落地摘要 + ADR-0028 状态提议 → 采纳；server 7+4 新增单测全绿 + web typecheck & build 全绿
