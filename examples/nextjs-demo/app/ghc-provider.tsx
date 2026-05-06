@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import {
   apiPlugin,
+  contextPlugin,
   customPlugin,
   errorPlugin,
   fspPlugin,
@@ -73,6 +74,7 @@ export function GhcProvider({ children }: { children: ReactNode }) {
       },
       {
         plugins: [
+          contextPlugin(),
           performancePlugin(),
           longTaskPlugin(),
           speedIndexPlugin(),
