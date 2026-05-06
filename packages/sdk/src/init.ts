@@ -48,6 +48,7 @@ export function init(
     maxBatchSize: options.maxBatchSize ?? 30,
     flushIntervalMs: options.flushInterval ?? 5000,
     preferredChannel: options.transport ?? "auto",
+    sdkOptions: options,
   });
 
   const sessionId = ensureSessionId(dsn.projectId);

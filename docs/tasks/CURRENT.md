@@ -427,7 +427,7 @@
     - 输出：`packages/sdk/tests/transport/persistence.test.ts`；体积记录
     - 验收：≥ 8 case 全绿；SDK ESM gzip ≤ 15KB
     - 依赖：T1.2.6.2
-- [ ] **T1.2.7** 采样 + `beforeSend` + `ignoreErrors` + 敏感字段默认过滤 — 2d
+- [x] **T1.2.7** 采样 + `beforeSend` + `ignoreErrors` + 敏感字段默认过滤 — 2d（2026-05-06 完成：filter.ts 四层链 — 采样率+ignoreErrors+敏感字段+beforeSend）
 - [ ] **T1.2.8** SDK 构建（Rollup + ESM/UMD + 类型声明 + 体积预算 < 15KB gzip）— 2d
 - [ ] **T1.2.9** SDK 单测 + Playwright 真实浏览器集成测试 — 3d
 
@@ -436,7 +436,7 @@
 - [ ] **T1.3.1** GatewayModule 骨架 + `/ingest/v1/events`、`/ingest/v1/beacon` 端点 — 2d
 - [x] **T1.3.2** DSN 鉴权 Guard + 项目缓存 — 2d（完成 2026-04-28，commit `8a167d7`）
 - [x] **T1.3.3** 项目级限流（Redis 令牌桶 Lua）— 2d（完成 2026-04-29；`RateLimitService` + `RateLimitGuard` + 9 单测全绿）
-- [ ] **T1.3.4** 事件 Zod 校验 Pipe + 批量分发到各队列 — 2d
+- [x] **T1.3.4** 事件 Zod 校验 Pipe + 批量分发到各队列 — 2d（已实现：ZodValidationPipe + IngestRequestSchema + 按 type 9 路分流 + error 类型 BullMQ 异步；其他类型同步直写待后续迁移）
 - [x] **T1.3.5** 幂等去重（eventId Redis SETNX）— 1d（完成 2026-04-29；`IdempotencyService` + `RedisService` + 8 单测全绿）
 - [~] **T1.3.6** Gateway 压测基线（k6，目标 5000 events/s）— 2d（完成 2026-04-29：`apps/server/bench/ingest.k6.js` + README；压测数字待在目标硬件执行后粘回本条目）
 

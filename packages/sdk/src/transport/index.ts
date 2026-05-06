@@ -1,15 +1,17 @@
 import type { SdkEvent } from "@g-heal-claw/shared";
 import type { Logger } from "../logger.js";
+import type { GHealClawOptions } from "../options.js";
 import type { Transport } from "./types.js";
 import { createEventQueue } from "./queue.js";
 import { createSender } from "./sender.js";
 import { createPersistence } from "./persistence.js";
+import { applyFilters } from "../filter.js";
 
 /**
- * 生产级 Transport 工厂（ADR-0034）
+ * 生产级 Transport 工厂（ADR-0034 + T1.2.7 过滤链）
  *
- * 组装：EventQueue + Sender + Persistence
- *  - enqueue → 内存 buffer → flush → sender.sendBatch
+ * 组装：Filter → EventQueue → Sender → Persistence
+ *  - send(event) → applyFilters → enqueue → flush → sendBatch
  *  - 发送失败 → persistence.store → 启动/online 重试
  */
 
@@ -21,6 +23,7 @@ export interface TransportOptions {
   readonly maxBatchSize: number;
   readonly flushIntervalMs: number;
   readonly preferredChannel: "beacon" | "fetch" | "image" | "auto";
+  readonly sdkOptions: GHealClawOptions;
 }
 
 export function createTransport(opts: TransportOptions): Transport {
@@ -60,7 +63,13 @@ export function createTransport(opts: TransportOptions): Transport {
   return {
     name: "batch-transport",
     async send(event: SdkEvent): Promise<boolean> {
-      queue.enqueue(event);
+      // T1.2.7 过滤链：采样 → ignoreErrors → 敏感字段 → beforeSend
+      const filtered = applyFilters(event, opts.sdkOptions);
+      if (filtered === null) {
+        logger.debug("transport: 事件被过滤丢弃");
+        return true;
+      }
+      queue.enqueue(filtered);
       return true;
     },
     async flush(timeoutMs?: number): Promise<boolean> {
