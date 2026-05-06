@@ -18,7 +18,7 @@ import { z } from "zod";
 export const ResourcesOverviewQuerySchema = z.object({
   projectId: z.string().min(1, "projectId 必填"),
   /** 聚合窗口（小时），默认 24，最大 168（7d） */
-  windowHours: z.coerce.number().int().min(1).max(168).default(24),
+  windowHours: z.coerce.number().int().min(1).max(720).default(24),
   /** topSlow 返回条数，默认 10，最大 50 */
   limitSlow: z.coerce.number().int().min(1).max(50).default(10),
   /** topFailingHosts 返回条数，默认 10，最大 50 */

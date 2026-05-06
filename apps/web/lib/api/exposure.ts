@@ -58,12 +58,17 @@ export interface ExposureOverviewResult {
 
 // ------- 数据获取 -------
 
-export async function getExposureOverview(): Promise<ExposureOverviewResult> {
+export async function getExposureOverview(
+  params: { windowHours?: number } = {},
+): Promise<ExposureOverviewResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
   const projectId = getActiveProjectId();
   const environment = getActiveEnvironment();
   const qs = new URLSearchParams({ projectId, environment });
+  if (params.windowHours != null && Number.isFinite(params.windowHours)) {
+    qs.set("windowHours", String(params.windowHours));
+  }
   const url = `${baseUrl}/dashboard/v1/tracking/exposure/overview?${qs.toString()}`;
 
   try {

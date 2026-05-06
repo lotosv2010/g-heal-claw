@@ -77,12 +77,17 @@ export const LOG_LEVEL_TONE: Record<LogLevel, string> = {
 
 // ------- 数据获取 -------
 
-export async function getLogsOverview(): Promise<LogsOverviewResult> {
+export async function getLogsOverview(
+  params: { windowHours?: number } = {},
+): Promise<LogsOverviewResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
   const projectId = getActiveProjectId();
   const environment = getActiveEnvironment();
   const qs = new URLSearchParams({ projectId, environment });
+  if (params.windowHours != null && Number.isFinite(params.windowHours)) {
+    qs.set("windowHours", String(params.windowHours));
+  }
   const url = `${baseUrl}/dashboard/v1/logs/overview?${qs.toString()}`;
 
   try {

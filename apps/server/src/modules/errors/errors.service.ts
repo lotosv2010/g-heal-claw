@@ -1,3 +1,4 @@
+import { type Granularity, truncSql } from "../../shared/granularity.js";
 import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
 import type { ErrorEvent } from "@g-heal-claw/shared";
@@ -15,7 +16,7 @@ export interface ErrorWindowParams {
   readonly projectId: string;
   readonly sinceMs: number;
   readonly untilMs: number;
-  readonly granularity?: "hour" | "day";
+  readonly granularity?: Granularity;
   readonly environment?: string;
 }
 
@@ -220,9 +221,7 @@ export class ErrorsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
-    const trunc = params.granularity === "day"
-      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
-      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
+    const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
       sub_type: string;
@@ -333,9 +332,7 @@ export class ErrorsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
-    const trunc = params.granularity === "day"
-      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
-      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
+    const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
       sub_type: string;

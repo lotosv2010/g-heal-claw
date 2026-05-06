@@ -1,3 +1,4 @@
+import { computeGranularity } from "../../shared/granularity.js";
 import { Injectable } from "@nestjs/common";
 import {
   ResourcesService,
@@ -42,7 +43,7 @@ export class DashboardResourcesService {
     const now = Date.now();
     const windowMs = windowHours * 3600_000;
 
-    const granularity = windowHours > 24 ? "day" as const : "hour" as const;
+    const granularity = computeGranularity(windowHours);
     const environment = query.environment;
     const current: ResourceWindowParams = {
       projectId,

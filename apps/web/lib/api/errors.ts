@@ -230,12 +230,17 @@ export const CATEGORY_COLLECTED: Record<ErrorCategory, boolean> = {
  * - 成功 + totalEvents=0 → `source: "empty"`
  * - 5xx / fetch 抛错 / JSON 解析失败 → `source: "error"`，降级为 emptyErrorOverview
  */
-export async function getErrorOverview(): Promise<ErrorOverviewResult> {
+export async function getErrorOverview(
+  params: { windowHours?: number } = {},
+): Promise<ErrorOverviewResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
   const projectId = getActiveProjectId();
   const environment = getActiveEnvironment();
   const qs = new URLSearchParams({ projectId, environment });
+  if (params.windowHours != null && Number.isFinite(params.windowHours)) {
+    qs.set("windowHours", String(params.windowHours));
+  }
   const url = `${baseUrl}/dashboard/v1/errors/overview?${qs.toString()}`;
 
   try {

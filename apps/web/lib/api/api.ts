@@ -133,12 +133,17 @@ export const STATUS_BUCKET_TONE: Record<StatusBucket, string> = {
 
 // ------- 数据获取 -------
 
-export async function getApiOverview(): Promise<ApiOverviewResult> {
+export async function getApiOverview(
+  params: { windowHours?: number } = {},
+): Promise<ApiOverviewResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
   const projectId = getActiveProjectId();
   const environment = getActiveEnvironment();
   const qs = new URLSearchParams({ projectId, environment });
+  if (params.windowHours != null && Number.isFinite(params.windowHours)) {
+    qs.set("windowHours", String(params.windowHours));
+  }
   const url = `${baseUrl}/dashboard/v1/api/overview?${qs.toString()}`;
 
   try {

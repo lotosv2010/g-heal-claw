@@ -105,32 +105,30 @@ export function getSelectionPhrase(sel: TimeSelection): string {
 }
 
 /**
- * 将 TimeSelection 换算为 Dashboard 性能大盘接口需要的 `windowHours`
+ * 将 TimeSelection 换算为 Dashboard 接口需要的 `windowHours`
  *
- * 后端契约（apps/server `OverviewQuerySchema`）：整数 1~168（即 1h ~ 7d）。
- * 约定：
- *  - 15m / 1h → 1（最小粒度）
- *  - 24h → 24
- *  - 7d → 168
- *  - 30d → 168（clamp 到上限，避免 API 400）
- *  - 自定义区间 → Math.ceil((toMs - fromMs) / 3600_000)，同样 clamp
+ * 后端契约（apps/server DTO）：整数 1~720（即 1h ~ 30d）。
+ * 粒度规则（全局）：
+ *  - ≤ 1h（含 15m）：分钟级统计（date_trunc('minute')）
+ *  - ≤ 24h：小时级统计（date_trunc('hour')）
+ *  - > 24h（7d/30d/自定义）：天级统计（date_trunc('day')）
  */
 export const DASHBOARD_WINDOW_MIN = 1;
-export const DASHBOARD_WINDOW_MAX = 168;
+export const DASHBOARD_WINDOW_MAX = 720;
 
 export function toWindowHours(sel: TimeSelection): number {
   if (sel.kind === "preset") {
     switch (sel.preset) {
       case "15m":
-        return DASHBOARD_WINDOW_MIN;
+        return 1;
       case "1h":
-        return DASHBOARD_WINDOW_MIN;
+        return 1;
       case "24h":
         return 24;
       case "7d":
-        return DASHBOARD_WINDOW_MAX;
+        return 168;
       case "30d":
-        return DASHBOARD_WINDOW_MAX;
+        return 720;
     }
   }
   const hours = Math.ceil((sel.range.toMs - sel.range.fromMs) / 3_600_000);
@@ -138,4 +136,22 @@ export function toWindowHours(sel: TimeSelection): number {
     return DASHBOARD_WINDOW_MIN;
   if (hours > DASHBOARD_WINDOW_MAX) return DASHBOARD_WINDOW_MAX;
   return hours;
+}
+
+/**
+ * 从 Next.js page searchParams 解析 windowHours（供所有 Server Component 页面复用）
+ *
+ * 将 Next.js 16 的 `Promise<Record<string, string | string[] | undefined>>` 标准化为 URLSearchParams
+ * 再调用 parseTimeSelection → toWindowHours。
+ */
+export async function resolveWindowHours(
+  searchParams?: Promise<Record<string, string | string[] | undefined>>,
+): Promise<number> {
+  const raw = (await searchParams) ?? {};
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === "string") qs.set(k, v);
+    else if (Array.isArray(v) && v.length > 0) qs.set(k, v[0] ?? "");
+  }
+  return toWindowHours(parseTimeSelection(qs));
 }

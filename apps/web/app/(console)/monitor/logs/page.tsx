@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { getLogsOverview, type LogsOverviewResult } from "@/lib/api/logs";
+import { resolveWindowHours } from "@/lib/time-range";
 import { SummaryCards } from "./summary-cards";
 import { LevelBuckets } from "./level-buckets";
 import { TrendChart } from "./trend-chart";
@@ -22,8 +23,13 @@ type Source = LogsOverviewResult["source"];
  *
  * 数据源：custom_logs_raw（customPlugin 主动 log）；与 /monitor/errors 被动捕获互补。
  */
-export default async function LogsPage() {
-  const { source, data } = await getLogsOverview();
+export default async function LogsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const windowHours = await resolveWindowHours(searchParams);
+  const { source, data } = await getLogsOverview({ windowHours });
 
   return (
     <div>

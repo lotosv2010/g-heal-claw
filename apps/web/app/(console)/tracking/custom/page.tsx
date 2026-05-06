@@ -4,6 +4,7 @@ import {
   getCustomOverview,
   type CustomOverviewResult,
 } from "@/lib/api/custom";
+import { resolveWindowHours } from "@/lib/time-range";
 import { SummaryCards } from "./summary-cards";
 import { TrendChart } from "./trend-chart";
 import { TopEventsTable } from "./top-events-table";
@@ -27,8 +28,13 @@ type Source = CustomOverviewResult["source"];
  *
  * 数据源：custom_events_raw / custom_metrics_raw（customPlugin 主动 track / time）
  */
-export default async function CustomTrackingPage() {
-  const { source, data } = await getCustomOverview();
+export default async function CustomTrackingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const windowHours = await resolveWindowHours(searchParams);
+  const { source, data } = await getCustomOverview({ windowHours });
 
   return (
     <div>

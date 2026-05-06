@@ -80,12 +80,17 @@ export interface OverviewSummaryResult {
   readonly data: OverviewSummary;
 }
 
-export async function getOverviewSummary(): Promise<OverviewSummaryResult> {
+export async function getOverviewSummary(
+  params: { windowHours?: number } = {},
+): Promise<OverviewSummaryResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
   const projectId = getActiveProjectId();
   const environment = getActiveEnvironment();
   const qs = new URLSearchParams({ projectId, environment });
+  if (params.windowHours != null && Number.isFinite(params.windowHours)) {
+    qs.set("windowHours", String(params.windowHours));
+  }
   const url = `${baseUrl}/dashboard/v1/overview/summary?${qs.toString()}`;
 
   try {

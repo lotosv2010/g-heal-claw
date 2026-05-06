@@ -8,6 +8,7 @@ import {
   getErrorOverview,
   type ErrorOverviewResult,
 } from "@/lib/api/errors";
+import { resolveWindowHours } from "@/lib/time-range";
 
 import { CategoryCards } from "./category-cards";
 import { RankingTable } from "./ranking-table";
@@ -32,8 +33,13 @@ type Source = ErrorOverviewResult["source"];
  *  - server 端已完成 9 分类拆分（resource 按 resource_kind 拆出 4 子类）+ ajax / api_code（SDK httpPlugin）
  *  - 维度 tabs：server 端已聚合 device / browser / os 三项；其余 5 项保留占位
  */
-export default async function ErrorsPage() {
-  const { source, data } = await getErrorOverview();
+export default async function ErrorsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const windowHours = await resolveWindowHours(searchParams);
+  const { source, data } = await getErrorOverview({ windowHours });
 
   const categoryCards = buildCategoryCards(data);
   const rankingRows = buildRankingRows(data);

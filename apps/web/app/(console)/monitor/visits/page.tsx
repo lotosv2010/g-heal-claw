@@ -4,6 +4,7 @@ import {
   getVisitsOverview,
   type VisitsOverviewResult,
 } from "@/lib/api/visits";
+import { resolveWindowHours } from "@/lib/time-range";
 import { SummaryCards } from "./summary-cards";
 import { TrendChart } from "./trend-chart";
 import { TopPages } from "./top-pages";
@@ -25,8 +26,13 @@ type Source = VisitsOverviewResult["source"];
  *
  * 数据源：`page_view_raw` 由 pageViewPlugin 上报；鉴权与多项目隔离留给 T1.1.7。
  */
-export default async function VisitsPage() {
-  const { source, data } = await getVisitsOverview();
+export default async function VisitsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const windowHours = await resolveWindowHours(searchParams);
+  const { source, data } = await getVisitsOverview({ windowHours });
 
   return (
     <div>

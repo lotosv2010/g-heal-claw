@@ -1,3 +1,4 @@
+import { computeGranularity } from "../../shared/granularity.js";
 import { Injectable, Logger } from "@nestjs/common";
 import {
   ApiService,
@@ -61,7 +62,7 @@ export class DashboardOverviewService {
     const now = Date.now();
     const windowMs = windowHours * 3600_000;
 
-    const granularity = windowHours > 24 ? "day" as const : "hour" as const;
+    const granularity = computeGranularity(windowHours);
     const environment = query.environment;
     const current = { projectId, sinceMs: now - windowMs, untilMs: now, granularity, environment };
     const previous = {

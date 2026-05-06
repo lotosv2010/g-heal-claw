@@ -4,6 +4,7 @@ import {
   getOverviewSummary,
   type OverviewSummaryResult,
 } from "@/lib/api/overview";
+import { resolveWindowHours } from "@/lib/time-range";
 import { HealthHeroCard } from "./health-hero-card";
 import { DomainSummaryGrid } from "./domain-summary-grid";
 
@@ -22,8 +23,13 @@ type Source = OverviewSummaryResult["source"];
  * 数据源：`/dashboard/v1/overview/summary`（Promise.allSettled 并发 5 域 service）
  * 鉴权 / 项目隔离：留给 T1.1.7，当前固定 NEXT_PUBLIC_DEFAULT_PROJECT_ID
  */
-export default async function OverviewPage() {
-  const { source, data } = await getOverviewSummary();
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const windowHours = await resolveWindowHours(searchParams);
+  const { source, data } = await getOverviewSummary({ windowHours });
 
   return (
     <div>

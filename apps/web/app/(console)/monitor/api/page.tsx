@@ -4,6 +4,7 @@ import {
   getApiOverview,
   type ApiOverviewResult,
 } from "@/lib/api/api";
+import { resolveWindowHours } from "@/lib/time-range";
 import { SummaryCards } from "./summary-cards";
 import { StatusBuckets } from "./status-buckets";
 import { TrendChart } from "./trend-chart";
@@ -27,8 +28,13 @@ type Source = ApiOverviewResult["source"];
  *
  * 数据源：`api_events_raw` 由 apiPlugin 上报；鉴权与多项目隔离留给 T1.1.7。
  */
-export default async function ApiPage() {
-  const { source, data } = await getApiOverview();
+export default async function ApiPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const windowHours = await resolveWindowHours(searchParams);
+  const { source, data } = await getApiOverview({ windowHours });
 
   return (
     <div>

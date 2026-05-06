@@ -4,6 +4,7 @@ import {
   getExposureOverview,
   type ExposureOverviewResult,
 } from "@/lib/api/exposure";
+import { resolveWindowHours } from "@/lib/time-range";
 import { SummaryCards } from "./summary-cards";
 import { TrendChart } from "./trend-chart";
 import { TopSelectorsTable } from "./top-selectors-table";
@@ -26,8 +27,13 @@ type Source = ExposureOverviewResult["source"];
  * 数据源：`track_events_raw` 中 `track_type='expose'` 子集，由 trackPlugin 在
  * IntersectionObserver 命中且停留 ≥ exposeDwellMs 后写入。
  */
-export default async function TrackingExposurePage() {
-  const { source, data } = await getExposureOverview();
+export default async function TrackingExposurePage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const windowHours = await resolveWindowHours(searchParams);
+  const { source, data } = await getExposureOverview({ windowHours });
 
   return (
     <div>

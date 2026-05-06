@@ -4,6 +4,7 @@ import {
   getTrackingOverview,
   type TrackingOverviewResult,
 } from "@/lib/api/tracking";
+import { resolveWindowHours } from "@/lib/time-range";
 import { SummaryCards } from "./summary-cards";
 import { TypeBuckets } from "./type-buckets";
 import { TrendChart } from "./trend-chart";
@@ -25,8 +26,13 @@ type Source = TrackingOverviewResult["source"];
  *
  * 数据源：`track_events_raw` 由 trackPlugin 上报。
  */
-export default async function TrackingEventsPage() {
-  const { source, data } = await getTrackingOverview();
+export default async function TrackingEventsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const windowHours = await resolveWindowHours(searchParams);
+  const { source, data } = await getTrackingOverview({ windowHours });
 
   return (
     <div>

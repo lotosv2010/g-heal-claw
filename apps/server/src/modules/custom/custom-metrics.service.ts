@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
 import type { CustomMetric } from "@g-heal-claw/shared";
+import { truncSql } from "../../shared/granularity.js";
 import { DatabaseService } from "../../shared/database/database.service.js";
 import {
   customMetricsRaw,
@@ -155,9 +156,7 @@ export class CustomMetricsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
-    const trunc = params.granularity === "day"
-      ? sql`date_trunc('day', to_timestamp(ts_ms / 1000.0))`
-      : sql`date_trunc('hour', to_timestamp(ts_ms / 1000.0))`;
+    const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
       n: string | number;

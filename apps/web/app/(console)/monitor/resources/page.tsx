@@ -4,6 +4,7 @@ import {
   getResourcesOverview,
   type ResourcesOverviewResult,
 } from "@/lib/api/resources";
+import { resolveWindowHours } from "@/lib/time-range";
 import { SummaryCards } from "./summary-cards";
 import { CategoryBuckets } from "./category-buckets";
 import { TrendChart } from "./trend-chart";
@@ -27,8 +28,13 @@ type Source = ResourcesOverviewResult["source"];
  *
  * 数据源：`resource_events_raw` 由 resourcePlugin 上报；fetch / xhr / beacon 由 /monitor/api 负责。
  */
-export default async function ResourcesPage() {
-  const { source, data } = await getResourcesOverview();
+export default async function ResourcesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const windowHours = await resolveWindowHours(searchParams);
+  const { source, data } = await getResourcesOverview({ windowHours });
 
   return (
     <div>

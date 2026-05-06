@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { getPerformanceOverview, type OverviewSource } from "@/lib/api/performance";
-import { parseTimeSelection, toWindowHours } from "@/lib/time-range";
+import { resolveWindowHours } from "@/lib/time-range";
 
 // 强制动态渲染：每次请求都从 apps/server 拉最新聚合结果，避免被 SSG 冻结
 export const dynamic = "force-dynamic";
@@ -32,13 +32,7 @@ export default async function PerformancePage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const raw = (await searchParams) ?? {};
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(raw)) {
-    if (typeof v === "string") qs.set(k, v);
-    else if (Array.isArray(v) && v.length > 0) qs.set(k, v[0] ?? "");
-  }
-  const windowHours = toWindowHours(parseTimeSelection(qs));
+  const windowHours = await resolveWindowHours(searchParams);
   const { source, data } = await getPerformanceOverview({ windowHours });
 
   return (
