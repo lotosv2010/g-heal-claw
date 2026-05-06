@@ -1154,17 +1154,17 @@
   - 输出：`apps/server/src/shared/database/schema/alert-rules.ts` + `alert-history.ts` + `channels.ts` + `drizzle/0010_alert_tables.sql` + `packages/shared` 追加 `QueueName.AlertEvaluator` / `QueueName.Notifications`
   - 验收：`pnpm typecheck` 全绿；DDL 幂等执行无报错
   - 依赖：无
-- [ ] **T4.1.2** AlertModule 骨架（AlertService CRUD + AlertController + Zod DTO）— 1.5d
+- [x] **T4.1.2** AlertModule 骨架（AlertService CRUD + AlertController + Zod DTO）— 1.5d
   - 输入：T4.1.1
   - 输出：`apps/server/src/modules/alert/alert.module.ts` + `alert.service.ts` + `alert.controller.ts` + `dto/`（CreateAlertRuleSchema / UpdateAlertRuleSchema / AlertHistoryQuerySchema）
   - 验收：Swagger 可见 5 端点（GET list / POST create / PATCH update / DELETE / GET history）；Zod 校验生效
   - 依赖：T4.1.1
-- [ ] **T4.1.3** 告警评估引擎（cron + 5 种 target 查询抽象 + 状态机）— 2d
+- [x] **T4.1.3** 告警评估引擎（cron + 5 种 target 查询抽象 + 状态机）— 2d
   - 输入：T4.1.2；各域 Service 的 aggregate 方法已就绪
   - 输出：`apps/server/src/modules/alert/alert-evaluator.service.ts`（`@Cron('*/1 * * * *')` + evaluateAll + target→SQL 映射 + cooldown 判定 + firing/resolved 状态机）
   - 验收：单测覆盖 5 种 target 评估 + cooldown 静默 + resolved 自动标记；`pnpm test` 全绿
   - 依赖：T4.1.2
-- [ ] **T4.1.4** 预置规则下发（ProjectsService.create 内自动插入 6 条模板）— 0.5d
+- [x] **T4.1.4** 预置规则下发（ProjectsService.create 内自动插入 6 条模板）— 0.5d
   - 输入：T4.1.2
   - 输出：`apps/server/src/modules/alert/preset-rules.ts`（6 条规则定义）+ `projects.service.ts` create 事务追加
   - 验收：创建新项目后 `alert_rules` 表有 6 条 `enabled=false` 记录
@@ -1172,33 +1172,33 @@
 
 ### M4.2 通知渠道（ADR-0035）
 
-- [ ] **T4.2.1** NotificationModule 骨架（ChannelService CRUD + NotificationWorker + BullMQ）— 1.5d
+- [x] **T4.2.1** NotificationModule 骨架（ChannelService CRUD + NotificationWorker + BullMQ）— 1.5d
   - 输入：T4.1.1（队列名 + channels 表）
   - 输出：`apps/server/src/modules/notification/notification.module.ts` + `channel.service.ts` + `channel.controller.ts` + `notification.worker.ts`（`@Processor(QueueName.Notifications)`）
   - 验收：渠道 CRUD 端点可用；Worker 消费日志可见
   - 依赖：T4.1.1
-- [ ] **T4.2.2** 5 种 Provider 实现 + 模板渲染 — 2d
+- [x] **T4.2.2** 5 种 Provider 实现 + 模板渲染 — 2d
   - 输入：T4.2.1
   - 输出：`providers/email.provider.ts` + `dingtalk.provider.ts` + `wecom.provider.ts` + `slack.provider.ts` + `webhook.provider.ts` + `template.ts`（变量替换引擎）
   - 验收：每种 Provider 有独立单测 mock HTTP 验证 payload 格式；模板 `{{rule.name}}` 正确替换
   - 依赖：T4.2.1
-- [ ] **T4.2.3** 评估 → 通知联动（AlertEvaluator 触发时向 notifications 队列投递）— 0.5d
+- [x] **T4.2.3** 评估 → 通知联动（AlertEvaluator 触发时向 notifications 队列投递）— 0.5d
   - 输入：T4.1.3 + T4.2.1
   - 输出：`alert-evaluator.service.ts` 命中后 `this.notificationQueue.add(...)`
   - 验收：规则命中后 notifications Worker 日志输出对应渠道发送记录
   - 依赖：T4.1.3, T4.2.1
 - [-] **T4.2.4** 短信渠道 — 推迟（需真实 API Key）
-- [ ] **T4.2.5** Web `/settings/alerts` 规则管理页面 — 1.5d
+- [x] **T4.2.5** Web `/settings/alerts` 规则管理页面 — 1.5d
   - 输入：T4.1.2 API 就绪
   - 输出：`apps/web/app/(console)/settings/alerts/page.tsx` + `components/settings/alert-*`（规则表格 + 创建/编辑对话框 + 启停开关 + 历史列表）+ `lib/api/alerts.ts`
   - 验收：`typecheck && build` 全绿；规则 CRUD 可交互；nav.ts placeholder 清空
   - 依赖：T4.1.2
-- [ ] **T4.2.6** Web `/settings/channels` 渠道管理页面 — 1.5d
+- [x] **T4.2.6** Web `/settings/channels` 渠道管理页面 — 1.5d
   - 输入：T4.2.1 API 就绪
   - 输出：`apps/web/app/(console)/settings/channels/page.tsx` + `components/settings/channel-*`（渠道表格 + 创建对话框含类型选择 + 测试发送按钮）+ `lib/api/channels.ts`
   - 验收：`typecheck && build` 全绿；5 种渠道类型可创建；测试发送按钮触发 Worker；nav.ts placeholder 清空
   - 依赖：T4.2.1
-- [ ] **T4.2.7** 单测 + 文档传导 — 1d
+- [x] **T4.2.7** 单测 + 文档传导 — 1d
   - 输入：T4.1.1 ~ T4.2.6 全部完成
   - 输出：`tests/modules/alert/` + `tests/modules/notification/`（≥ 20 case）+ `apps/docs/docs/guide/dashboard/alerts.md` + `apps/docs/docs/reference/alerts.md` + SPEC/ARCHITECTURE 同步 + CURRENT.md 更新 + ADR-0035 状态采纳
   - 验收：`pnpm test` 全绿；双向可追溯；nav.ts alerts + channels 均 live

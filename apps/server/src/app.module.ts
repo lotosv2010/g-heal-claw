@@ -18,6 +18,8 @@ import { VisitsModule } from "./modules/visits/visits.module.js";
 import { PartitionsModule } from "./modules/partitions/partitions.module.js";
 import { RealtimeModule } from "./modules/realtime/realtime.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
+import { AlertModule } from "./modules/alert/alert.module.js";
+import { NotificationModule } from "./modules/notification/notification.module.js";
 
 @Module({})
 export class AppModule {
@@ -32,6 +34,8 @@ export class AppModule {
         ScheduleModule.forRoot(),
         HealthModule,
         AuthModule,
+        AlertModule,
+        NotificationModule,
         GatewayModule,
         ErrorsModule,
         ApiModule,

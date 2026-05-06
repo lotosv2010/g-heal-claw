@@ -38,7 +38,7 @@ export class DashboardSourcemapService {
         r.created_at
       FROM releases r
       LEFT JOIN (
-        SELECT release_id, COUNT(*)::text AS cnt
+        SELECT release_id, COUNT(*)::int AS cnt
         FROM release_artifacts
         WHERE project_id = ${projectId}
         GROUP BY release_id

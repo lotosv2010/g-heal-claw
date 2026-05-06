@@ -10,7 +10,9 @@ import { sql } from "drizzle-orm";
 import {
   generateProjectId,
   generateProjectKeyId,
+  generateAlertRuleId,
 } from "@g-heal-claw/shared";
+import { PRESET_ALERT_RULES } from "../alert/preset-rules.js";
 import { SERVER_ENV, type ServerEnv } from "../../config/env.js";
 import { DatabaseService } from "../../shared/database/database.service.js";
 
@@ -103,6 +105,29 @@ export class ProjectsService {
         await db.execute(sql`
           INSERT INTO environments (project_id, name, description, is_production, created_at)
           VALUES (${projectId}, ${env.name}, ${env.description}, ${env.isProduction}, NOW())
+        `);
+      }
+
+      // 插入预设告警规则（默认禁用，用户可手动启用）
+      for (const rule of PRESET_ALERT_RULES) {
+        const ruleId = generateAlertRuleId();
+        await db.execute(sql`
+          INSERT INTO alert_rules (id, project_id, name, target, condition, filter,
+                                   severity, cooldown_ms, channels, enabled, created_at, updated_at)
+          VALUES (
+            ${ruleId},
+            ${projectId},
+            ${rule.name},
+            ${rule.target},
+            ${JSON.stringify(rule.condition)}::jsonb,
+            ${rule.filter ? JSON.stringify(rule.filter) : null}::jsonb,
+            ${rule.severity},
+            ${rule.cooldownMs},
+            NULL,
+            false,
+            NOW(),
+            NOW()
+          )
         `);
       }
 

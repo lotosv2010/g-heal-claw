@@ -51,7 +51,8 @@ describe("ProjectsService", () => {
     expect(result.ownerUserId).toBe("usr_1");
     expect(result.publicKey).toMatch(/^pub_/);
     expect(result.secretKey).toMatch(/^sec_/);
-    expect(db.execute).toHaveBeenCalledTimes(9);
+    // 9（原事务）+ 6（预置告警规则 ADR-0035）= 15
+    expect(db.execute).toHaveBeenCalledTimes(15);
   });
 
   it("create — slug 已存在 → 409 + ROLLBACK", async () => {

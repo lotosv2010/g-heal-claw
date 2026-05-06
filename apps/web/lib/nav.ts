@@ -132,13 +132,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         slug: "settings/alerts",
         label: "告警规则",
         icon: SlidersHorizontal,
-        placeholder: "Phase 4 交付",
+        placeholder: null,
       },
       {
         slug: "settings/channels",
         label: "通知渠道",
         icon: Radio,
-        placeholder: "Phase 4 交付",
+        placeholder: null,
       },
       {
         slug: "settings/members",
