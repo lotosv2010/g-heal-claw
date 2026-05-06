@@ -126,6 +126,7 @@ export default defineConfig({
             { text: "埋点上报", link: "/sdk/tracking" },
             { text: "页面访问", link: "/sdk/page-view" },
             { text: "自定义上报", link: "/sdk/custom" },
+            { text: "设备与页面上下文", link: "/sdk/device-context" },
             { text: "Sourcemap 上传", link: "/sdk/sourcemap" },
           ],
         },

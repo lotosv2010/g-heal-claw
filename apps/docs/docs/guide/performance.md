@@ -31,7 +31,28 @@
 
 ### 按设备 / 平台下钻
 
-底部 Dimension Tabs：浏览器 / OS / 平台（已接入）；device / network / country 保留占位。
+底部 Dimension Tabs：
+
+| 维度 | 数据来源 | 说明 |
+|------|---------|------|
+| 浏览器 | `device.browser` + `device.browserVersion` | Chrome 125 / Safari 17 / Edge 125 等 |
+| 操作系统 | `device.os` + `device.osVersion` | Windows 10.0 / macOS 15.4 / Android 14 等 |
+| 设备类型 | `device.deviceType` | desktop / mobile / tablet / bot |
+| 网络类型 | `device.network.effectiveType` | 4g / 3g / 2g（仅 Chromium 内核浏览器） |
+
+SDK 自动采集以上字段，详见 [SDK · 设备与页面上下文](/sdk/device-context)。
+
+### 环比对比
+
+点击 Core Web Vitals 面板上方的「环比」Tab，当前周期与前一周期指标并列展示，delta 高亮标记改善/恶化方向。
+
+### 分页面瀑布图
+
+页面加载瀑布图支持通过下拉菜单选择具体 URL path，查看单页面维度的 Navigation Timing 各阶段耗时。默认展示全局聚合。
+
+### 多指标趋势图
+
+趋势图支持通过 Legend 切换多指标叠加（LCP + FCP + TTFB + INP + CLS），crosshair tooltip 显示精确数值与时间点。
 
 ## 数据采样
 

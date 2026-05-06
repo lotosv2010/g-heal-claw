@@ -514,7 +514,41 @@ docker compose down -v    # 清理所有数据卷（慎用）
 
 ---
 
-## 12. 贡献指引
+## 12. SDK 体积预算与 CI Gate
+
+`@g-heal-claw/sdk` 有严格的体积预算：**全量 SDK（含 zod + web-vitals + 全部插件）≤ 45KB gzip**。
+
+### CI 自动检查
+
+`.github/workflows/ci.yml` 中的 `SDK Size Check` 步骤会在每次 build 后检测产物体积：
+
+```bash
+# 超过 45KB (46080 bytes) gzip 时 CI 报错
+SDK_GZIP=$(gzip -c packages/sdk/dist/sdk.esm.js | wc -c)
+if [ "$SDK_GZIP" -gt "46080" ]; then
+  echo "::error::SDK 体积超预算！"
+  exit 1
+fi
+```
+
+### 本地验证
+
+```bash
+pnpm -F @g-heal-claw/sdk build
+gzip -c packages/sdk/dist/sdk.esm.js | wc -c
+# 当前约 39~40KB，剩余 ~5KB 安全裕度
+```
+
+### 超预算排查
+
+1. 检查新增的 `import` 是否引入了重型依赖（如 moment.js / lodash 全量）
+2. 使用 `npx vite-bundle-visualizer` 分析 chunk 组成
+3. 优先通过 tree-shake、延迟加载或自实现轻量替代解决
+4. 如确有必要提高预算，需更新 `ci.yml` 中的 `MAX_GZIP` 值并在 PR 中说明原因
+
+---
+
+## 13. 贡献指引
 
 1. 阅读文档层级：**PRD（`docs/PRD.md`）→ SPEC（`docs/SPEC.md`）→ ARCHITECTURE（`docs/ARCHITECTURE.md`）→ DESIGN（`docs/DESIGN.md`）**。
 2. 遵守 `AGENTS.md` 的编码规则与架构红线（AI 助手共用）。

@@ -68,6 +68,11 @@ export {
   breadcrumbPlugin,
   type BreadcrumbPluginOptions,
 } from "./plugins/breadcrumb.js";
+export {
+  contextPlugin,
+  type ContextPluginOptions,
+} from "./plugins/context.js";
+export { collectDevice, collectPage } from "./context.js";
 
 // 便于 UMD 脚本接入：提供一个扁平 namespace 对象
 import { init as _init } from "./init.js";
@@ -98,6 +103,7 @@ import {
   log as _log,
 } from "./plugins/custom.js";
 import { breadcrumbPlugin as _breadcrumbPlugin } from "./plugins/breadcrumb.js";
+import { contextPlugin as _contextPlugin } from "./plugins/context.js";
 import type { Breadcrumb } from "@g-heal-claw/shared";
 import type { GHealClawOptions } from "./options.js";
 
@@ -135,6 +141,7 @@ export const GHealClaw = {
   trackPlugin: _trackPlugin,
   customPlugin: _customPlugin,
   breadcrumbPlugin: _breadcrumbPlugin,
+  contextPlugin: _contextPlugin,
   /**
    * 业务埋点（customPlugin · ADR-0023）→ type='custom_event'
    *

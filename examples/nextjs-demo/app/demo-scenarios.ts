@@ -68,6 +68,7 @@ export const SCENARIO_GROUPS: readonly ScenarioGroup[] = [
       { href: "/perf/layout-shift", label: "Layout Shift", hint: "触发 CLS" },
       { href: "/perf/long-task", label: "Long Task", hint: "主线程阻塞 → INP 劣化" },
       { href: "/perf/tbt", label: "TBT", hint: "总阻塞时间 · Lighthouse 核心指标" },
+      { href: "/perf/device-context", label: "Device Context", hint: "设备/网络上下文采集展示（T1.2.4）" },
       { href: "/perf/fid", label: "FID (deprecated)", hint: "首次输入延迟 · 已被 INP 取代" },
       { href: "/perf/tti", label: "TTI (deprecated)", hint: "可交互时间 · Google 已停止维护" },
     ],
