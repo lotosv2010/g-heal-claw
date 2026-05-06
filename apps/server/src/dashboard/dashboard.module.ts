@@ -13,6 +13,8 @@ import { DashboardApiController } from "./monitor/api.controller.js";
 import { DashboardApiService } from "./monitor/api.service.js";
 import { DashboardErrorsController } from "./monitor/errors.controller.js";
 import { DashboardErrorsService } from "./monitor/errors.service.js";
+import { DashboardIssuesController } from "./monitor/issues.controller.js";
+import { DashboardIssuesService } from "./monitor/issues.service.js";
 import { DashboardLogsController } from "./monitor/logs.controller.js";
 import { DashboardLogsService } from "./monitor/logs.service.js";
 import { DashboardPerformanceController } from "./monitor/performance.controller.js";
@@ -59,6 +61,7 @@ import { DebugModule } from "./debug/debug.module.js";
   controllers: [
     DashboardPerformanceController,
     DashboardErrorsController,
+    DashboardIssuesController,
     DashboardApiController,
     DashboardTrackingController,
     DashboardExposureController,
@@ -74,6 +77,7 @@ import { DebugModule } from "./debug/debug.module.js";
   providers: [
     DashboardPerformanceService,
     DashboardErrorsService,
+    DashboardIssuesService,
     DashboardApiService,
     DashboardTrackingService,
     DashboardExposureService,

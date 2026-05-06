@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -51,7 +52,17 @@ export default async function ErrorsPage({
       <PageHeader
         title="异常分析"
         description="JS / Promise / 资源加载 / 白屏 / 接口返回码等 9 类异常实时聚合"
-        actions={<SourceBadge source={source} />}
+        actions={
+          <div className="flex items-center gap-3">
+            <Link
+              href="/monitor/errors/issues"
+              className="text-primary text-xs font-medium hover:underline"
+            >
+              Issues 列表 →
+            </Link>
+            <SourceBadge source={source} />
+          </div>
+        }
       />
 
       {/* 1. 9 分类卡片 */}
