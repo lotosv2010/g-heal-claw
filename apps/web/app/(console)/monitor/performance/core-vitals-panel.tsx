@@ -1,13 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import type { VitalKey, VitalMetric } from "@/lib/api/performance";
+import type { DeltaDirection, VitalKey, VitalMetric } from "@/lib/api/performance";
+import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 
 // 指针 / 分界线统一视觉色（AntD neutral-8）
 const POINTER_COLOR = "#434343";
@@ -125,14 +128,30 @@ const CONFIGS: readonly VitalConfig[] = [
   },
 ] as const;
 
+/** 数值越低越好的指标（下降方向对这些指标是"优化"） */
+const LOWER_IS_BETTER: ReadonlySet<VitalKey> = new Set([
+  "LCP", "FCP", "INP", "TTFB", "TBT", "SI", "FID", "TTI",
+]);
+
 export function CoreVitalsPanel({ metrics }: { metrics: readonly VitalMetric[] }) {
+  const [viewMode, setViewMode] = useState<"current" | "compare">("current");
   const byKey = new Map<string, VitalMetric>(metrics.map((m) => [m.key, m]));
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Core Web Vitals</CardTitle>
-        <div className="text-muted-foreground text-xs">
-          三段式阈值 · GOOD / NEEDS IMPROVEMENT / POOR · 悬停名称查看指标解释
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <CardTitle>Core Web Vitals</CardTitle>
+            <div className="text-muted-foreground mt-1 text-xs">
+              三段式阈值 · GOOD / NEEDS IMPROVEMENT / POOR · 悬停名称查看指标解释
+            </div>
+          </div>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "current" | "compare")}>
+            <TabsList>
+              <TabsTrigger value="current">当前</TabsTrigger>
+              <TabsTrigger value="compare">环比</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </CardHeader>
       <CardContent>
@@ -142,6 +161,7 @@ export function CoreVitalsPanel({ metrics }: { metrics: readonly VitalMetric[] }
               key={cfg.key}
               config={cfg}
               metric={byKey.get(cfg.key)}
+              showDelta={viewMode === "compare"}
             />
           ))}
         </ul>
@@ -155,9 +175,11 @@ type Bucket = "good" | "ni" | "poor" | "unknown";
 function VitalItem({
   config,
   metric,
+  showDelta,
 }: {
   config: VitalConfig;
   metric: VitalMetric | undefined;
+  showDelta: boolean;
 }) {
   const [goodMax, niMax] = config.thresholds;
   const value = metric?.value;
@@ -222,6 +244,15 @@ function VitalItem({
         </span>
       </div>
 
+      {/* 环比变化指示（仅在"环比"模式下展示） */}
+      {showDelta && metric && (
+        <DeltaIndicator
+          vitalKey={config.key}
+          deltaPercent={metric.deltaPercent}
+          deltaDirection={metric.deltaDirection}
+        />
+      )}
+
       {/* .content：三等宽色条 + 下方指针层（分界 35px / 当前值 55px，均为 #434343） */}
       <div className="relative pb-20">
         {/* 三等宽色条：无间距、整体圆角 */}
@@ -245,6 +276,52 @@ function VitalItem({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * 环比变化指示器
+ *
+ * 颜色逻辑：
+ * - 数值越低越好的指标（LCP/FCP/INP/TTFB/TBT/SI/FID/TTI）：下降=绿色（优化） 上升=红色（恶化）
+ * - CLS 同理：越低越好 → 下降=绿 上升=红
+ * - flat → 灰色
+ */
+function DeltaIndicator({
+  vitalKey,
+  deltaPercent,
+  deltaDirection,
+}: {
+  vitalKey: VitalKey;
+  deltaPercent: number;
+  deltaDirection: DeltaDirection;
+}) {
+  if (deltaDirection === "flat") {
+    return (
+      <div className="text-muted-foreground flex items-center gap-1 text-xs">
+        <Minus className="size-3" />
+        <span>持平</span>
+      </div>
+    );
+  }
+
+  // 对"越低越好"的指标：down 是优化（绿色），up 是恶化（红色）
+  // CLS 也是越低越好，所以统一判断：所有当前指标都是越低越好
+  const isImproved = LOWER_IS_BETTER.has(vitalKey)
+    ? deltaDirection === "down"
+    : deltaDirection === "up";
+
+  const colorClass = isImproved ? "text-emerald-600" : "text-red-600";
+  const bgClass = isImproved ? "bg-emerald-50" : "bg-red-50";
+  const Icon = deltaDirection === "down" ? ArrowDown : ArrowUp;
+  const label = isImproved ? "优化" : "恶化";
+
+  return (
+    <div className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium", bgClass, colorClass)}>
+      <Icon className="size-3" />
+      <span className="tabular-nums">{Math.abs(deltaPercent).toFixed(1)}%</span>
+      <span className="text-[10px] opacity-75">{label}</span>
+    </div>
   );
 }
 

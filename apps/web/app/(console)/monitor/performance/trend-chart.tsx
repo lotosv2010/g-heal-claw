@@ -252,14 +252,14 @@ export function TrendChart({ buckets }: { buckets: readonly TrendBucket[] }) {
             labelFontSize: 10,
           },
         },
-        // 多折线共享 tooltip 下，name 必须按 datum.series 动态解析
-        // 固定字符串会让每行都显示相同标签（例如全部 "p75"）
+        // 多折线共享 tooltip：按 datum.series 解析 name，附带颜色标识
         tooltip: {
           title: (d: { hour: string }) => d.hour,
           items: [
             (d: { series: string; value: number }) => ({
               name: d.series,
-              value: `${d.value} ms`,
+              value: `${d.value.toLocaleString()} ms`,
+              color: activeMsSeries.find((s) => s.label === d.series)?.color,
             }),
           ],
         },
@@ -351,10 +351,18 @@ export function TrendChart({ buckets }: { buckets: readonly TrendBucket[] }) {
   const config = useMemo(
     () => ({
       xField: "hour",
-      height: 300,
+      // 响应式高度：通过 autoFit 适应容器宽度，固定高度由外层容器控制
+      height: 320,
       legend: false as const,
       children,
-      interaction: { tooltip: { shared: true } },
+      interaction: {
+        tooltip: {
+          shared: true,
+          // 显示所有可见系列在悬停时间点的数据
+          crosshairs: true,
+          showCrosshairs: true,
+        },
+      },
     }),
     [children],
   );
@@ -369,7 +377,7 @@ export function TrendChart({ buckets }: { buckets: readonly TrendBucket[] }) {
       <CardHeader>
         <CardTitle>性能视图 · {timePhrase}</CardTitle>
         <div className="text-muted-foreground text-xs">
-          默认展示「样本数 · 首屏时间 · CLS」；左轴「耗时（ms）」· 右轴「CLS 评分」「样本数」—— 点击图例切换
+          默认展示「样本数 · 首屏时间 · CLS」；左轴「耗时（ms）」· 右轴「CLS 评分」「样本数」—— 点击图例切换 · 悬停查看各系列数值
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -440,11 +448,13 @@ export function TrendChart({ buckets }: { buckets: readonly TrendBucket[] }) {
         </div>
 
         {nothingVisible ? (
-          <div className="text-muted-foreground flex h-[300px] items-center justify-center text-xs">
+          <div className="text-muted-foreground flex h-[320px] items-center justify-center text-xs">
             请从上方图例启用至少一个系列
           </div>
         ) : (
-          <DualAxes {...config} />
+          <div className="min-h-[280px] w-full sm:min-h-[320px]">
+            <DualAxes {...config} />
+          </div>
         )}
       </CardContent>
     </Card>

@@ -167,3 +167,16 @@ jobs:
         env:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+      - name: SDK Size Check
+        run: |
+          SDK_SIZE=$(stat -c%s packages/sdk/dist/sdk.esm.js 2>/dev/null || echo 0)
+          SDK_GZIP=$(gzip -c packages/sdk/dist/sdk.esm.js | wc -c)
+          SDK_GZIP_KB=$(echo "scale=2; $SDK_GZIP / 1024" | bc)
+          echo "SDK ESM: ${SDK_GZIP_KB} KB gzip"
+          # 体积预算：全量 SDK（含 zod + web-vitals + 全部插件）≤ 45KB gzip
+          MAX_GZIP=46080
+          if [ "$SDK_GZIP" -gt "$MAX_GZIP" ]; then
+            echo "::error::SDK 体积超预算！当前 ${SDK_GZIP_KB} KB > 45 KB gzip。请检查新增依赖或优化 tree-shake。"
+            exit 1
+          fi

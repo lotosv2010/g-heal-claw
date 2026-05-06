@@ -19,13 +19,16 @@ export function collectDevice(): DeviceContext {
   return {
     ua: ua || "unknown",
     os: detectOS(ua),
+    osVersion: detectOsVersion(ua),
     browser: detectBrowser(ua),
+    browserVersion: detectBrowserVersion(ua),
     deviceType: detectDeviceType(ua),
     screen: {
       width: scr.width ?? 0,
       height: scr.height ?? 0,
       dpr: win?.devicePixelRatio ?? 1,
     },
+    network: collectNetwork(nav),
     language: nav?.language ?? "en",
     timezone:
       typeof Intl !== "undefined"
@@ -87,6 +90,54 @@ function detectDeviceType(ua: string): DeviceContext["deviceType"] {
     return "mobile";
   }
   return "desktop";
+}
+
+function detectBrowserVersion(ua: string): string | undefined {
+  if (!ua) return undefined;
+  const patterns: [RegExp, number][] = [
+    [/Edg\/(\d+[\d.]*)/i, 1],
+    [/OPR\/(\d+[\d.]*)/i, 1],
+    [/Firefox\/(\d+[\d.]*)/i, 1],
+    [/SamsungBrowser\/(\d+[\d.]*)/i, 1],
+    [/Chrome\/(\d+[\d.]*)/i, 1],
+    [/Version\/(\d+[\d.]*).*Safari/i, 1],
+  ];
+  for (const [re, idx] of patterns) {
+    const m = ua.match(re);
+    if (m?.[idx]) return m[idx];
+  }
+  return undefined;
+}
+
+function detectOsVersion(ua: string): string | undefined {
+  if (!ua) return undefined;
+  const winMatch = ua.match(/Windows NT (\d+\.\d+)/);
+  if (winMatch) return winMatch[1];
+  const macMatch = ua.match(/Mac OS X (\d+[._]\d+[._]?\d*)/);
+  if (macMatch) return macMatch[1]?.replace(/_/g, ".");
+  const androidMatch = ua.match(/Android (\d+[\d.]*)/);
+  if (androidMatch) return androidMatch[1];
+  const iosMatch = ua.match(/OS (\d+[_]\d+)/);
+  if (iosMatch) return iosMatch[1]?.replace(/_/g, ".");
+  return undefined;
+}
+
+/** Navigator.connection API（Network Information API） */
+interface NetworkConnection {
+  readonly effectiveType?: string;
+  readonly rtt?: number;
+  readonly downlink?: number;
+}
+
+function collectNetwork(nav: Navigator | undefined): DeviceContext["network"] {
+  if (!nav) return undefined;
+  const conn = (nav as unknown as { connection?: NetworkConnection }).connection;
+  if (!conn?.effectiveType) return undefined;
+  return {
+    effectiveType: conn.effectiveType,
+    rtt: conn.rtt,
+    downlink: conn.downlink,
+  };
 }
 
 /**

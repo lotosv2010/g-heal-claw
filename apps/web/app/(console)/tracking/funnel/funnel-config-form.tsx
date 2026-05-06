@@ -160,17 +160,22 @@ export function FunnelConfigForm({ initial }: { initial: FunnelQuery }) {
             </p>
           </div>
 
-          <div className="flex items-end gap-2">
-            <Button
-              type="submit"
-              disabled={isPending || stepCountInvalid}
-              aria-busy={isPending}
-            >
-              {isPending ? "查询中…" : "查询"}
-            </Button>
-            <Button type="button" variant="ghost" onClick={onReset}>
-              重置
-            </Button>
+          <div className="space-y-1.5">
+            <span className="text-sm font-medium invisible" aria-hidden="true">
+              &nbsp;
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="submit"
+                disabled={isPending || stepCountInvalid}
+                aria-busy={isPending}
+              >
+                {isPending ? "查询中…" : "查询"}
+              </Button>
+              <Button type="button" variant="ghost" onClick={onReset}>
+                重置
+              </Button>
+            </div>
           </div>
         </form>
       </CardContent>

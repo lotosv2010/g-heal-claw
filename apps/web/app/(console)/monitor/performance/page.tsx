@@ -67,7 +67,7 @@ export default async function PerformancePage({
       {/* 3. 页面加载瀑布图 */}
       <section className="mb-6">
         {data.stages.length > 0 ? (
-          <PageWaterfall stages={data.stages} />
+          <PageWaterfall stages={data.stages} slowPages={data.slowPages} />
         ) : (
           <EmptyPanel
             title="页面加载瀑布图"

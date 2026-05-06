@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Info } from "lucide-react";
-import type { LoadStage } from "@/lib/api/performance";
+import type { LoadStage, SlowPage } from "@/lib/api/performance";
 
 // 低饱和色板（Tailwind/AntD 对应色 300~400 区间）——
 // 参考：信息密度高的瀑布图强调区分而非高对比，低饱和更易阅读
@@ -39,7 +46,17 @@ const STAGE_COLORS = [
  * - `metric_minute` 预聚合路径被 T2.1.8 排除（见 ADR-0018 Excluded）；
  *   启用后将替换此处运行时聚合——届时本组件只做渲染、不再依赖 overview live 计算。
  */
-export function PageWaterfall({ stages }: { stages: readonly LoadStage[] }) {
+/** 所有页面聚合的占位值 */
+const ALL_PAGES_VALUE = "__all__";
+
+export function PageWaterfall({
+  stages,
+  slowPages = [],
+}: {
+  stages: readonly LoadStage[];
+  slowPages?: readonly SlowPage[];
+}) {
+  const [selectedPage, setSelectedPage] = useState<string>(ALL_PAGES_VALUE);
   const containerRef = useRef<HTMLDivElement | null>(null);
   // 总耗时 = 所有阶段 endMs 的最大值（"首屏耗时"/"LCP" 从 0 开始累计，代表整段时间轴的右界）
   const total = stages.reduce((acc, s) => Math.max(acc, s.endMs), 0);
@@ -144,32 +161,57 @@ export function PageWaterfall({ stages }: { stages: readonly LoadStage[] }) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-1.5">
-          <CardTitle>页面加载瀑布图</CardTitle>
-          <Tooltip>
-            <TooltipTrigger
-              aria-label="查看计算方式"
-              className="text-muted-foreground hover:text-foreground inline-flex"
-            >
-              <Info className="h-3.5 w-3.5" />
-            </TooltipTrigger>
-            <TooltipContent side="right" className="max-w-[320px] text-xs leading-relaxed">
-              <p>
-                串联阶段取窗口内 Navigation 采样的 <span className="font-medium">p75</span> 依次累积；
-                首屏 / LCP 直接取同窗口 vital p75。
-              </p>
-              <p className="mt-1.5">
-                选 p75 而非 p50 为稳定性优先，贴合 Core Web Vitals 口径。
-                <br />
-                <span className="text-muted-foreground">
-                  后续 <code className="rounded bg-muted px-1 py-0.5">metric_minute</code> 预聚合启用后将替换此运行时计算（ADR-0018）。
-                </span>
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        <div className="text-muted-foreground text-xs">
-          共 <span className="text-foreground tabular-nums">{total}</span> ms · 阶段累积时序（p75）
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-1.5">
+              <CardTitle>页面加载瀑布图</CardTitle>
+              <Tooltip>
+                <TooltipTrigger
+                  aria-label="查看计算方式"
+                  className="text-muted-foreground hover:text-foreground inline-flex"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[320px] text-xs leading-relaxed">
+                  <p>
+                    串联阶段取窗口内 Navigation 采样的 <span className="font-medium">p75</span> 依次累积；
+                    首屏 / LCP 直接取同窗口 vital p75。
+                  </p>
+                  <p className="mt-1.5">
+                    选 p75 而非 p50 为稳定性优先，贴合 Core Web Vitals 口径。
+                    <br />
+                    <span className="text-muted-foreground">
+                      后续 <code className="rounded bg-muted px-1 py-0.5">metric_minute</code> 预聚合启用后将替换此运行时计算（ADR-0018）。
+                    </span>
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="text-muted-foreground mt-1 text-xs">
+              共 <span className="text-foreground tabular-nums">{total}</span> ms · 阶段累积时序（p75）
+              {selectedPage !== ALL_PAGES_VALUE && (
+                <span className="text-primary ml-2">· 已选定页面上下文</span>
+              )}
+            </div>
+          </div>
+          {/* 页面选择下拉：选择慢页面 URL 以提供上下文聚焦 */}
+          {slowPages.length > 0 && (
+            <Select value={selectedPage} onValueChange={setSelectedPage}>
+              <SelectTrigger className="w-[260px] shrink-0">
+                <SelectValue placeholder="全部页面（聚合）" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_PAGES_VALUE}>全部页面（聚合）</SelectItem>
+                {slowPages.map((page) => (
+                  <SelectItem key={page.url} value={page.url}>
+                    <span className="truncate" title={page.url}>
+                      {truncateUrl(page.url)}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -177,4 +219,19 @@ export function PageWaterfall({ stages }: { stages: readonly LoadStage[] }) {
       </CardContent>
     </Card>
   );
+}
+
+/** 截断 URL 以适配下拉宽度，保留路径部分 */
+function truncateUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const path = u.pathname + u.search;
+    // 仅显示 pathname（去掉域名），超长则截断
+    if (path.length > 40) return path.slice(0, 37) + "...";
+    return path || "/";
+  } catch {
+    // 非标准 URL 直接截断
+    if (url.length > 40) return url.slice(0, 37) + "...";
+    return url;
+  }
 }
