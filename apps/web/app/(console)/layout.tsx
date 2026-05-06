@@ -21,19 +21,12 @@ import { Topbar } from "@/components/dashboard/topbar";
 export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // 从 cookie 读取 accessToken / projectId / environment 并注入全局
+  // 从 cookie 读取 accessToken 并注入全局（供 dashboardFetch 使用）
+  // projectId / environment 改为各 API 客户端通过 cookies() 实时读取（ADR-0034 修复）
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("ghc-at")?.value;
   if (accessToken) {
     globalThis._serverAccessToken = accessToken;
-  }
-  const projectId = cookieStore.get("ghc-project")?.value;
-  if (projectId) {
-    globalThis._serverProjectId = projectId;
-  }
-  const environment = cookieStore.get("ghc-env")?.value;
-  if (environment) {
-    globalThis._serverEnvironment = environment;
   }
 
   return (

@@ -5,7 +5,7 @@
  * 鉴权: JWT Bearer（Server Component 从 cookie 注入）
  */
 
-import { buildServerHeaders } from "./server-fetch";
+import { dashboardFetch } from "./server-fetch";
 import { httpPost, httpPatch, httpDelete } from "./http";
 
 // ---------------------------------------------------------------------------
@@ -52,10 +52,7 @@ function baseUrl(): string {
 export async function listProjects(): Promise<ProjectsResult> {
   const url = `${baseUrl()}/api/v1/projects`;
   try {
-    const res = await fetch(url, {
-      cache: "no-store",
-      headers: buildServerHeaders(),
-    });
+    const res = await dashboardFetch(url);
     if (!res.ok) {
       console.error(`[projects] ${res.status} ${res.statusText}`);
       return { source: "error", data: [] };

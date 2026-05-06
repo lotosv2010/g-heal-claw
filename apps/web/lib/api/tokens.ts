@@ -5,7 +5,7 @@
  * 鉴权: JWT Bearer
  */
 
-import { buildServerHeaders } from "./server-fetch";
+import { dashboardFetch } from "./server-fetch";
 import { httpPost, httpDelete } from "./http";
 
 // ---------------------------------------------------------------------------
@@ -51,10 +51,7 @@ function baseUrl(): string {
 export async function listTokens(projectId: string): Promise<TokensResult> {
   const url = `${baseUrl()}/api/v1/projects/${projectId}/tokens`;
   try {
-    const res = await fetch(url, {
-      cache: "no-store",
-      headers: buildServerHeaders(),
-    });
+    const res = await dashboardFetch(url);
     if (!res.ok) {
       console.error(`[tokens] ${res.status} ${res.statusText}`);
       return { source: "error", data: [] };

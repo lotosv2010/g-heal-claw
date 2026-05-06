@@ -193,8 +193,8 @@ export async function getPerformanceOverview(
   // 部署时通过 NEXT_PUBLIC_API_BASE_URL 覆盖
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-  const projectId = getActiveProjectId();
-  const environment = getActiveEnvironment();
+  const projectId = await getActiveProjectId();
+  const environment = await getActiveEnvironment();
 
   const qs = new URLSearchParams({ projectId });
   qs.set("environment", environment);

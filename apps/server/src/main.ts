@@ -6,9 +6,11 @@ import {
   type NestFastifyApplication,
 } from "@nestjs/platform-fastify";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { Logger as PinoLogger } from "nestjs-pino";
 import multipart from "@fastify/multipart";
 import { AppModule } from "./app.module.js";
 import { loadServerEnv } from "./config/env.js";
+import { LoggingInterceptor } from "./shared/interceptors/logging.interceptor.js";
 
 async function bootstrap(): Promise<void> {
   const env = loadServerEnv();
@@ -18,6 +20,12 @@ async function bootstrap(): Promise<void> {
     new FastifyAdapter({ logger: false, trustProxy: true }),
     { bufferLogs: true },
   );
+
+  // 使用 pino 作为全局日志（替代 NestJS 内置 ConsoleLogger）
+  app.useLogger(app.get(PinoLogger));
+
+  // 全局请求日志拦截器（补充路由级耗时）
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   // Sourcemap .map 文件上传（单文件 ≤ 50MB）
   await app.register(multipart as never, { limits: { fileSize: 50 * 1024 * 1024 } });

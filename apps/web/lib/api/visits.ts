@@ -62,8 +62,8 @@ export async function getVisitsOverview(
 ): Promise<VisitsOverviewResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-  const projectId = getActiveProjectId();
-  const environment = getActiveEnvironment();
+  const projectId = await getActiveProjectId();
+  const environment = await getActiveEnvironment();
   const qs = new URLSearchParams({ projectId, environment });
   if (params.windowHours != null && Number.isFinite(params.windowHours)) {
     qs.set("windowHours", String(params.windowHours));

@@ -5,7 +5,7 @@
  * 鉴权: JWT Bearer
  */
 
-import { buildServerHeaders } from "./server-fetch";
+import { dashboardFetch } from "./server-fetch";
 import { httpPost, httpPatch, httpDelete } from "./http";
 
 // ---------------------------------------------------------------------------
@@ -45,10 +45,7 @@ function baseUrl(): string {
 export async function listMembers(projectId: string): Promise<MembersResult> {
   const url = `${baseUrl()}/api/v1/projects/${projectId}/members`;
   try {
-    const res = await fetch(url, {
-      cache: "no-store",
-      headers: buildServerHeaders(),
-    });
+    const res = await dashboardFetch(url);
     if (!res.ok) {
       console.error(`[members] ${res.status} ${res.statusText}`);
       return { source: "error", data: [] };

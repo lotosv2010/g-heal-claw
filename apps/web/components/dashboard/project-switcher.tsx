@@ -50,13 +50,13 @@ export function ProjectSwitcher() {
         const items = res.data ?? [];
         setProjects(items);
 
-        // 确定当前项目
-        const storedId = getStoredProjectId();
-        const match = items.find((p) => p.id === storedId);
+        // 用 slug 作为标识（事件表 project_id 存的是 DSN 路径段 = slug）
+        const storedSlug = getStoredProjectId();
+        const match = items.find((p) => p.slug === storedSlug);
         const selected = match ?? items[0];
         if (selected) {
-          setCurrentId(selected.id);
-          storeProjectId(selected.id);
+          setCurrentId(selected.slug);
+          storeProjectId(selected.slug);
         }
         setLoaded(true);
       })
@@ -66,19 +66,12 @@ export function ProjectSwitcher() {
     return () => { cancelled = true; };
   }, []);
 
-  const current = projects.find((p) => p.id === currentId);
+  const current = projects.find((p) => p.slug === currentId);
 
   const handleSelect = (project: ProjectItem) => {
-    setCurrentId(project.id);
-    storeProjectId(project.id);
-    // 如果 URL 已有 projectId 参数，替换它
-    const params = new URLSearchParams(searchParams.toString());
-    if (params.has("projectId")) {
-      params.set("projectId", project.id);
-      router.replace(`${pathname}?${params.toString()}`);
-    } else {
-      router.refresh();
-    }
+    setCurrentId(project.slug);
+    storeProjectId(project.slug);
+    router.refresh();
   };
 
   if (!loaded) {

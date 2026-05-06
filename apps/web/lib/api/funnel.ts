@@ -118,8 +118,8 @@ export async function getFunnelOverview(
 ): Promise<FunnelOverviewResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-  const projectId = getActiveProjectId();
-  const environment = getActiveEnvironment();
+  const projectId = await getActiveProjectId();
+  const environment = await getActiveEnvironment();
   const params = new URLSearchParams({
     projectId,
     environment,

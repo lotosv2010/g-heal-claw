@@ -1,8 +1,10 @@
 import { Module, type DynamicModule } from "@nestjs/common";
 import { ScheduleModule } from "@nestjs/schedule";
+import { LoggerModule } from "nestjs-pino";
 import { ConfigModule } from "./config/config.module.js";
 import type { ServerEnv } from "./config/env.js";
 import { SharedModule } from "./shared/shared.module.js";
+import { buildLoggerConfig } from "./shared/logger/logger.config.js";
 import { HealthModule } from "./health/health.module.js";
 import { GatewayModule } from "./gateway/gateway.module.js";
 import { DashboardModule } from "./dashboard/dashboard.module.js";
@@ -24,6 +26,7 @@ export class AppModule {
       module: AppModule,
       imports: [
         ConfigModule.forRoot(env),
+        LoggerModule.forRoot(buildLoggerConfig()),
         SharedModule,
         // TM.E.5：全局注册 @nestjs/schedule，供 PartitionMaintenance 等模块使用
         ScheduleModule.forRoot(),

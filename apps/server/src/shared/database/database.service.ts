@@ -5,6 +5,7 @@ import {
   type OnModuleDestroy,
   type OnModuleInit,
 } from "@nestjs/common";
+import { type Logger as DrizzleLogger } from "drizzle-orm";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres, { type Sql } from "postgres";
 import { SERVER_ENV, type ServerEnv } from "../../config/env.js";
@@ -43,7 +44,15 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         // 静默 PostgreSQL NOTICE（如 "relation already exists, skipping"）
       },
     });
-    this._db = drizzle(this.sql, { schema });
+    const enableSqlLog = this.env.NODE_ENV !== "production" && process.env.LOG_SQL !== "false";
+    const sqlLogger: DrizzleLogger = {
+      logQuery: (query: string, params: unknown[]) => {
+        if (enableSqlLog) {
+          this.logger.log(`SQL: ${query}${params.length > 0 ? ` -- params: [${params.map((p) => JSON.stringify(p)).join(", ")}]` : ""}`);
+        }
+      },
+    };
+    this._db = drizzle(this.sql, { schema, logger: sqlLogger });
     try {
       await this.applyDdl();
       await this.applyDevSeed();
