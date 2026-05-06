@@ -69,5 +69,6 @@
 | [ADR-0031](./0031-sourcemap-service.md) | Sourcemap 服务实装（M1.5 T1.5.1~T1.5.4）：`release_artifacts` 新表 + `S3StorageService`（`@aws-sdk/client-s3` · MinIO 兼容）+ `SourcemapService.resolveFrames` 真实实现（source-map v0.7 WASM + LRU 100 条 consumer）+ `SourcemapController` Release CRUD + Artifact multipart 上传 + `ApiKeyGuard`（X-Api-Key + project_keys.secret_key）；ErrorProcessor 零变更（接口不变）；CLI + Vite 插件推迟 | 采纳 |
 | [ADR-0032](./0032-auth-module-mvp.md) | 认证与项目管理 MVP（T1.1.7）：bcrypt 密码哈希 + JWT 1h + Refresh Token 7d（Redis 存储）+ JwtAuthGuard / ProjectGuard / RolesGuard 三层守卫 + `/api/v1/auth/*` 认证 + `/api/v1/projects/*` 项目 CRUD + 成员 RBAC + Token 管理；DashboardModule 渐进式接入 ProjectGuard | 采纳 |
 | [ADR-0033](./0033-settings-web-ui.md) | Settings 管理页面 Web UI（TM.2.B）：4 页 CRUD（projects/members/tokens/sourcemaps）+ Sourcemap Dashboard 代理端点（JWT 鉴权）+ projectId URL 参数 + cookie 记忆；统一 Client Component CRUD + Server Component 首屏；UI 原语补齐 dialog + select | 采纳 |
+| [ADR-0034](./0034-sdk-transport-breadcrumb.md) | SDK 传输层升级（T1.2.3~T1.2.6）：批量队列（maxBatchSize=30 + flushInterval=5s）+ 多通道协商（beacon→fetch→image）+ Beacon 64KB 拆批 + IndexedDB 离线兜底（500 上限 × 3 次重试）+ breadcrumbPlugin 自动采集 5 种轨迹 | 采纳 |
 
 > 当你需要为某条决策补充详细背景或推翻旧决策时，请新增 `0001-xxx.md`（而非修改旧文件），并在此索引更新状态。

@@ -64,6 +64,10 @@ export {
   log,
   type CustomPluginOptions,
 } from "./plugins/custom.js";
+export {
+  breadcrumbPlugin,
+  type BreadcrumbPluginOptions,
+} from "./plugins/breadcrumb.js";
 
 // 便于 UMD 脚本接入：提供一个扁平 namespace 对象
 import { init as _init } from "./init.js";
@@ -93,6 +97,7 @@ import {
   time as _time,
   log as _log,
 } from "./plugins/custom.js";
+import { breadcrumbPlugin as _breadcrumbPlugin } from "./plugins/breadcrumb.js";
 import type { Breadcrumb } from "@g-heal-claw/shared";
 import type { GHealClawOptions } from "./options.js";
 
@@ -129,6 +134,7 @@ export const GHealClaw = {
   resourcePlugin: _resourcePlugin,
   trackPlugin: _trackPlugin,
   customPlugin: _customPlugin,
+  breadcrumbPlugin: _breadcrumbPlugin,
   /**
    * 业务埋点（customPlugin · ADR-0023）→ type='custom_event'
    *

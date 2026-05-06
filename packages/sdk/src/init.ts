@@ -1,7 +1,7 @@
 import { parseDsn } from "./dsn.js";
 import { createLogger } from "./logger.js";
 import { resolveOptions, type GHealClawOptions } from "./options.js";
-import { createFetchTransport } from "./transport/fetch.js";
+import { createTransport } from "./transport/index.js";
 import {
   createHub,
   getCurrentHub,
@@ -40,10 +40,14 @@ export function init(
     logger.warn("SDK 已初始化，覆盖旧 Hub");
   }
 
-  const transport = createFetchTransport({
+  const transport = createTransport({
     endpoint: dsn.ingestUrl,
+    beaconEndpoint: dsn.ingestUrl.replace("/events", "/beacon"),
     dsn: options.dsn,
     logger,
+    maxBatchSize: options.maxBatchSize ?? 30,
+    flushIntervalMs: options.flushInterval ?? 5000,
+    preferredChannel: options.transport ?? "auto",
   });
 
   const sessionId = ensureSessionId(dsn.projectId);

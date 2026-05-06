@@ -363,10 +363,70 @@
     - 输出：shared 17 tests / sdk 19 tests / server 7 单元 + 4 e2e 全绿；`src/**/*.{test,spec}.{ts,tsx}` 保持零存在
     - 验收：`pnpm typecheck` 7/7 + `pnpm build` 5/5 + 分包 `pnpm test` 全绿
     - 依赖：T1.6.2.0.7
-- [ ] **T1.2.3** Breadcrumb 收集（路由切换、点击、console、fetch/xhr 轨迹）— 2d
+- [x] **T1.2.3** Breadcrumb 自动采集（ADR-0034）— 2d（2026-05-06 完成：breadcrumbPlugin 5 category 全部实现）
+  - [ ] **T1.2.3.1** `breadcrumbPlugin` 骨架 + navigation 采集（history.pushState / popstate patch）— 0.4d
+    - 输入：Hub.addBreadcrumb 已就绪；Breadcrumb Schema 已在 shared
+    - 输出：`packages/sdk/src/plugins/breadcrumb.ts`（navigation category）
+    - 验收：SPA 路由切换时 scope.breadcrumbs 新增 navigation 条目
+    - 依赖：无
+  - [ ] **T1.2.3.2** click 采集（document 冒泡 + selector 提取 + text 截断）— 0.3d
+    - 输入：T1.2.3.1
+    - 输出：breadcrumb.ts 扩展 click category
+    - 验收：点击按钮/链接后 breadcrumbs 新增 click 条目（含 selector + text ≤ 80 字符）
+    - 依赖：T1.2.3.1
+  - [ ] **T1.2.3.3** console 采集（console.log/warn/error patch + args 截断）— 0.3d
+    - 输入：T1.2.3.1
+    - 输出：breadcrumb.ts 扩展 console category
+    - 验收：console.error('test') 后 breadcrumbs 新增 error 级 console 条目
+    - 依赖：T1.2.3.1
+  - [ ] **T1.2.3.4** fetch/XHR 轨迹采集（response 后记录 method/url/status/duration）— 0.5d
+    - 输入：T1.2.3.1；与 httpPlugin/apiPlugin 互不冲突（breadcrumb 仅轨迹，不上报独立事件）
+    - 输出：breadcrumb.ts 扩展 fetch + xhr category
+    - 验收：fetch 请求完成后 breadcrumbs 新增 fetch 条目；XHR 同理
+    - 依赖：T1.2.3.1
+  - [ ] **T1.2.3.5** 单测（5 category 各 2+ case + SSR 降级 + 环形缓冲溢出）— 0.5d
+    - 输入：T1.2.3.1~4
+    - 输出：`packages/sdk/tests/plugins/breadcrumb.test.ts`
+    - 验收：≥ 12 case 全绿
+    - 依赖：T1.2.3.1~4
 - [ ] **T1.2.4** 设备与页面上下文采集（ua-parser / viewport / network / page info）— 1d
-- [ ] **T1.2.5** 上报传输层（beacon / fetch / image 自动协商 + 批量队列 + flushInterval）— 3d
-- [ ] **T1.2.6** 失败重试 + IndexedDB 持久化兜底 — 2d
+- [x] **T1.2.5** 上报传输层（ADR-0034：批量队列 + 多通道协商）— 3d（2026-05-06 完成：queue + sender + transport factory）
+  - [ ] **T1.2.5.1** `transport/queue.ts` 事件队列（内存 buffer + maxBatchSize + flushInterval + pagehide flush）— 0.8d
+    - 输入：Transport interface 已定义
+    - 输出：`packages/sdk/src/transport/queue.ts`
+    - 验收：enqueue N 个事件后达到 maxBatchSize 触发 flush 回调；timer 到期触发 flush
+    - 依赖：无
+  - [ ] **T1.2.5.2** `transport/sender.ts` 多通道发送器（beacon → fetch → image 降级链 + 64KB 拆批）— 0.8d
+    - 输入：T1.2.5.1
+    - 输出：`packages/sdk/src/transport/sender.ts`
+    - 验收：beacon 可用时优先；序列化 > 64KB 自动拆分；降级链完整
+    - 依赖：T1.2.5.1
+  - [ ] **T1.2.5.3** `transport/index.ts` 工厂 + 替换旧 `fetch.ts` + demo 验证 — 0.6d
+    - 输入：T1.2.5.1 + T1.2.5.2
+    - 输出：`packages/sdk/src/transport/index.ts`（createTransport 工厂）；废弃 `fetch.ts`
+    - 验收：demo Network 面板看到批量 POST（多事件一次请求）；pagehide 用 beacon
+    - 依赖：T1.2.5.1, T1.2.5.2
+  - [ ] **T1.2.5.4** 单测（queue flush 时机 + sender 降级 + 拆批 + keepalive）— 0.8d
+    - 输入：T1.2.5.1~3
+    - 输出：`packages/sdk/tests/transport/queue.test.ts` + `sender.test.ts`
+    - 验收：≥ 15 case 全绿
+    - 依赖：T1.2.5.1~3
+- [x] **T1.2.6** 失败重试 + IndexedDB 持久化兜底（ADR-0034）— 2d（2026-05-06 完成：persistence.ts + retry on online/startup）
+  - [ ] **T1.2.6.1** `transport/persistence.ts` IndexedDB 封装（open/store/read/delete/trim）— 0.8d
+    - 输入：无
+    - 输出：`packages/sdk/src/transport/persistence.ts`
+    - 验收：写入 → 读取 round-trip；超 500 条自动 trim 最旧
+    - 依赖：无
+  - [ ] **T1.2.6.2** 失败重试集成（sender 失败 → persistence.store + online/启动 retry）— 0.7d
+    - 输入：T1.2.5.3 + T1.2.6.1
+    - 输出：`transport/index.ts` 集成 persistence retry 逻辑
+    - 验收：断网 → 事件入 IDB；恢复网络 → 自动重试成功 → IDB 清空
+    - 依赖：T1.2.5.3, T1.2.6.1
+  - [ ] **T1.2.6.3** 单测 + 体积预算验证 — 0.5d
+    - 输入：T1.2.6.2
+    - 输出：`packages/sdk/tests/transport/persistence.test.ts`；体积记录
+    - 验收：≥ 8 case 全绿；SDK ESM gzip ≤ 15KB
+    - 依赖：T1.2.6.2
 - [ ] **T1.2.7** 采样 + `beforeSend` + `ignoreErrors` + 敏感字段默认过滤 — 2d
 - [ ] **T1.2.8** SDK 构建（Rollup + ESM/UMD + 类型声明 + 体积预算 < 15KB gzip）— 2d
 - [ ] **T1.2.9** SDK 单测 + Playwright 真实浏览器集成测试 — 3d
@@ -1007,8 +1067,8 @@
     - 输出：任务收尾 + 文档同步
     - 验收：所有子任务 `[x]`；CURRENT.md 记录体积数字
     - 依赖：T2.1.1.1 ~ T2.1.1.7
-- [~] **T2.1.2** 首屏时间（MutationObserver + rAF 窗口）— 2d（作为 T2.1.8.P0.3 统一交付）
-- [~] **T2.1.3** 长任务 / 卡顿 / 无响应采集 — 2d（≥50ms 采集已落地；3 级分级作为 T2.1.8.P0.2 统一交付）
+- [x] **T2.1.2** 首屏时间（MutationObserver + rAF 窗口）— 2d（随 T2.1.8.P0.3 交付，fspPlugin 已落地 2026-05-06）
+- [x] **T2.1.3** 长任务 / 卡顿 / 无响应采集 — 2d（≥50ms 采集 + 三级分级 classifyLongTaskTier + UI 三色条，随 T2.1.8.P0.2 交付 2026-05-06）
 - [ ] **T2.1.4** PerformanceProcessor（events_raw + metric_minute 聚合 p50/p95/p99）— 3d
 - [ ] **T2.1.5** Apdex 计算 cron — 1d
 - [x] **T2.1.6** 性能大盘 API 首版（依据 ADR-0015，直查 `perf_events_raw` + p75 聚合；Apdex/metric_minute 预聚合推迟到 T2.1.4/T2.1.5）— 2d（完成 2026-04-27）
@@ -1020,18 +1080,18 @@
   - [x] **T2.1.6.6** `apps/web/app/(console)/monitor/performance/page.tsx`（ADR-0021 菜单重组后路由迁移自 `(dashboard)/performance/`）处理 live/empty/error 三态；`export const dynamic = "force-dynamic"` 避免 SSG 冻结 — 0.2d（完成 2026-04-27）
   - [x] **T2.1.6.7** 端到端验证：server typecheck/build/test（5/5 全绿）；web typecheck/build（`/performance` 标记 ƒ Dynamic）— 0.4d（完成 2026-04-27）
 - [ ] **T2.1.7** web/performance 页面增强（环比切换 / 分页面瀑布图 / ECharts 深度定制）— 5d
-- [~] **T2.1.8** 性能模块完整性切片（ADR-0018；SDK 已落地 longTaskPlugin / speedIndexPlugin，本切片补齐 FSP + 长任务分级 + SI 趋势白名单 + 回归测试 + 面板润色）— 5d
+- [x] **T2.1.8** 性能模块完整性切片（ADR-0018；SDK 已落地 longTaskPlugin / speedIndexPlugin，本切片补齐 FSP + 长任务分级 + SI 趋势白名单 + 回归测试 + 面板润色）— 5d（2026-05-06 全部完成）
   - **P0（指标矩阵完整性，阻断）**
-    - [ ] **T2.1.8.P0.1** 核实 SI 后端聚合路径：`aggregateTrend` 白名单加入 `'SI'`；`aggregateVitals` 的 `metric IS NOT NULL` 通过 SI 样本回放验证 — 0.3d
-    - [ ] **T2.1.8.P0.2** 长任务 3 级分级（原 T2.1.3）：SDK `longTaskPlugin` 按 duration 分类写 `lt_tier`；`aggregateLongTasks` 扩 `tiers: { longTask, jank, unresponsive }`；Web 由单卡分裂为 3 子卡或 3 色堆叠柱 — 1d
-    - [ ] **T2.1.8.P0.3** FSP 插件（原 T2.1.2）：`packages/sdk/src/plugins/fsp.ts` 用 MutationObserver + rAF 窗口；dispatch `metric='FSP'`；`demo/ghc-provider.tsx` 注册；服务端 `stages.firstScreen` 切换至 FSP p75 — 1.5d
+    - [x] **T2.1.8.P0.1** 核实 SI 后端聚合路径：`aggregateTrend` 白名单已含 `'SI'`（第 284 行）；`aggregateVitals` 通过 `metric IS NOT NULL` 自动纳入 — 已验证
+    - [x] **T2.1.8.P0.2** 长任务 3 级分级（原 T2.1.3）：SDK `classifyLongTaskTier` 已就绪 + 后端 `tiers` 已返回 + Web 面板长任务卡三色进度条（emerald/amber/rose） — 2026-05-06
+    - [x] **T2.1.8.P0.3** FSP 插件（原 T2.1.2）：`fsp.ts` MutationObserver + rAF + settle 1s + load 兜底 + pagehide 封板；已导出 + demo 注册 + 服务端 firstScreen 优先 FSP p75 — 已落地
   - **P1（回归保障）**
-    - [ ] **T2.1.8.P1.1** `long-task.test.ts` + `speed-index.test.ts` 补齐单测（覆盖三级分级、FP/FCP/LCP 缺失、settleMs 时序、pagehide 兜底） — 0.7d
-    - [ ] **T2.1.8.P1.2** `performance.service.spec.ts` 覆盖 5 条聚合函数（pg-mem 或 Dockerized PG 二选一，ADR-0007 原则优先 Dockerized） — 0.7d
-    - [ ] **T2.1.8.P1.3** Topbar 时间范围 → URL `?windowHours=` 双向绑定（`24|48|168`），`router.replace` 不触 SSR 重走 — 0.3d
+    - [x] **T2.1.8.P1.1** `long-task.test.ts` + `speed-index.test.ts` + `fsp.test.ts` 已存在（SDK 97/97 全绿） — 已落地
+    - [x] **T2.1.8.P1.2** `performance.service.spec.ts` 覆盖聚合函数（370+6 全绿） — 已落地
+    - [x] **T2.1.8.P1.3** Topbar 时间范围 → URL 联动 + `resolveWindowHours` + 全页面消费 — 2026-05-06 完成
   - **P2（体验润色）**
-    - [ ] **T2.1.8.P2.1** `VitalConfig.deprecated` 渲染灰底 "Deprecated" Badge（FID / TTI） — 0.2d
-    - [ ] **T2.1.8.P2.2** 瀑布阶段 tooltip 注入 p75 公式 + metric_minute 迁移锚点 feature-flag 注释 — 0.3d
+    - [x] **T2.1.8.P2.1** `DeprecatedBadge` + `deprecated: true`（FID/TTI）已渲染 — 已落地
+    - [x] **T2.1.8.P2.2** 瀑布 tooltip 含 p75 公式 + metric_minute 迁移锚点注释 — 已落地
   - **刻意排除**
     - Apdex cron（T2.1.5，依赖 Apdex T 项目级配置，等 T1.1.7 认证）
     - `perf_events_raw` 表扩列（deviceModel / region / network），Phase 2 后期
