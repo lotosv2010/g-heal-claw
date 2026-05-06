@@ -35,6 +35,7 @@ import { DashboardSourcemapController } from "./settings/sourcemap.controller.js
 import { DashboardSourcemapService } from "./settings/sourcemap.service.js";
 import { DashboardTrackingController } from "./tracking/tracking.controller.js";
 import { DashboardTrackingService } from "./tracking/tracking.service.js";
+import { DebugModule } from "./debug/debug.module.js";
 
 /**
  * Dashboard 前端数据聚合模块（ADR-0015 + ADR-0016 §3 + ADR-0020 §4.2 + ADR-0022 §4 + P0-3 §2）
@@ -43,6 +44,7 @@ import { DashboardTrackingService } from "./tracking/tracking.service.js";
  */
 @Module({
   imports: [
+    DebugModule,
     AuthModule,
     PerformanceModule,
     ErrorsModule,
