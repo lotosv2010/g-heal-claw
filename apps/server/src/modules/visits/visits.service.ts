@@ -403,6 +403,59 @@ export class VisitsService {
       retained: Number(r.retained),
     }));
   }
+
+  /** 按维度分布聚合（browser / os / device_type） */
+  public async aggregateDimension(
+    params: VisitsWindowParams,
+    field: "browser" | "os" | "deviceType",
+    limit = 10,
+  ): Promise<VisitsDimensionRow[]> {
+    const db = this.database.db;
+    if (!db) return [];
+    const { projectId, sinceMs, untilMs } = params;
+
+    const column = (() => {
+      switch (field) {
+        case "browser": return sql`browser`;
+        case "os": return sql`os`;
+        case "deviceType": return sql`device_type`;
+      }
+    })();
+
+    const rows = await db.execute<{
+      dim_value: string | null;
+      pv: string | number;
+      uv: string | number;
+    }>(sql`
+      SELECT
+        ${column} AS dim_value,
+        COUNT(*)::int AS pv,
+        COUNT(DISTINCT session_id)::int AS uv
+      FROM ${pageViewRaw}
+      WHERE project_id = ${projectId}
+        AND ts_ms >= ${sinceMs}
+        AND ts_ms < ${untilMs}
+      GROUP BY ${column}
+      ORDER BY pv DESC
+      LIMIT ${limit}
+    `);
+
+    const totalPv = rows.reduce((acc, r) => acc + Number(r.pv), 0);
+    return rows.map((r) => ({
+      value: String(r.dim_value ?? "unknown"),
+      pv: Number(r.pv),
+      uv: Number(r.uv),
+      sharePercent: totalPv > 0 ? Math.round((Number(r.pv) / totalPv) * 10000) / 100 : 0,
+    }));
+  }
+}
+
+/** 维度聚合行 */
+export interface VisitsDimensionRow {
+  readonly value: string;
+  readonly pv: number;
+  readonly uv: number;
+  readonly sharePercent: number;
 }
 
 /** cohort_day 字段归一：PG Date | ISO 字符串 → "YYYY-MM-DD" */

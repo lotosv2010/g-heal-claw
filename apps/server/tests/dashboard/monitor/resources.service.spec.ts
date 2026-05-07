@@ -45,6 +45,7 @@ function createStubService(stub: StubResource): ResourcesService {
     aggregateTrend: async () => stub.trend,
     aggregateSlowResources: async () => stub.slow,
     aggregateFailingHosts: async () => stub.failingHosts,
+    aggregateDimension: async () => [],
   } as unknown as ResourcesService;
 }
 

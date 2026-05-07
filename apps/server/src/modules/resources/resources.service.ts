@@ -347,6 +347,64 @@ export class ResourcesService {
       };
     });
   }
+
+  /** 按维度分布聚合（browser / os / device_type） */
+  public async aggregateDimension(
+    params: ResourceWindowParams,
+    field: "browser" | "os" | "deviceType",
+    limit = 10,
+  ): Promise<ResourceDimensionRow[]> {
+    const db = this.database.db;
+    if (!db) return [];
+    const { projectId, sinceMs, untilMs } = params;
+
+    const column = (() => {
+      switch (field) {
+        case "browser": return sql`browser`;
+        case "os": return sql`os`;
+        case "deviceType": return sql`device_type`;
+      }
+    })();
+
+    const rows = await db.execute<{
+      dim_value: string | null;
+      n: string | number;
+      avg_dur: string | number | null;
+      fail_ratio: string | number | null;
+    }>(sql`
+      SELECT
+        ${column} AS dim_value,
+        COUNT(*)::int AS n,
+        AVG(duration_ms)::double precision AS avg_dur,
+        CASE WHEN COUNT(*) > 0 THEN COUNT(*) FILTER (WHERE failed)::double precision / COUNT(*)
+             ELSE 0 END AS fail_ratio
+      FROM ${resourceEventsRaw}
+      WHERE project_id = ${projectId}
+        AND ts_ms >= ${sinceMs}
+        AND ts_ms < ${untilMs}
+      GROUP BY ${column}
+      ORDER BY n DESC
+      LIMIT ${limit}
+    `);
+
+    const total = rows.reduce((acc, r) => acc + Number(r.n), 0);
+    return rows.map((r) => ({
+      value: String(r.dim_value ?? "unknown"),
+      sampleCount: Number(r.n),
+      sharePercent: total > 0 ? Math.round((Number(r.n) / total) * 10000) / 100 : 0,
+      avgDurationMs: Math.round(Number(r.avg_dur ?? 0)),
+      failureRatio: Math.round(Number(r.fail_ratio ?? 0) * 10000) / 10000,
+    }));
+  }
+}
+
+/** 资源维度聚合行 */
+export interface ResourceDimensionRow {
+  readonly value: string;
+  readonly sampleCount: number;
+  readonly sharePercent: number;
+  readonly avgDurationMs: number;
+  readonly failureRatio: number;
 }
 
 // ---- 映射 ----

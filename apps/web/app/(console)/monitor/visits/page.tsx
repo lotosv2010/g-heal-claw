@@ -5,6 +5,7 @@ import {
   type VisitsOverviewResult,
 } from "@/lib/api/visits";
 import { resolveWindowHours } from "@/lib/time-range";
+import { DimensionTabs } from "./dimension-tabs";
 import { SummaryCards } from "./summary-cards";
 import { TrendChart } from "./trend-chart";
 import { TopPages } from "./top-pages";
@@ -54,8 +55,12 @@ export default async function VisitsPage({
         <TopPages rows={data.topPages} />
       </section>
 
-      <section>
+      <section className="mb-6">
         <TopReferrers rows={data.topReferrers} />
+      </section>
+
+      <section>
+        <DimensionTabs dimensions={data.dimensions} />
       </section>
     </div>
   );

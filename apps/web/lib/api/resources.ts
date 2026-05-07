@@ -73,12 +73,27 @@ export interface ResourcesFailingHostRow {
   readonly failureRatio: number;
 }
 
+export interface ResourcesDimensionRow {
+  readonly value: string;
+  readonly sampleCount: number;
+  readonly sharePercent: number;
+  readonly avgDurationMs: number;
+  readonly failureRatio: number;
+}
+
+export interface ResourcesDimensions {
+  readonly browser: readonly ResourcesDimensionRow[];
+  readonly os: readonly ResourcesDimensionRow[];
+  readonly platform: readonly ResourcesDimensionRow[];
+}
+
 export interface ResourcesOverview {
   readonly summary: ResourcesSummary;
   readonly categoryBuckets: readonly ResourcesCategoryBucket[];
   readonly trend: readonly ResourcesTrendBucket[];
   readonly topSlow: readonly ResourcesTopSlowRow[];
   readonly topFailingHosts: readonly ResourcesFailingHostRow[];
+  readonly dimensions: ResourcesDimensions;
 }
 
 export interface ResourcesOverviewResult {
@@ -164,6 +179,7 @@ function normalizeOverview(
     trend: raw.trend ?? empty.trend,
     topSlow: raw.topSlow ?? empty.topSlow,
     topFailingHosts: raw.topFailingHosts ?? empty.topFailingHosts,
+    dimensions: raw.dimensions ?? empty.dimensions,
   };
 }
 
@@ -194,5 +210,6 @@ export function emptyResourcesOverview(): ResourcesOverview {
     trend: [],
     topSlow: [],
     topFailingHosts: [],
+    dimensions: { browser: [], os: [], platform: [] },
   };
 }

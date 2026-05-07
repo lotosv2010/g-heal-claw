@@ -40,6 +40,7 @@ function createStubVisits(stub: Stub): VisitsService {
     aggregateTrend: async () => stub.trend,
     aggregateTopPages: async () => stub.topPages,
     aggregateTopReferrers: async () => stub.topReferrers,
+    aggregateDimension: async () => [],
   } as unknown as VisitsService;
 }
 
@@ -210,6 +211,7 @@ describe("DashboardVisitsService / 空窗口", () => {
       trend: [],
       topPages: [],
       topReferrers: [],
+      dimensions: { browser: [], os: [], platform: [] },
     });
   });
 });

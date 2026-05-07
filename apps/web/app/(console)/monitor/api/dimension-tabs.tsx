@@ -38,32 +38,17 @@ const Pie = dynamic(() => import("@ant-design/plots").then((m) => m.Pie), {
   loading: () => <Skeleton className="h-60 w-full" />,
 });
 
-type ActiveKey = "browser" | "os" | "platform";
-type PlaceholderKey =
-  | "device"
-  | "browserVersion"
-  | "osVersion"
-  | "region"
-  | "carrier"
-  | "network";
-
-interface TabDef {
-  readonly key: ActiveKey | PlaceholderKey;
-  readonly label: string;
-  readonly active: boolean;
-}
-
-const TABS: readonly TabDef[] = [
-  { key: "browser", label: "浏览器", active: true },
-  { key: "os", label: "操作系统", active: true },
-  { key: "platform", label: "平台", active: true },
-  { key: "device", label: "机型", active: false },
-  { key: "browserVersion", label: "浏览器版本", active: false },
-  { key: "osVersion", label: "操作系统版本", active: false },
-  { key: "region", label: "地域", active: false },
-  { key: "carrier", label: "运营商", active: false },
-  { key: "network", label: "网络", active: false },
-];
+// 维度 Tab 配置（与 /monitor/errors 统一 8 项）
+const TABS = [
+  { key: "device", label: "机型" },
+  { key: "browser", label: "浏览器" },
+  { key: "os", label: "操作系统" },
+  { key: "version", label: "版本" },
+  { key: "region", label: "地域" },
+  { key: "carrier", label: "运营商" },
+  { key: "network", label: "网络" },
+  { key: "platform", label: "平台" },
+] as const;
 
 const PIE_COLORS = [
   "#93c5fd",
@@ -83,55 +68,34 @@ export function DimensionTabs({
 }: {
   dimensions: ApiDimensions;
 }) {
+  const lookup: Record<string, readonly ApiDimensionRow[]> = {
+    device: dimensions.platform,
+    browser: dimensions.browser,
+    os: dimensions.os,
+    platform: dimensions.platform,
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>维度分布</CardTitle>
         <div className="text-muted-foreground text-xs">
-          按 API 请求样本数占比展示 · 机型 / 版本 / 地域 / 运营商 / 网络维度待后续接入
+          按 API 请求样本数占比展示 · 浏览器 / 操作系统 / 平台 已接入；其余维度保留占位
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="browser">
+        <Tabs defaultValue="device">
           <TabsList className="mb-4 flex w-full flex-wrap justify-start">
             {TABS.map((t) => (
-              <TabsTrigger
-                key={t.key}
-                value={t.key}
-                disabled={!t.active}
-                className="relative"
-              >
+              <TabsTrigger key={t.key} value={t.key}>
                 {t.label}
-                {!t.active ? (
-                  <span className="text-muted-foreground ml-1 text-[10px]">
-                    · 待采集
-                  </span>
-                ) : null}
               </TabsTrigger>
             ))}
           </TabsList>
 
-          <TabsContent value="browser">
-            <DimensionPane rows={dimensions.browser} />
-          </TabsContent>
-          <TabsContent value="os">
-            <DimensionPane rows={dimensions.os} />
-          </TabsContent>
-          <TabsContent value="platform">
-            <DimensionPane rows={dimensions.platform} />
-          </TabsContent>
-          {(
-            [
-              "device",
-              "browserVersion",
-              "osVersion",
-              "region",
-              "carrier",
-              "network",
-            ] as const
-          ).map((k) => (
-            <TabsContent key={k} value={k}>
-              <UpcomingPane />
+          {TABS.map((t) => (
+            <TabsContent key={t.key} value={t.key}>
+              <DimensionPane rows={lookup[t.key] ?? []} />
             </TabsContent>
           ))}
         </Tabs>
@@ -179,7 +143,7 @@ function DimensionPane({ rows }: { rows: readonly ApiDimensionRow[] }) {
   if (rows.length === 0) {
     return (
       <p className="text-muted-foreground py-10 text-center text-sm">
-        暂无该维度数据
+        此维度尚未采集 · 后续切片将接入 UA 解析 / GeoIP / 网络上报
       </p>
     );
   }
@@ -239,10 +203,3 @@ function DimensionPane({ rows }: { rows: readonly ApiDimensionRow[] }) {
   );
 }
 
-function UpcomingPane() {
-  return (
-    <p className="text-muted-foreground py-10 text-center text-sm">
-      此维度尚未采集 · Phase 2 将接入 UA 解析 / GeoIP / 网络上报
-    </p>
-  );
-}

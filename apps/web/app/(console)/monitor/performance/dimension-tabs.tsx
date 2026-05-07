@@ -41,33 +41,17 @@ const Pie = dynamic(() => import("@ant-design/plots").then((m) => m.Pie), {
  * 每个 Tab 内：左 1/3 环图 · 右 2/3 表格（#/取值/占比/FMP 均值）
  */
 
-// 维度 Tab 配置
-type ActiveKey = "browser" | "os" | "platform";
-type PlaceholderKey =
-  | "device"
-  | "browserVersion"
-  | "osVersion"
-  | "region"
-  | "carrier"
-  | "network";
-
-interface TabDef {
-  readonly key: ActiveKey | PlaceholderKey;
-  readonly label: string;
-  readonly active: boolean;
-}
-
-const TABS: readonly TabDef[] = [
-  { key: "browser", label: "浏览器", active: true },
-  { key: "os", label: "操作系统", active: true },
-  { key: "platform", label: "平台", active: true },
-  { key: "device", label: "机型", active: false },
-  { key: "browserVersion", label: "浏览器版本", active: false },
-  { key: "osVersion", label: "操作系统版本", active: false },
-  { key: "region", label: "地域", active: false },
-  { key: "carrier", label: "运营商", active: false },
-  { key: "network", label: "网络", active: false },
-];
+// 维度 Tab 配置（与 /monitor/errors 统一 8 项）
+const TABS = [
+  { key: "device", label: "机型" },
+  { key: "browser", label: "浏览器" },
+  { key: "os", label: "操作系统" },
+  { key: "version", label: "版本" },
+  { key: "region", label: "地域" },
+  { key: "carrier", label: "运营商" },
+  { key: "network", label: "网络" },
+  { key: "platform", label: "平台" },
+] as const;
 
 // 环图色板：低饱和但足够区分（与瀑布图配色对齐）
 const PIE_COLORS = [
@@ -84,56 +68,34 @@ const PIE_COLORS = [
 ];
 
 export function DimensionTabs({ dimensions }: { dimensions: Dimensions }) {
+  const lookup: Record<string, readonly DimensionRow[]> = {
+    device: dimensions.platform,
+    browser: dimensions.browser,
+    os: dimensions.os,
+    platform: dimensions.platform,
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>维度分布</CardTitle>
         <div className="text-muted-foreground text-xs">
-          按样本数占比展示 · 未采集维度（机型 / 版本 / 地域 / 运营商 / 网络）将在 Phase 2 启用
+          按样本数占比展示 · 浏览器 / 操作系统 / 平台 已接入；其余维度保留占位
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="browser">
+        <Tabs defaultValue="device">
           <TabsList className="mb-4 flex w-full flex-wrap justify-start">
             {TABS.map((t) => (
-              <TabsTrigger
-                key={t.key}
-                value={t.key}
-                disabled={!t.active}
-                className="relative"
-              >
+              <TabsTrigger key={t.key} value={t.key}>
                 {t.label}
-                {!t.active ? (
-                  <span className="text-muted-foreground ml-1 text-[10px]">
-                    · 待采集
-                  </span>
-                ) : null}
               </TabsTrigger>
             ))}
           </TabsList>
 
-          <TabsContent value="browser">
-            <DimensionPane rows={dimensions.browser} />
-          </TabsContent>
-          <TabsContent value="os">
-            <DimensionPane rows={dimensions.os} />
-          </TabsContent>
-          <TabsContent value="platform">
-            <DimensionPane rows={dimensions.platform} />
-          </TabsContent>
-          {/* 占位 Tab：理论上 disabled 不会被激活，但为保险起见放占位内容 */}
-          {(
-            [
-              "device",
-              "browserVersion",
-              "osVersion",
-              "region",
-              "carrier",
-              "network",
-            ] as const
-          ).map((k) => (
-            <TabsContent key={k} value={k}>
-              <UpcomingPane />
+          {TABS.map((t) => (
+            <TabsContent key={t.key} value={t.key}>
+              <DimensionPane rows={lookup[t.key] ?? []} />
             </TabsContent>
           ))}
         </Tabs>
@@ -222,10 +184,3 @@ function DimensionPane({ rows }: { rows: readonly DimensionRow[] }) {
   );
 }
 
-function UpcomingPane() {
-  return (
-    <p className="text-muted-foreground py-10 text-center text-sm">
-      此维度尚未采集 · Phase 2 将接入 UA 解析 / GeoIP / 网络上报
-    </p>
-  );
-}

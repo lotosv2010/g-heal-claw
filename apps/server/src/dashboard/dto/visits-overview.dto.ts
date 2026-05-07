@@ -64,9 +64,23 @@ export interface VisitsTopReferrerDto {
   readonly sharePercent: number;
 }
 
+export interface VisitsDimensionRow {
+  readonly value: string;
+  readonly pv: number;
+  readonly uv: number;
+  readonly sharePercent: number;
+}
+
+export interface VisitsDimensions {
+  readonly browser: readonly VisitsDimensionRow[];
+  readonly os: readonly VisitsDimensionRow[];
+  readonly platform: readonly VisitsDimensionRow[];
+}
+
 export interface VisitsOverviewDto {
   readonly summary: VisitsSummaryDto;
   readonly trend: readonly VisitsTrendBucketDto[];
   readonly topPages: readonly VisitsTopPageDto[];
   readonly topReferrers: readonly VisitsTopReferrerDto[];
+  readonly dimensions: VisitsDimensions;
 }

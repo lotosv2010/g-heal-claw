@@ -43,11 +43,25 @@ export interface VisitsTopReferrerRow {
   readonly sharePercent: number;
 }
 
+export interface VisitsDimensionRow {
+  readonly value: string;
+  readonly pv: number;
+  readonly uv: number;
+  readonly sharePercent: number;
+}
+
+export interface VisitsDimensions {
+  readonly browser: readonly VisitsDimensionRow[];
+  readonly os: readonly VisitsDimensionRow[];
+  readonly platform: readonly VisitsDimensionRow[];
+}
+
 export interface VisitsOverview {
   readonly summary: VisitsSummary;
   readonly trend: readonly VisitsTrendBucket[];
   readonly topPages: readonly VisitsTopPageRow[];
   readonly topReferrers: readonly VisitsTopReferrerRow[];
+  readonly dimensions: VisitsDimensions;
 }
 
 export interface VisitsOverviewResult {
@@ -101,6 +115,7 @@ function normalizeOverview(
     trend: raw.trend ?? empty.trend,
     topPages: raw.topPages ?? empty.topPages,
     topReferrers: raw.topReferrers ?? empty.topReferrers,
+    dimensions: raw.dimensions ?? empty.dimensions,
   };
 }
 
@@ -119,5 +134,6 @@ export function emptyVisitsOverview(): VisitsOverview {
     trend: [],
     topPages: [],
     topReferrers: [],
+    dimensions: { browser: [], os: [], platform: [] },
   };
 }

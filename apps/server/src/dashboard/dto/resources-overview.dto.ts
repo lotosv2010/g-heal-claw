@@ -99,6 +99,20 @@ export interface ResourcesFailingHostDto {
   readonly failureRatio: number;
 }
 
+export interface ResourcesDimensionRow {
+  readonly value: string;
+  readonly sampleCount: number;
+  readonly sharePercent: number;
+  readonly avgDurationMs: number;
+  readonly failureRatio: number;
+}
+
+export interface ResourcesDimensions {
+  readonly browser: readonly ResourcesDimensionRow[];
+  readonly os: readonly ResourcesDimensionRow[];
+  readonly platform: readonly ResourcesDimensionRow[];
+}
+
 export interface ResourcesOverviewDto {
   readonly summary: ResourcesSummaryDto;
   /** 固定 6 类占位，顺序：script → stylesheet → image → font → media → other */
@@ -106,4 +120,5 @@ export interface ResourcesOverviewDto {
   readonly trend: readonly ResourcesTrendBucketDto[];
   readonly topSlow: readonly ResourcesTopSlowDto[];
   readonly topFailingHosts: readonly ResourcesFailingHostDto[];
+  readonly dimensions: ResourcesDimensions;
 }

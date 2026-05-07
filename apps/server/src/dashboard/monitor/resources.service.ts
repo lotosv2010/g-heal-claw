@@ -67,6 +67,9 @@ export class DashboardResourcesService {
       trendRows,
       slowRows,
       failingHostRows,
+      dimBrowser,
+      dimOs,
+      dimPlatform,
     ] = await Promise.all([
       this.resourceMonitor.aggregateSummary(current),
       this.resourceMonitor.aggregateSummary(previous),
@@ -74,6 +77,9 @@ export class DashboardResourcesService {
       this.resourceMonitor.aggregateTrend(current),
       this.resourceMonitor.aggregateSlowResources(current, limitSlow),
       this.resourceMonitor.aggregateFailingHosts(current, limitHosts),
+      this.resourceMonitor.aggregateDimension(current, "browser"),
+      this.resourceMonitor.aggregateDimension(current, "os"),
+      this.resourceMonitor.aggregateDimension(current, "deviceType"),
     ]);
 
     return {
@@ -82,6 +88,7 @@ export class DashboardResourcesService {
       trend: buildTrend(trendRows),
       topSlow: buildTopSlow(slowRows),
       topFailingHosts: buildFailingHosts(failingHostRows),
+      dimensions: { browser: dimBrowser, os: dimOs, platform: dimPlatform },
     };
   }
 }

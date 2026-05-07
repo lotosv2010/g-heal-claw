@@ -5,6 +5,7 @@ import {
   type ResourcesOverviewResult,
 } from "@/lib/api/resources";
 import { resolveWindowHours } from "@/lib/time-range";
+import { DimensionTabs } from "./dimension-tabs";
 import { SummaryCards } from "./summary-cards";
 import { CategoryBuckets } from "./category-buckets";
 import { TrendChart } from "./trend-chart";
@@ -60,8 +61,12 @@ export default async function ResourcesPage({
         <TopSlowTable rows={data.topSlow} />
       </section>
 
-      <section>
+      <section className="mb-6">
         <FailingHostsTable rows={data.topFailingHosts} />
+      </section>
+
+      <section>
+        <DimensionTabs dimensions={data.dimensions} />
       </section>
     </div>
   );
