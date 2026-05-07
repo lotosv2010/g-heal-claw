@@ -20,6 +20,7 @@ import { RealtimeModule } from "./modules/realtime/realtime.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { AlertModule } from "./modules/alert/alert.module.js";
 import { NotificationModule } from "./modules/notification/notification.module.js";
+import { HealModule } from "./modules/heal/heal.module.js";
 
 @Module({})
 export class AppModule {
@@ -36,6 +37,7 @@ export class AppModule {
         AuthModule,
         AlertModule,
         NotificationModule,
+        HealModule,
         GatewayModule,
         ErrorsModule,
         ApiModule,

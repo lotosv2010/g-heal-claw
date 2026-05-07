@@ -150,7 +150,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         slug: "settings/ai",
         label: "AI 修复配置",
         icon: Bot,
-        placeholder: "Phase 5 交付",
+        placeholder: null,
       },
       {
         slug: "settings/tokens",

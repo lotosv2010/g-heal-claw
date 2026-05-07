@@ -26,6 +26,7 @@ export const ARTIFACT_ID_PREFIX = "art" as const;
 export const ALERT_RULE_ID_PREFIX = "alr" as const;
 export const ALERT_HISTORY_ID_PREFIX = "alh" as const;
 export const CHANNEL_ID_PREFIX = "ch" as const;
+export const HEAL_JOB_ID_PREFIX = "heal" as const;
 
 export const ID_PREFIXES = [
   PROJECT_ID_PREFIX,
@@ -39,6 +40,7 @@ export const ID_PREFIXES = [
   ALERT_RULE_ID_PREFIX,
   ALERT_HISTORY_ID_PREFIX,
   CHANNEL_ID_PREFIX,
+  HEAL_JOB_ID_PREFIX,
 ] as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[number];

@@ -261,7 +261,13 @@ User:
   {{codeSnippets}}
 ```
 
-- 使用 Claude Opus 4.7 作为主模型；失败降级 GPT-4.x。
+- **模型选择**（ADR-0036）：通过 `LLM_PROVIDER` 环境变量切换，支持 6 种 Provider：
+  - `deepseek` / `deepseek-reasoner`（DeepSeek API）
+  - `gemini`（Google AI）
+  - `moonshot`（Kimi，OpenAI 兼容）
+  - `minimax`（Anthropic 兼容）
+  - `ollama`（本地部署，无需 API Key）
+- 采用注册表 + 工厂模式（`src/model/provider.ts`），新增 Provider 只需扩展注册表。
 - 启用 **prompt caching**：仓库代码切片常驻缓存命中率 > 80%。
 
 ### 8.2 ReAct 循环

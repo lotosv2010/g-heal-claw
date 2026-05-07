@@ -436,14 +436,17 @@ channels: [ops-dingtalk, frontend-email]
 
 ## 10. AI 自愈 PR 工作流
 
-> Phase 5 任务启用。此处给出目标流程。
+> Phase 5 已实现（ADR-0036）。`apps/ai-agent` 通过 BullMQ 消费诊断任务，LangChain ReAct 循环自动修复。
 
 1. **配置 AI Agent**：
    ```bash
-   # .env
-   ANTHROPIC_API_KEY=sk-ant-...
-   AI_PRIMARY_MODEL=claude-opus-4-7
-   AI_FALLBACK_MODEL=gpt-4o
+   # .env — 选择 LLM Provider（6 选 1）
+   LLM_PROVIDER=deepseek          # deepseek | deepseek-reasoner | gemini | moonshot | minimax | ollama
+   DEEPSEEK_API_KEY=sk-xxx        # 对应 Provider 的 API Key
+   # 或使用本地 Ollama（无需 API Key）：
+   # LLM_PROVIDER=ollama
+   # OLLAMA_BASE_URL=http://localhost:11434
+   # OLLAMA_MODEL=qwen2.5:7b
    ```
 
 2. **配置 Git 集成**：Dashboard → Settings → Git，填入 GitHub App 安装或 GitLab PAT，关联项目对应仓库。

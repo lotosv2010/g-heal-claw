@@ -19,7 +19,7 @@
 |---|---|
 | 仓库结构 | Monorepo 脚手架已就绪（`pnpm-workspace.yaml` + `turbo.json` + `tsconfig.base.json`） |
 | 基础设施 | Docker Compose：PostgreSQL 17 + Redis 7 + MinIO 可用 |
-| 应用子目录 | `apps/server` 已初始化（ADR-0011）；`apps/web` 已初始化（ADR-0012，shadcn/ui + `(console)/` 4 分组菜单 + 性能 / 错误 / API / 资源 / 访问 / 埋点事件大盘 live）；`apps/ai-agent` 尚未初始化 |
+| 应用子目录 | `apps/server` 已初始化（ADR-0011）；`apps/web` 已初始化（ADR-0012，shadcn/ui + `(console)/` 4 分组菜单 + 性能 / 错误 / API / 资源 / 访问 / 埋点事件大盘 live）；`apps/ai-agent` 已初始化（ADR-0036，LangChain ReAct + 6 Provider + BullMQ） |
 | 包子目录 | `packages/shared` `packages/sdk` 已初始化并构建；`packages/cli` `packages/vite-plugin` `packages/miniapp-sdk` 尚未初始化 |
 | 文档 | `docs/SPEC.md` `docs/ARCHITECTURE.md` `docs/DESIGN.md` 已对齐 `docs/PRD.md` v2 |
 
@@ -1208,35 +1208,93 @@
 
 ---
 
-## Phase 5：AI 诊断 + 自愈
+## Phase 5：AI 诊断 + 自愈（ADR-0036）
 
 **目标**：Issue 一键自愈 → AI 诊断 → 自动生成 PR。
 
 ### M5.1 AI Agent 基础
 
-- [ ] **T5.1.1** `apps/ai-agent` 初始化（LangChain + 消费 BullMQ `ai-diagnosis`）— 2d
-- [ ] **T5.1.2** 模型封装（Claude Opus 4.7 主 / GPT-4.x 备 + prompt caching）— 3d
-- [ ] **T5.1.3** Tool 集合：readIssue / resolveStack / readFile / grepRepo / writePatch / runSandbox / createPr — 5d
-- [ ] **T5.1.4** ReAct 循环 + 步数/LOC 护栏 + trace 记录 — 3d
+- [x] **T5.1.1** `apps/ai-agent` 脚手架（纯 Node.js + BullMQ Worker + 环境变量 + typecheck）— 1d（完成 2026-05-07）
+  - 输入：`packages/shared` 已定义 `AiAgentEnvSchema` + `QueueName.AiDiagnosis`
+  - 输出：`apps/ai-agent/`（package.json + tsconfig.json + src/main.ts + src/worker.ts）；pnpm workspace 自动发现
+  - 验收：`pnpm -F @g-heal-claw/ai-agent typecheck` 全绿；BullMQ Worker 启动并 log `[ai-agent] listening queue=ai-diagnosis`
+  - 依赖：无
+- [x] **T5.1.2** 模型封装（Anthropic 主 + OpenAI 备 + 统一接口）— 0.5d（完成 2026-05-07）
+  - 输入：T5.1.1
+  - 输出：`src/model/provider.ts`（createModel 工厂：优先 Claude Opus 4.7，ANTHROPIC_API_KEY 缺失时降级 GPT-4o）
+  - 验收：typecheck 通过
+  - 依赖：T5.1.1
+- [x] **T5.1.3** Agent Tools — 5 个核心工具 — 2d（完成 2026-05-07）
+  - 输入：T5.1.1 + T5.2.2（heal_jobs 表可查）
+  - 输出：`src/tools/`（read-issue.ts / read-file.ts / grep-repo.ts / write-patch.ts / create-pr.ts）
+  - 验收：typecheck 通过；isPathAllowed 单测 5 case 全绿
+  - 依赖：T5.1.1, T5.2.2
+  - 子任务：
+    - [x] **T5.1.3.1** `readIssue` — 从 DB 读取 issue 上下文（title + stack + breadcrumbs + recent events）
+    - [x] **T5.1.3.2** `readFile` — 从克隆仓库读源码（限 500 行，路径白名单校验）
+    - [x] **T5.1.3.3** `grepRepo` — 在仓库内搜索模式（限 50 条结果）
+    - [x] **T5.1.3.4** `writePatch` — 生成 unified diff + AI_MAX_PATCH_LOC 校验
+    - [x] **T5.1.3.5** `createPr` — simple-git push branch + @octokit/rest 创建 PR
+- [x] **T5.1.4** ReAct 循环 + 护栏 + trace — 1.5d（完成 2026-05-07）
+  - 输入：T5.1.2 + T5.1.3
+  - 输出：`src/react/loop.ts`（LangChain createToolCallingAgent + AgentExecutor + AI_MAX_STEPS 步数限制 + trace 收集）；`src/react/prompt.ts`（系统提示词）
+  - 验收：typecheck 通过
+  - 依赖：T5.1.2, T5.1.3
 
-### M5.2 HealModule
+### M5.2 HealModule（Server 侧）
 
-- [ ] **T5.2.1** HealModule API（`/heal/issues/:id` / `/heal/:jobId` / `/heal/:jobId/pr`）— 2d
-- [ ] **T5.2.2** `heal_jobs` Schema + 状态机（pending → diagnosing → patching → verifying → pr_created / failed）— 2d
-- [ ] **T5.2.3** 仓库配置读取（`.ghealclaw.yml`）— 1d
+- [x] **T5.2.1** `heal_jobs` Schema + DDL migration — 0.5d（完成 2026-05-07）
+  - 输入：ADR-0036 数据模型定义；`packages/shared/src/queues/heal-job.ts` 已定义队列 payload
+  - 输出：`apps/server/src/shared/database/schema/heal-jobs.ts` + `drizzle/0011_heal_jobs.sql`
+  - 验收：`pnpm -F @g-heal-claw/server typecheck` 全绿
+  - 依赖：无
+- [x] **T5.2.2** HealModule（Service + Controller + Worker）— 1.5d（完成 2026-05-07）
+  - 输入：T5.2.1
+  - 输出：`apps/server/src/modules/heal/`（heal.module.ts + heal.service.ts + heal.controller.ts + heal-result.worker.ts + dto/）
+  - 验收：`pnpm -F @g-heal-claw/server typecheck && test` 全绿；4 端点注册
+  - 依赖：T5.2.1
+  - 子任务：
+    - [x] **T5.2.2.1** `HealService`（createJob + listJobs + getJob + cancelJob + updateJobStatus）
+    - [x] **T5.2.2.2** `HealController`（4 端点 + JwtAuthGuard + ProjectGuard + Swagger）
+    - [x] **T5.2.2.3** `HealResultWorker`（消费 `ai-heal-fix` 队列，更新 heal_job 终态 + completedAt）
+- [x] **T5.2.3** 仓库配置读取（`.ghealclaw.yml`）— 0.5d（完成 2026-05-07）
+  - 输入：T5.1.3（Agent clone 仓库后需读配置）
+  - 输出：`apps/ai-agent/src/config/repo-config.ts`（YAML 解析 + 默认值合并 + Zod 校验 + isPathAllowed）
+  - 验收：单测 5 case 全绿（白名单/黑名单/默认）
+  - 依赖：T5.1.1
 
-### M5.3 沙箱与 Git 集成
+### M5.3 Git 集成（MVP 范围：仅 GitHub）
 
-- [ ] **T5.3.1** Docker 沙箱封装（只读 mount + 网络禁用 + 超时） — 3d
-- [ ] **T5.3.2** Git 平台集成：GitHub App + GitLab PAT — 3d
-- [ ] **T5.3.3** PR 内容模板（诊断 Markdown + 影响 Issue 链接 + 标签 + reviewer 规则）— 2d
-- [ ] **T5.3.4** web/heal：任务中心（运行中 / 历史 / 详情 / 手动取消）— 4d
+- [x] **T5.3.1** GitHub App 集成（clone + push + PR 创建）— 1.5d（完成 2026-05-07）
+  - 输入：T5.1.3.5 的 createPr 工具定义
+  - 输出：`apps/ai-agent/src/tools/create-pr.ts`（simple-git + @octokit/rest PR 创建，集成在 createPr tool 内）
+  - 验收：typecheck 通过
+  - 依赖：T5.1.1
+- [x] **T5.3.2** PR 内容模板 — 0.5d（完成 2026-05-07）
+  - 输入：T5.3.1
+  - 输出：`apps/ai-agent/src/git/pr-template.ts`（Markdown 模板：诊断摘要 + 根因 + Issue 链接 + labels + 审阅建议）
+  - 验收：typecheck 通过
+  - 依赖：T5.3.1
 
-### M5.4 质量与验证
+### M5.3+ 沙箱与后续（本期 MVP 推迟）
 
-- [ ] **T5.4.1** Heal 数据集：采集 30 条真实异常 + 期望修复 → 作为回归用例 — 3d
-- [ ] **T5.4.2** 自动化验证：每次 Agent 改动跑回归集 + 成功率阈值 — 2d
-- [ ] **T5.4.3** 安全审计：Prompt 注入防护、Tool 白名单、diff 大小限制复核 — 2d
+- [-] **T5.3.3** Docker 沙箱封装 — 推迟至下一迭代（ADR-0036 决议）
+- [-] **T5.3.4** GitLab PAT 集成 — 推迟
+- [-] **T5.3.5** web/heal 任务中心 UI — 推迟
+
+### M5.4 端到端验证
+
+- [ ] **T5.4.0** 端到端联调 + 文档传导 — 1d
+  - 输入：T5.1.4 + T5.2.2 + T5.3.1
+  - 输出：typecheck 全包全绿 + server test 全绿 + ADR-0036 采纳 + ARCHITECTURE/SPEC 同步 + `apps/docs/docs/reference/heal-api.md` + `apps/docs/docs/guide/settings/ai.md`
+  - 验收：`pnpm typecheck && pnpm test` 全绿；文档双向可追溯
+  - 依赖：T5.1.4, T5.2.2, T5.3.2
+
+### M5.4+ 质量验证（后续迭代）
+
+- [-] **T5.4.1** Docker 沙箱 verify 阶段 — 推迟
+- [-] **T5.4.2** Heal 回归数据集 — 推迟
+- [-] **T5.4.3** 安全审计 — 推迟
 
 ---
 

@@ -163,10 +163,10 @@ apps/server/src/
 | `events-custom` | Gateway | Processor/Custom | 🟡 过渡期：Gateway 直调 CustomEventsService + CustomMetricsService（ADR-0023 TM.1.C），队列保留 | 自定义事件 + 指标（`custom_event` / `custom_metric`） |
 | `events-log` | Gateway | Processor/Logs | 🟡 过渡期：Gateway 直调 LogsService（ADR-0023 TM.1.C），队列保留 | 分级日志（`custom_log`） |
 | `events-track` | Gateway | Processor/Track | 🟡 过渡期：Gateway 直调 TrackingService（P0-3 切片），队列保留 | 代码/全埋点/曝光（`track` 事件） |
-| `alert-evaluator` | `AlertModule` 定时器 | Alert Evaluator | ⚪ 规划 | 告警规则评估 |
-| `notifications` | Alert/Heal | Notification | ⚪ 规划 | 外部通知 |
-| `ai-diagnosis` | HealModule | ai-agent | ⚪ 规划 | AI 诊断 |
-| `ai-heal-fix` | ai-agent（自触发） | ai-agent | ⚪ 规划 | 生成 patch + 沙箱验证 + 创建 PR |
+| `alert-evaluator` | `AlertModule` 定时器 | Alert Evaluator | ✅ 已落地 | 告警规则评估 |
+| `notifications` | Alert/Heal | Notification | ✅ 已落地 | 外部通知 |
+| `ai-diagnosis` | HealModule | ai-agent | ✅ 已落地（ADR-0036） | AI 诊断 |
+| `ai-heal-fix` | ai-agent | HealResultWorker | ✅ 已落地（ADR-0036） | Agent 结果回写 |
 | `sourcemap-warmup` | ReleaseUpload | Sourcemap | ⚪ 规划 | 预热堆栈还原 |
 
 **状态说明**：✅ 已落地 · 🟡 过渡期（队列已声明但首版走进程内直调，后续 Processor 完整化时切换） · ⚪ 规划中（队列名常量先于实现定义在 `packages/shared`）。
@@ -404,7 +404,7 @@ apps/web/app/
 | `packages/vite-plugin` | ⚪ 规划 | shared | apps/* |
 | `apps/server` | ✅ | shared, nestjs 生态, drizzle, bullmq, ioredis | apps/web, apps/ai-agent |
 | `apps/web` | ✅ | shared, react / next 生态 | apps/server, apps/ai-agent, nestjs, bullmq |
-| `apps/ai-agent` | ⚪ 规划 | shared, langchain, simple-git, octokit | apps/server, apps/web, nestjs, react |
+| `apps/ai-agent` | ✅ 已实现（ADR-0036） | shared, langchain, simple-git, octokit, @langchain/deepseek, @langchain/google, @langchain/ollama | apps/server, apps/web, nestjs, react |
 
 **红线**：
 - 禁止 `apps/*` 互相 import。

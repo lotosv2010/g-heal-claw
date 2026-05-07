@@ -71,5 +71,6 @@
 | [ADR-0033](./0033-settings-web-ui.md) | Settings 管理页面 Web UI（TM.2.B）：4 页 CRUD（projects/members/tokens/sourcemaps）+ Sourcemap Dashboard 代理端点（JWT 鉴权）+ projectId URL 参数 + cookie 记忆；统一 Client Component CRUD + Server Component 首屏；UI 原语补齐 dialog + select | 采纳 |
 | [ADR-0034](./0034-sdk-transport-breadcrumb.md) | SDK 传输层升级（T1.2.3~T1.2.6）：批量队列（maxBatchSize=30 + flushInterval=5s）+ 多通道协商（beacon→fetch→image）+ Beacon 64KB 拆批 + IndexedDB 离线兜底（500 上限 × 3 次重试）+ breadcrumbPlugin 自动采集 5 种轨迹 | 采纳 |
 | [ADR-0035](./0035-alert-engine-mvp.md) | 告警引擎 MVP（Phase 4）：AlertModule（规则 CRUD + cron 评估 + firing/resolved 状态机）+ NotificationModule（5 渠道 Provider：email/dingtalk/wecom/slack/webhook + BullMQ Worker + 模板渲染）+ 3 张表 + 预置规则 + Web 管理页面；短信/自愈联动推迟 | 采纳 |
+| [ADR-0036](./0036-ai-heal-agent-mvp.md) | AI 自愈 Agent MVP（Phase 5）：`apps/ai-agent` 纯 Node.js + LangChain ReAct + BullMQ 双向队列 + 5 Tools（readIssue/readFile/grepRepo/writePatch/createPr）+ `heal_jobs` 状态机 + HealModule API；Docker 沙箱/GitLab/Web UI 推迟 | 采纳 |
 
 > 当你需要为某条决策补充详细背景或推翻旧决策时，请新增 `0001-xxx.md`（而非修改旧文件），并在此索引更新状态。

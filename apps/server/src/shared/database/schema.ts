@@ -25,3 +25,4 @@ export * from "./schema/page-view-raw.js";
 export * from "./schema/alert-rules.js";
 export * from "./schema/alert-history.js";
 export * from "./schema/channels.js";
+export * from "./schema/heal-jobs.js";
