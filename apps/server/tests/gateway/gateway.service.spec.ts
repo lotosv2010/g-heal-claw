@@ -14,6 +14,7 @@ import type { VisitsService } from "../../src/modules/visits/visits.service.js";
 import type { RealtimeService } from "../../src/modules/realtime/realtime.service.js";
 import type { IdempotencyService } from "../../src/gateway/idempotency.service.js";
 import type { ErrorJobPayload } from "../../src/modules/errors/error.processor.js";
+import type { PerfJobPayload } from "../../src/modules/performance/perf.processor.js";
 import { buildErrorEvent } from "../fixtures.js";
 
 /**
@@ -39,6 +40,7 @@ interface Stubs {
   realtime: RealtimeService;
   idempotency: IdempotencyService;
   queue: Queue<ErrorJobPayload>;
+  perfQueue: Queue<PerfJobPayload>;
   errorsSaveBatch: ReturnType<typeof vi.fn>;
   queueAdd: ReturnType<typeof vi.fn>;
 }
@@ -75,6 +77,7 @@ function buildStubs(opts: { queueThrows?: boolean } = {}): Stubs {
       })),
     } as unknown as IdempotencyService,
     queue: { add: queueAdd } as unknown as Queue<ErrorJobPayload>,
+    perfQueue: { add: vi.fn(async () => ({ id: "pj1" })) } as unknown as Queue<PerfJobPayload>,
     errorsSaveBatch,
     queueAdd,
   };
@@ -85,6 +88,9 @@ function buildEnv(mode: "sync" | "queue" | "dual"): ServerEnv {
     ERROR_PROCESSOR_MODE: mode,
     ERROR_PROCESSOR_ATTEMPTS: 3,
     ERROR_PROCESSOR_BACKOFF_MS: 2000,
+    PERF_PROCESSOR_MODE: "queue",
+    PERF_PROCESSOR_ATTEMPTS: 3,
+    PERF_PROCESSOR_BACKOFF_MS: 2000,
   } as unknown as ServerEnv;
 }
 
@@ -106,6 +112,7 @@ function buildGateway(
     s.idempotency,
     buildEnv(mode),
     s.queue,
+    s.perfQueue,
   );
 }
 

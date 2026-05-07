@@ -76,6 +76,23 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   // 每 projectId 最大并发 SSE 连接（超过直接 429）
   REALTIME_MAX_CONN_PER_PROJECT: z.coerce.number().int().positive().default(10),
 
+  // -------- Performance Processor（T2.1.4 / ADR-0037）--------
+  // sync   : Gateway 沿用同步落库（当前形态）
+  // queue  : Gateway 仅 enqueue events-performance，PerfProcessor 异步消费
+  // dual   : 双写（enqueue + 同步落库），灰度校验时启用
+  PERF_PROCESSOR_MODE: z.enum(["sync", "queue", "dual"]).default("queue"),
+  PERF_PROCESSOR_CONCURRENCY: z.coerce.number().int().positive().default(4),
+  PERF_PROCESSOR_ATTEMPTS: z.coerce.number().int().positive().default(3),
+  PERF_PROCESSOR_BACKOFF_MS: z.coerce.number().int().positive().default(2000),
+
+  // -------- Apdex（T2.1.5 / ADR-0037）--------
+  // 默认阈值 T（毫秒），Satisfied ≤ T，Tolerating ≤ 4T，Frustrated > 4T
+  APDEX_THRESHOLD_MS: z.coerce.number().int().positive().default(2500),
+  // 评估指标（默认 LCP）
+  APDEX_METRIC: z.string().min(1).default("LCP"),
+  // cron 表达式；空串禁用
+  APDEX_CRON: z.string().default("*/1 * * * *"),
+
   // -------- Sourcemap LRU 缓存（T1.5.3 / ADR-0031）--------
   // SourceMapConsumer 在内存缓存容量（条数），dispose 时调 .destroy() 释放 WASM
   SOURCEMAP_LRU_CAPACITY: z.coerce.number().int().positive().default(100),

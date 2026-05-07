@@ -63,6 +63,15 @@ const fixtureEnv: ServerEnv = {
   REALTIME_MAX_CONN_PER_PROJECT: 10,
   // ADR-0031 / T1.5.3：Sourcemap LRU 缓存
   SOURCEMAP_LRU_CAPACITY: 100,
+  // ADR-0037 / T2.1.4：Performance Processor
+  PERF_PROCESSOR_MODE: "queue" as const,
+  PERF_PROCESSOR_CONCURRENCY: 4,
+  PERF_PROCESSOR_ATTEMPTS: 3,
+  PERF_PROCESSOR_BACKOFF_MS: 2000,
+  // ADR-0037 / T2.1.5：Apdex
+  APDEX_THRESHOLD_MS: 2500,
+  APDEX_METRIC: "LCP",
+  APDEX_CRON: "*/1 * * * *",
 };
 
 describe("Gateway e2e", () => {

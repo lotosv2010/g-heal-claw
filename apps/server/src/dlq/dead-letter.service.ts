@@ -8,7 +8,9 @@ import { DatabaseService } from "../shared/database/database.service.js";
  */
 export type DlqStage =
   | "error-raw-insert"
+  | "error-processor-fail"
   | "perf-raw-insert"
+  | "perf-processor-fail"
   | "issues-upsert"
   | "decode-fail";
 

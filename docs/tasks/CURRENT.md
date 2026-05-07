@@ -269,7 +269,7 @@
   - [x] **T1.2.1.9** SDK 单测（Hub / Plugin / createEvent / FetchTransport mock — 19 用例全绿）
   - [x] **T1.2.1.10** examples/nextjs-demo 脚手架（Next.js 15 App Router + Tailwind v4 + GhcProvider + 3 个测试按钮）
   - [x] **T1.2.1.11** 端到端验证：`pnpm build/typecheck/test` 全绿；SDK 体积 2.73KB gzip（预算 15KB）；Next.js 生产构建成功。浏览器运行时观测需本地 `pnpm -F nextjs-demo dev` 后打开 <http://localhost:3100> 手动验证
-- [ ] **T1.2.2** ErrorPlugin（`window.onerror` + `unhandledrejection` + 静态资源错误）— 1.5d（依据 ADR-0016，MVP 范围：不含 Breadcrumb 自动采集 / Sourcemap / 指纹）
+- [x] **T1.2.2** ErrorPlugin（`window.onerror` + `unhandledrejection` + 静态资源错误）— 1.5d（完成 2026-04-27）
   - [x] **T1.2.2.1** 堆栈解析器（完成 2026-04-27，9/9 单测绿） `src/plugins/stack-parser.ts`：纯函数 `parseStack(stack: string): StackFrame[]`，正则覆盖 V8 `at fn (file:line:col)` + Firefox `fn@file:line:col`，≤ 20 帧，解析失败返回 `[]`；≥ 8 单测 case — 0.3d
     - 输入：ADR-0016 §1
     - 输出：`stack-parser.ts` + `stack-parser.test.ts`
@@ -298,7 +298,7 @@
 
 ### M1.4 异常持久化切片（ADR-0016）
 
-- [ ] **T1.4.0** 异常事件持久化切片（`error_events_raw` 单表，不入队、不指纹聚合）— 1.2d（依据 ADR-0016 §2；完整 ErrorProcessor 留给 T1.4.1/T1.4.2）
+- [x] **T1.4.0** 异常事件持久化切片（`error_events_raw` 单表，不入队、不指纹聚合）— 1.2d（完成 2026-05-07）
   - [x] **T1.4.0.1** `shared/database/schema.ts` 扩展（完成 2026-04-27，`errorEventsRaw` + 3 索引 + `ALL_DDL` 组合，server typecheck 绿） `errorEventsRaw` 表定义 + 3 个索引；`ddl.ts` 追加 `CREATE TABLE IF NOT EXISTS` — 0.3d
     - 输入：ADR-0016 §2 DDL
     - 输出：`schema.ts` 新增导出 + `ddl.ts` 常量
@@ -322,7 +322,7 @@
 
 ### M1.6 Dashboard 异常首版 API（ADR-0016）
 
-- [ ] **T1.6.2.0** Dashboard 异常大盘 API 首版 + Web `/errors` 改造（直查 `error_events_raw`，`(sub_type, message_head)` 字面分组；完整 Issues CRUD 留给 T1.6.2 ~ T1.6.6）— 2.8d
+- [x] **T1.6.2.0** Dashboard 异常大盘 API 首版 + Web `/errors` 改造（直查 `error_events_raw`，`(sub_type, message_head)` 字面分组；完整 Issues CRUD 留给 T1.6.2 ~ T1.6.6）— 2.8d（完成 2026-04-28）
   - [x] **T1.6.2.0.1** ErrorsService 聚合查询：`aggregateSummary` / `aggregateBySubType` / `aggregateTrend` / `aggregateTopGroups`（Drizzle + `sql` + `date_trunc` + `GROUP BY`）— 0.6d（完成 2026-04-27）
     - 输入：T1.4.0 已就绪
     - 输出：`errors.service.ts` 新增 4 个 aggregate 方法
@@ -1053,8 +1053,38 @@
     - 依赖：T2.1.1.1 ~ T2.1.1.7
 - [x] **T2.1.2** 首屏时间（MutationObserver + rAF 窗口）— 2d（随 T2.1.8.P0.3 交付，fspPlugin 已落地 2026-05-06）
 - [x] **T2.1.3** 长任务 / 卡顿 / 无响应采集 — 2d（≥50ms 采集 + 三级分级 classifyLongTaskTier + UI 三色条，随 T2.1.8.P0.2 交付 2026-05-06）
-- [ ] **T2.1.4** PerformanceProcessor（events_raw + metric_minute 聚合 p50/p95/p99）— 3d
-- [ ] **T2.1.5** Apdex 计算 cron — 1d
+- [x] **T2.1.4** PerformanceProcessor（metric_minute 预聚合 + BullMQ 异步消费）— 3d（ADR-0037）
+  - [x] **T2.1.4.1** `metric_minute` Drizzle Schema + DDL migration `0012_metric_minute.sql` — 0.4d
+    - 输入：ADR-0037 表设计
+    - 输出：`apps/server/src/shared/database/schema/metric-minute.ts` + migration + schema.ts re-export
+    - 验收：`pnpm typecheck` 全绿；迁移 SQL 可执行
+    - 依赖：无
+  - [x] **T2.1.4.2** Gateway 性能事件异步化（`PERF_PROCESSOR_MODE` 灰度开关）— 0.6d
+    - 输入：T2.1.4.1；复用 ADR-0026 enqueue 模式
+    - 输出：`gateway.service.ts` 扩展 perf 分流 + `ServerEnvSchema` 新增 3 env
+    - 验收：单测覆盖 sync/queue/dual 三模式；e2e 含 `enqueued` 字段
+    - 依赖：T2.1.4.1
+  - [x] **T2.1.4.3** PerformanceProcessor Worker（消费 + saveBatch + 分钟聚合 → UPSERT metric_minute）— 1.2d
+    - 输入：T2.1.4.1 + T2.1.4.2
+    - 输出：`apps/server/src/modules/performance/perf.processor.ts`（@Processor + tdigest 百分位 + UPSERT）
+    - 验收：单测 mock 验证分钟桶聚合 + UPSERT 幂等 + 重试入 DLQ
+    - 依赖：T2.1.4.1, T2.1.4.2
+  - [x] **T2.1.4.4** 单测 + 环境变量 + 文档传导 — 0.8d
+    - 输入：T2.1.4.1~3
+    - 输出：单测 ≥ 8 case + `.env.example` + ARCHITECTURE §3.4 更新 + CURRENT.md
+    - 验收：`pnpm typecheck && pnpm test` 全绿
+    - 依赖：T2.1.4.1~3
+- [x] **T2.1.5** Apdex 计算 cron — 1d（ADR-0037）
+  - [x] **T2.1.5.1** ApdexService（@Cron 每分钟 + LCP 阈值判定 + UPSERT metric_minute）— 0.7d
+    - 输入：T2.1.4.1（metric_minute 表已就绪）
+    - 输出：`apps/server/src/modules/performance/apdex.service.ts` + `ServerEnvSchema` 新增 `APDEX_THRESHOLD_MS` / `APDEX_METRIC`
+    - 验收：单测覆盖正常计算 + 空窗口跳过 + ENV 禁用
+    - 依赖：T2.1.4.1
+  - [x] **T2.1.5.2** 单测 + 文档传导 + apps/docs 页面 — 0.3d
+    - 输入：T2.1.5.1
+    - 输出：单测 ≥ 4 case + `apps/docs/docs/reference/performance-metrics.md` 追加 Apdex 章节 + CURRENT.md
+    - 验收：`pnpm typecheck && pnpm test` 全绿；Apdex 公式文档化
+    - 依赖：T2.1.5.1
 - [x] **T2.1.6** 性能大盘 API 首版（依据 ADR-0015，直查 `perf_events_raw` + p75 聚合；Apdex/metric_minute 预聚合推迟到 T2.1.4/T2.1.5）— 2d（完成 2026-04-27）
   - [x] **T2.1.6.1** `apps/server/src/dashboard/` 骨架：`dashboard.module.ts` + `performance.controller.ts` + `performance.service.ts` + `dto/overview.dto.ts`（Zod query + response Schema）— 0.2d（完成 2026-04-27）
   - [x] **T2.1.6.2** 聚合 SQL：扩展 `PerformanceService` 新增 `aggregateVitals` / `aggregateTrend` / `aggregateWaterfallSamples` / `aggregateSlowPages`（Drizzle + `sql` 模板 + `percentile_cont`）— 0.6d（完成 2026-04-27）

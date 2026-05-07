@@ -31,6 +31,8 @@ import { RateLimitService } from "./rate-limit.service.js";
     RealtimeModule,
     // TM.E.1：Gateway 作为 events-error 队列 Producer
     BullModule.registerQueue({ name: QueueName.EventsError }),
+    // T2.1.4.2：Gateway 作为 events-performance 队列 Producer（ADR-0037）
+    BullModule.registerQueue({ name: QueueName.EventsPerformance }),
   ],
   controllers: [GatewayController],
   providers: [

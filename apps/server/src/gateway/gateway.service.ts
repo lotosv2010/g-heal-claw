@@ -32,6 +32,7 @@ import type {
   RealtimeErrorPayload,
   RealtimePerfPayload,
 } from "../modules/realtime/topics.js";
+import type { PerfJobPayload } from "../modules/performance/perf.processor.js";
 import type { GatewayAuthContext } from "./dsn-auth.guard.js";
 import { IdempotencyService } from "./idempotency.service.js";
 import type { IngestRequest } from "./ingest.dto.js";
@@ -51,6 +52,7 @@ import type { IngestRequest } from "./ingest.dto.js";
 export class GatewayService {
   private readonly logger = new Logger(GatewayService.name);
   private queueDegraded = false;
+  private perfQueueDegraded = false;
 
   public constructor(
     private readonly performance: PerformanceService,
@@ -67,6 +69,8 @@ export class GatewayService {
     @Inject(SERVER_ENV) private readonly env: ServerEnv,
     @InjectQueue(QueueName.EventsError)
     private readonly errorQueue: Queue<ErrorJobPayload>,
+    @InjectQueue(QueueName.EventsPerformance)
+    private readonly perfQueue: Queue<PerfJobPayload>,
   ) {}
 
   public async ingest(
@@ -93,21 +97,30 @@ export class GatewayService {
     const pageViewEvents = first.filter(isPageView);
 
     // TM.E.2：根据 ERROR_PROCESSOR_MODE 决定错误事件去向
-    // - queue: 仅入队，persisted 计为 0，enqueued 累计
-    // - sync : 仅同步落库
-    // - dual : 同时入队 + 同步落库（灰度 / 指纹重算校验）
-    const mode = this.resolveErrorMode();
+    const errorMode = this.resolveErrorMode();
     const errorSyncPromise =
-      errorEvents.length && mode !== "queue"
+      errorEvents.length && errorMode !== "queue"
         ? this.errors.saveBatch(errorEvents)
         : Promise.resolve(0);
     const errorEnqueuePromise =
-      errorEvents.length && mode !== "sync"
+      errorEvents.length && errorMode !== "sync"
         ? this.enqueueErrorBatch(errorEvents)
+        : Promise.resolve(0);
+
+    // T2.1.4.2 / ADR-0037：根据 PERF_PROCESSOR_MODE 决定性能事件去向
+    const perfMode = this.resolvePerfMode();
+    const perfSyncPromise =
+      perfEvents.length && perfMode !== "queue"
+        ? this.performance.saveBatch(perfEvents)
+        : Promise.resolve(0);
+    const perfEnqueuePromise =
+      perfEvents.length && perfMode !== "sync"
+        ? this.enqueuePerfBatch(perfEvents)
         : Promise.resolve(0);
 
     const [
       perfPersisted,
+      perfEnqueued,
       errorPersisted,
       errorEnqueued,
       apiPersisted,
@@ -118,7 +131,8 @@ export class GatewayService {
       customLogPersisted,
       pageViewPersisted,
     ] = await Promise.all([
-      perfEvents.length ? this.performance.saveBatch(perfEvents) : 0,
+      perfSyncPromise,
+      perfEnqueuePromise,
       errorSyncPromise,
       errorEnqueuePromise,
       apiEvents.length ? this.apiMonitor.saveBatch(apiEvents) : 0,
@@ -141,14 +155,16 @@ export class GatewayService {
       customMetricPersisted +
       customLogPersisted +
       pageViewPersisted;
+    const enqueued = errorEnqueued + perfEnqueued;
 
     // ADR-0030 / TM.2.C：入库后 fire-and-forget 推送到实时大盘
     // publish 失败不影响入库 ack（RealtimeService 内已吞异常并日志降级）
     this.publishRealtime(errorEvents, apiEvents, perfEvents);
 
     this.logger.log(
-      `accepted=${total} deduped=${duplicates.length} perf=${perfEvents.length} ` +
-        `errors=${errorEvents.length} errorMode=${mode} errorEnqueued=${errorEnqueued} ` +
+      `accepted=${total} deduped=${duplicates.length} perf=${perfEvents.length} perfMode=${perfMode} ` +
+        `errors=${errorEvents.length} errorMode=${errorMode} ` +
+        `enqueued=${enqueued} ` +
         `apis=${apiEvents.length} tracks=${trackEvents.length} ` +
         `resources=${resourceEvents.length} customEvents=${customEvents.length} ` +
         `customMetrics=${customMetrics.length} customLogs=${customLogs.length} ` +
@@ -161,7 +177,7 @@ export class GatewayService {
       accepted: total,
       persisted,
       duplicates: duplicates.length,
-      enqueued: errorEnqueued,
+      enqueued,
     };
   }
 
@@ -266,6 +282,47 @@ export class GatewayService {
       // queue 模式：在 resolveErrorMode 下一次入参时回退 sync，此次调用作为补偿也同步落库
       if (this.env.ERROR_PROCESSOR_MODE === "queue") {
         await this.errors.saveBatch(events);
+      }
+      return 0;
+    }
+  }
+
+  /** T2.1.4.2 / ADR-0037：解析 perf 处理模式 */
+  private resolvePerfMode(): "sync" | "queue" | "dual" {
+    const configured = this.env.PERF_PROCESSOR_MODE;
+    if (configured === "queue" && this.perfQueueDegraded) return "sync";
+    return configured;
+  }
+
+  /** T2.1.4.2 / ADR-0037：将性能事件批次投递到 events-performance 队列 */
+  private async enqueuePerfBatch(
+    events: readonly PerfOrLongTaskEvent[],
+  ): Promise<number> {
+    try {
+      await this.perfQueue.add(
+        "ingest",
+        {
+          events,
+          enqueuedAt: Date.now(),
+        },
+        {
+          attempts: this.env.PERF_PROCESSOR_ATTEMPTS,
+          backoff: {
+            type: "exponential",
+            delay: this.env.PERF_PROCESSOR_BACKOFF_MS,
+          },
+          removeOnComplete: { count: 1000 },
+          removeOnFail: { count: 5000 },
+        },
+      );
+      return events.length;
+    } catch (err) {
+      this.perfQueueDegraded = true;
+      this.logger.warn(
+        `events-performance enqueue 失败，本进程降级为 sync 模式：${(err as Error).message}`,
+      );
+      if (this.env.PERF_PROCESSOR_MODE === "queue") {
+        await this.performance.saveBatch(events);
       }
       return 0;
     }
