@@ -33,6 +33,7 @@ import type {
   RealtimePerfPayload,
 } from "../modules/realtime/topics.js";
 import type { PerfJobPayload } from "../modules/performance/perf.processor.js";
+import { GeoIpService, type GeoResult } from "../shared/geoip.service.js";
 import type { GatewayAuthContext } from "./dsn-auth.guard.js";
 import { IdempotencyService } from "./idempotency.service.js";
 import type { IngestRequest } from "./ingest.dto.js";
@@ -66,6 +67,7 @@ export class GatewayService {
     private readonly visits: VisitsService,
     private readonly realtime: RealtimeService,
     private readonly idempotency: IdempotencyService,
+    private readonly geoip: GeoIpService,
     @Inject(SERVER_ENV) private readonly env: ServerEnv,
     @InjectQueue(QueueName.EventsError)
     private readonly errorQueue: Queue<ErrorJobPayload>,
@@ -84,6 +86,8 @@ export class GatewayService {
     enqueued: number;
   }> {
     const total = payload.events.length;
+    // GeoIP 解析一次复用（全局注入所有 Service）
+    const geo = this.geoip.lookup(clientIp);
     // T1.3.5：按 eventId Redis SETNX 去重；Redis 不可用时放行（raw UNIQUE 兜底）
     const { first, duplicates } = await this.idempotency.dedup(payload.events);
 
@@ -101,22 +105,22 @@ export class GatewayService {
     const errorMode = this.resolveErrorMode();
     const errorSyncPromise =
       errorEvents.length && errorMode !== "queue"
-        ? this.errors.saveBatch(errorEvents)
+        ? this.errors.saveBatch(errorEvents, geo)
         : Promise.resolve(0);
     const errorEnqueuePromise =
       errorEvents.length && errorMode !== "sync"
-        ? this.enqueueErrorBatch(errorEvents)
+        ? this.enqueueErrorBatch(errorEvents, geo)
         : Promise.resolve(0);
 
     // T2.1.4.2 / ADR-0037：根据 PERF_PROCESSOR_MODE 决定性能事件去向
     const perfMode = this.resolvePerfMode();
     const perfSyncPromise =
       perfEvents.length && perfMode !== "queue"
-        ? this.performance.saveBatch(perfEvents)
+        ? this.performance.saveBatch(perfEvents, geo)
         : Promise.resolve(0);
     const perfEnqueuePromise =
       perfEvents.length && perfMode !== "sync"
-        ? this.enqueuePerfBatch(perfEvents)
+        ? this.enqueuePerfBatch(perfEvents, geo)
         : Promise.resolve(0);
 
     const [
@@ -136,15 +140,15 @@ export class GatewayService {
       perfEnqueuePromise,
       errorSyncPromise,
       errorEnqueuePromise,
-      apiEvents.length ? this.apiMonitor.saveBatch(apiEvents) : 0,
+      apiEvents.length ? this.apiMonitor.saveBatch(apiEvents, geo) : 0,
       trackEvents.length ? this.tracking.saveBatch(trackEvents) : 0,
       resourceEvents.length
-        ? this.resourceMonitor.saveBatch(resourceEvents)
+        ? this.resourceMonitor.saveBatch(resourceEvents, geo)
         : 0,
       customEvents.length ? this.customEvents.saveBatch(customEvents) : 0,
       customMetrics.length ? this.customMetrics.saveBatch(customMetrics) : 0,
       customLogs.length ? this.logs.saveBatch(customLogs) : 0,
-      pageViewEvents.length ? this.visits.saveBatch(pageViewEvents, clientIp) : 0,
+      pageViewEvents.length ? this.visits.saveBatch(pageViewEvents, geo) : 0,
     ]);
     const persisted =
       perfPersisted +
@@ -256,6 +260,7 @@ export class GatewayService {
    */
   private async enqueueErrorBatch(
     events: readonly ErrorEvent[],
+    geo?: GeoResult,
   ): Promise<number> {
     try {
       await this.errorQueue.add(
@@ -263,6 +268,7 @@ export class GatewayService {
         {
           events,
           enqueuedAt: Date.now(),
+          geo,
         },
         {
           attempts: this.env.ERROR_PROCESSOR_ATTEMPTS,
@@ -298,6 +304,7 @@ export class GatewayService {
   /** T2.1.4.2 / ADR-0037：将性能事件批次投递到 events-performance 队列 */
   private async enqueuePerfBatch(
     events: readonly PerfOrLongTaskEvent[],
+    geo?: GeoResult,
   ): Promise<number> {
     try {
       await this.perfQueue.add(
@@ -305,6 +312,7 @@ export class GatewayService {
         {
           events,
           enqueuedAt: Date.now(),
+          geo,
         },
         {
           attempts: this.env.PERF_PROCESSOR_ATTEMPTS,

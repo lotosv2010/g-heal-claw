@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
+import { useChartTheme } from "@/lib/use-chart-theme";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Tabs,
@@ -45,7 +46,6 @@ const TABS = [
   { key: "os", label: "操作系统" },
   { key: "version", label: "版本" },
   { key: "region", label: "地域" },
-  { key: "carrier", label: "运营商" },
   { key: "network", label: "网络" },
   { key: "platform", label: "平台" },
 ] as const;
@@ -68,12 +68,7 @@ export function DimensionTabs({
 }: {
   dimensions: ApiDimensions;
 }) {
-  const lookup: Record<string, readonly ApiDimensionRow[]> = {
-    device: dimensions.platform,
-    browser: dimensions.browser,
-    os: dimensions.os,
-    platform: dimensions.platform,
-  };
+  const lookup = dimensions as unknown as Record<string, readonly ApiDimensionRow[]>;
 
   return (
     <Card>
@@ -105,6 +100,7 @@ export function DimensionTabs({
 }
 
 function DimensionPane({ rows }: { rows: readonly ApiDimensionRow[] }) {
+  const chartTheme = useChartTheme();
   const pieData = useMemo(
     () =>
       rows.map((r) => ({ type: r.value || "unknown", value: r.sampleCount })),
@@ -119,6 +115,7 @@ function DimensionPane({ rows }: { rows: readonly ApiDimensionRow[] }) {
       innerRadius: 0.6,
       radius: 0.9,
       height: 260,
+      theme: chartTheme,
       legend: {
         color: {
           position: "bottom" as const,
@@ -137,13 +134,13 @@ function DimensionPane({ rows }: { rows: readonly ApiDimensionRow[] }) {
         ],
       },
     }),
-    [pieData],
+    [pieData, chartTheme],
   );
 
   if (rows.length === 0) {
     return (
       <p className="text-muted-foreground py-10 text-center text-sm">
-        此维度尚未采集 · 后续切片将接入 UA 解析 / GeoIP / 网络上报
+        当前时间窗口内暂无该维度数据
       </p>
     );
   }

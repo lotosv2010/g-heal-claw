@@ -7,6 +7,7 @@ import type {
   PerformanceEvent,
 } from "@g-heal-claw/shared";
 import { DatabaseService } from "../../shared/database/database.service.js";
+import type { GeoResult } from "../../shared/geoip.service.js";
 import {
   perfEventsRaw,
   type NewPerfEventRow,
@@ -120,14 +121,13 @@ export class PerformanceService {
    *
    * 返回实际插入行数（冲突行会被 ON CONFLICT 吞掉，不计入）。
    */
-  public async saveBatch(events: readonly PerfOrLongTaskEvent[]): Promise<number> {
+  public async saveBatch(events: readonly PerfOrLongTaskEvent[], geo?: GeoResult): Promise<number> {
     if (events.length === 0) return 0;
     const db = this.database.db;
     if (!db) {
-      // test 环境或 DB 未就绪；此处保持静默以不阻塞 HTTP 响应
       return 0;
     }
-    const rows = events.map(toRow);
+    const rows = events.map((e) => toRow(e, geo));
     try {
       const inserted = await db
         .insert(perfEventsRaw)
@@ -597,7 +597,7 @@ export class PerformanceService {
   }
 }
 
-function toRow(event: PerfOrLongTaskEvent): NewPerfEventRow {
+function toRow(event: PerfOrLongTaskEvent, geo?: GeoResult): NewPerfEventRow {
   const base: NewPerfEventRow = {
     eventId: event.eventId,
     projectId: event.projectId,
@@ -614,8 +614,8 @@ function toRow(event: PerfOrLongTaskEvent): NewPerfEventRow {
     osVersion: event.device.osVersion ?? null,
     deviceType: event.device.deviceType,
     networkType: event.device.network?.effectiveType ?? null,
-    country: null,
-    region: null,
+    country: geo?.country ?? null,
+    region: geo?.region ?? null,
     release: event.release,
     environment: event.environment,
     metric: null,

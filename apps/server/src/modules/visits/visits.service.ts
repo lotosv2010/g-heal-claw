@@ -3,7 +3,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
 import type { PageViewEvent } from "@g-heal-claw/shared";
 import { DatabaseService } from "../../shared/database/database.service.js";
-import { GeoIpService } from "../../shared/geoip.service.js";
+import type { GeoResult } from "../../shared/geoip.service.js";
 import {
   pageViewRaw,
   type NewPageViewRow,
@@ -88,16 +88,12 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 export class VisitsService {
   private readonly logger = new Logger(VisitsService.name);
 
-  public constructor(
-    private readonly database: DatabaseService,
-    private readonly geoip: GeoIpService,
-  ) {}
+  public constructor(private readonly database: DatabaseService) {}
 
-  public async saveBatch(events: readonly PageViewEvent[], clientIp?: string): Promise<number> {
+  public async saveBatch(events: readonly PageViewEvent[], geo?: GeoResult): Promise<number> {
     if (events.length === 0) return 0;
     const db = this.database.db;
     if (!db) return 0;
-    const geo = this.geoip.lookup(clientIp);
     const rows = events.map((e) => toRow(e, geo));
     try {
       // T3.3.3：相同 eventId 重复上报时仅更新 duration_ms（页面离开时回写停留时长）

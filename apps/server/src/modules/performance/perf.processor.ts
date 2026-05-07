@@ -13,6 +13,7 @@ import { MetricMinuteService } from "./metric-minute.service.js";
 export interface PerfJobPayload {
   readonly events: readonly PerfOrLongTaskEvent[];
   readonly enqueuedAt: number;
+  readonly geo?: { country: string | null; region: string | null; city: string | null };
 }
 
 /**
@@ -34,12 +35,12 @@ export class PerfProcessor extends WorkerHost {
   }
 
   public async process(job: Job<PerfJobPayload>): Promise<{ persisted: number }> {
-    const { events, enqueuedAt } = job.data;
+    const { events, enqueuedAt, geo } = job.data;
     const lag = Date.now() - enqueuedAt;
     this.logger.log(`processing batch=${events.length} lag=${lag}ms`);
 
-    // 1. 原始数据落库
-    const persisted = await this.performance.saveBatch(events);
+    // 1. 原始数据落库（含 GeoIP 地域）
+    const persisted = await this.performance.saveBatch(events, geo);
 
     // 2. 按 (projectId, metric, minute) 聚合写入 metric_minute
     await this.metricMinute.aggregateAndUpsert(events);

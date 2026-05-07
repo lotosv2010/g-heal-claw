@@ -16,7 +16,7 @@ import type { ResourcesTrendBucket } from "@/lib/api/resources";
  *  - 均耗时：单折线（每小时平均资源耗时）
  */
 const Line = dynamic(
-  () => import("@ant-design/plots").then((m) => m.Line),
+  () => import("@/components/charts/themed-charts").then((m) => ({ default: m.ThemedLine })),
   {
     ssr: false,
     loading: () => <Skeleton className="h-64 w-full" />,

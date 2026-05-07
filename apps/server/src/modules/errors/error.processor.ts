@@ -19,6 +19,8 @@ export interface ErrorJobPayload {
   readonly enqueuedAt: number;
   /** 追溯链：来自同一次 ingest 的 batchId（可选，方便排查） */
   readonly batchId?: string;
+  /** GeoIP 解析结果（Gateway 入队时注入） */
+  readonly geo?: { country: string | null; region: string | null; city: string | null };
 }
 
 /**
@@ -41,14 +43,14 @@ export class ErrorProcessor extends WorkerHost {
   }
 
   public async process(job: Job<ErrorJobPayload>): Promise<{ persisted: number }> {
-    const { events } = job.data;
+    const { events, geo } = job.data;
     if (events.length === 0) return { persisted: 0 };
 
     // 1. Sourcemap 还原（TM.E.3 stub：原样返回；T1.5.3 实装后替换）
     const restored = await this.sourcemap.resolveFrames(events);
 
     // 2. 落库 + 指纹计算 + Issue UPSERT（ErrorsService.saveBatch 内部闭环）
-    const persisted = await this.errors.saveBatch(restored);
+    const persisted = await this.errors.saveBatch(restored, geo);
 
     this.logger.log(
       `events-error job=${job.id} batch=${events.length} persisted=${persisted} ` +

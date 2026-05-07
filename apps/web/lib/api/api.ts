@@ -82,8 +82,13 @@ export interface ApiDimensionRow {
 }
 
 export interface ApiDimensions {
+  readonly device: readonly ApiDimensionRow[];
   readonly browser: readonly ApiDimensionRow[];
   readonly os: readonly ApiDimensionRow[];
+  readonly version: readonly ApiDimensionRow[];
+  readonly region: readonly ApiDimensionRow[];
+  readonly carrier: readonly ApiDimensionRow[];
+  readonly network: readonly ApiDimensionRow[];
   readonly platform: readonly ApiDimensionRow[];
 }
 
@@ -204,6 +209,6 @@ export function emptyApiOverview(): ApiOverview {
     topRequests: [],
     topPages: [],
     topErrorStatus: [],
-    dimensions: { browser: [], os: [], platform: [] },
+    dimensions: { device: [], browser: [], os: [], version: [], region: [], carrier: [], network: [], platform: [] },
   };
 }

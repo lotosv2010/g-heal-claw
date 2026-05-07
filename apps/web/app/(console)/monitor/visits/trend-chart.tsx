@@ -17,7 +17,7 @@ import type { VisitsTrendBucket } from "@/lib/api/visits";
  *  - 与 API 趋势图对齐视觉语义
  */
 const Line = dynamic(
-  () => import("@ant-design/plots").then((m) => m.Line),
+  () => import("@/components/charts/themed-charts").then((m) => ({ default: m.ThemedLine })),
   {
     ssr: false,
     loading: () => <Skeleton className="h-64 w-full" />,

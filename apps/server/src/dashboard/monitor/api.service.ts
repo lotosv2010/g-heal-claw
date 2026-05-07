@@ -79,8 +79,12 @@ export class DashboardApiService {
       topPageRows,
       errorStatusRows,
       dimBrowser,
+      dimBrowserVersion,
       dimOs,
+      dimOsVersion,
       dimPlatform,
+      dimNetwork,
+      dimCountry,
     ] = await Promise.all([
       this.apiMonitor.aggregateSummary(current),
       this.apiMonitor.aggregateSummary(previous),
@@ -91,12 +95,12 @@ export class DashboardApiService {
       this.apiMonitor.aggregateTopPages(current, limitPages),
       this.apiMonitor.aggregateErrorStatus(current, limitErrorStatus),
       this.apiMonitor.aggregateDimension(current, "browser", limitDimension),
+      this.apiMonitor.aggregateDimension(current, "browser_version", limitDimension),
       this.apiMonitor.aggregateDimension(current, "os", limitDimension),
-      this.apiMonitor.aggregateDimension(
-        current,
-        "device_type",
-        limitDimension,
-      ),
+      this.apiMonitor.aggregateDimension(current, "os_version", limitDimension),
+      this.apiMonitor.aggregateDimension(current, "device_type", limitDimension),
+      this.apiMonitor.aggregateDimension(current, "network_type", limitDimension),
+      this.apiMonitor.aggregateDimension(current, "country", limitDimension),
     ]);
 
     const summary = buildSummary(summaryCurrent, summaryPrevious);
@@ -110,8 +114,13 @@ export class DashboardApiService {
     const topPages = buildTopPages(topPageRows);
     const topErrorStatus = buildTopErrorStatus(errorStatusRows);
     const dimensions: ApiDimensionsDto = {
+      device: buildDimensionRows(dimPlatform),
       browser: buildDimensionRows(dimBrowser),
       os: buildDimensionRows(dimOs),
+      version: buildDimensionRows(dimBrowserVersion),
+      region: buildDimensionRows(dimCountry),
+      carrier: [],
+      network: buildDimensionRows(dimNetwork),
       platform: buildDimensionRows(dimPlatform),
     };
 

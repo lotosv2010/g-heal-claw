@@ -110,6 +110,7 @@ function buildGateway(
     s.visits,
     s.realtime,
     s.idempotency,
+    { lookup: () => ({ country: null, region: null, city: null }) } as never,
     buildEnv(mode),
     s.queue,
     s.perfQueue,

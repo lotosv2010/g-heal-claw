@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  * 空数据渲染占位，避免图形空白。
  */
 const Line = dynamic(
-  () => import("@ant-design/plots").then((m) => m.Line),
+  () => import("@/components/charts/themed-charts").then((m) => ({ default: m.ThemedLine })),
   {
     ssr: false,
     loading: () => <Skeleton className="h-72 w-full" />,

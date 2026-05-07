@@ -19,7 +19,7 @@ import type { ApiTrendBucket } from "@/lib/api/api";
  * 这样避免"三个按钮和图例放在一起"造成的控件歧义
  */
 const Line = dynamic(
-  () => import("@ant-design/plots").then((m) => m.Line),
+  () => import("@/components/charts/themed-charts").then((m) => ({ default: m.ThemedLine })),
   {
     ssr: false,
     loading: () => <Skeleton className="h-64 w-full" />,

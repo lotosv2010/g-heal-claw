@@ -25,7 +25,7 @@ import {
  */
 
 const DualAxes = dynamic(
-  () => import("@ant-design/plots").then((m) => m.DualAxes),
+  () => import("@/components/charts/themed-charts").then((m) => ({ default: m.ThemedDualAxes })),
   {
     ssr: false,
     loading: () => <Skeleton className="h-72 w-full" />,

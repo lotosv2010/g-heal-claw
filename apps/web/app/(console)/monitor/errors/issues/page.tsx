@@ -21,6 +21,14 @@ export default async function IssuesPage({
       <PageHeader
         title="Issues 列表"
         description="按指纹聚合的异常问题 · 支持状态筛选和排序"
+        actions={
+          <Link
+            href="/monitor/errors"
+            className="text-muted-foreground hover:text-foreground text-xs"
+          >
+            ← 返回异常大盘
+          </Link>
+        }
       />
 
       {/* 状态筛选 */}

@@ -12,7 +12,7 @@ import { getSelectionPhrase, parseTimeSelection } from "@/lib/time-range";
 
 // AntV @ant-design/plots 依赖浏览器 DOM，使用 next/dynamic + ssr:false 规避 SSR 报错
 const DualAxes = dynamic(
-  () => import("@ant-design/plots").then((m) => m.DualAxes),
+  () => import("@/components/charts/themed-charts").then((m) => ({ default: m.ThemedDualAxes })),
   {
     ssr: false,
     loading: () => <Skeleton className="h-60 w-full" />,

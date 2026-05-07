@@ -335,13 +335,20 @@ CREATE TABLE IF NOT EXISTS api_events_raw (
   failed            boolean NOT NULL DEFAULT false,
   error_message     text,
   trace_id          varchar(64),
+  request_body      text,
+  response_body     text,
   breadcrumbs       jsonb,
   page_url          text NOT NULL,
   page_path         text NOT NULL,
   ua                text,
   browser           varchar(64),
+  browser_version   varchar(32),
   os                varchar(64),
+  os_version        varchar(32),
   device_type       varchar(16),
+  network_type      varchar(16),
+  country           varchar(64),
+  region            varchar(64),
   release           varchar(64),
   environment       varchar(32),
   created_at        timestamptz NOT NULL DEFAULT now()
@@ -929,6 +936,29 @@ export const ALERT_DDL: readonly string[] = [
   `CREATE INDEX IF NOT EXISTS idx_channels_project ON channels(project_id)`,
 ];
 
+// metric_minute 预聚合表（0012 / ADR-0037）
+const METRIC_MINUTE_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS metric_minute (
+    id            BIGSERIAL PRIMARY KEY,
+    project_id    VARCHAR(32) NOT NULL,
+    metric        VARCHAR(16) NOT NULL,
+    bucket_ts     TIMESTAMPTZ NOT NULL,
+    p50           DOUBLE PRECISION NOT NULL DEFAULT 0,
+    p75           DOUBLE PRECISION NOT NULL DEFAULT 0,
+    p90           DOUBLE PRECISION NOT NULL DEFAULT 0,
+    p95           DOUBLE PRECISION NOT NULL DEFAULT 0,
+    p99           DOUBLE PRECISION NOT NULL DEFAULT 0,
+    count         INTEGER NOT NULL DEFAULT 0,
+    sum           DOUBLE PRECISION NOT NULL DEFAULT 0,
+    satisfied     INTEGER NOT NULL DEFAULT 0,
+    tolerating    INTEGER NOT NULL DEFAULT 0,
+    frustrated    INTEGER NOT NULL DEFAULT 0,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_mm_project_metric_ts ON metric_minute(project_id, metric, bucket_ts)`,
+  `CREATE INDEX IF NOT EXISTS idx_mm_project_metric_ts ON metric_minute(project_id, metric, bucket_ts DESC)`,
+];
+
 // 维度扩列（0015）：所有 raw 表新增 browser_version / os_version / network_type / country / region
 const DIMENSION_COLUMNS_DDL: readonly string[] = [
   `ALTER TABLE perf_events_raw ADD COLUMN IF NOT EXISTS browser_version VARCHAR(32)`,
@@ -954,6 +984,9 @@ const DIMENSION_COLUMNS_DDL: readonly string[] = [
   `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS browser_version VARCHAR(32)`,
   `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS os_version VARCHAR(32)`,
   `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS network_type VARCHAR(16)`,
+  `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS country VARCHAR(64)`,
+  `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS region VARCHAR(64)`,
+  `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS city VARCHAR(64)`,
 ];
 
 /** 合并 DDL：DatabaseService.onModuleInit 按顺序执行 */
@@ -969,5 +1002,6 @@ export const ALL_DDL: readonly string[] = [
   ...EVENTS_RAW_DDL,
   ...DLQ_DDL,
   ...ALERT_DDL,
+  ...METRIC_MINUTE_DDL,
   ...DIMENSION_COLUMNS_DDL,
 ];

@@ -38,10 +38,17 @@ export class GeoIpService implements OnModuleInit {
 
   /** 根据 IP 查询地域（失败返回空，永不抛错） */
   public lookup(ip: string | undefined | null): GeoResult {
-    if (!ip || !this.reader) return EMPTY_GEO;
+    if (!ip) return EMPTY_GEO;
 
-    // 跳过本地/私有 IP
-    if (isPrivateIp(ip)) return EMPTY_GEO;
+    // 开发环境对私有 IP 返回默认地域（便于本地调试维度分布）
+    if (isPrivateIp(ip)) {
+      if (this.env.NODE_ENV !== "production") {
+        return { country: "中国", region: "本地开发", city: "localhost" };
+      }
+      return EMPTY_GEO;
+    }
+
+    if (!this.reader) return EMPTY_GEO;
 
     try {
       const response = this.reader.city(ip);
@@ -57,18 +64,21 @@ export class GeoIpService implements OnModuleInit {
 }
 
 function isPrivateIp(ip: string): boolean {
+  // 归一化 IPv4-mapped IPv6（Fastify trustProxy 下常见格式：::ffff:127.0.0.1）
+  const normalized = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
   return (
-    ip === "127.0.0.1" ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1" ||
     ip === "::1" ||
-    ip.startsWith("10.") ||
-    ip.startsWith("192.168.") ||
-    ip.startsWith("172.16.") ||
-    ip.startsWith("172.17.") ||
-    ip.startsWith("172.18.") ||
-    ip.startsWith("172.19.") ||
-    ip.startsWith("172.2") ||
-    ip.startsWith("172.3") ||
-    ip.startsWith("fc") ||
-    ip.startsWith("fd")
+    normalized.startsWith("10.") ||
+    normalized.startsWith("192.168.") ||
+    normalized.startsWith("172.16.") ||
+    normalized.startsWith("172.17.") ||
+    normalized.startsWith("172.18.") ||
+    normalized.startsWith("172.19.") ||
+    normalized.startsWith("172.2") ||
+    normalized.startsWith("172.3") ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd")
   );
 }

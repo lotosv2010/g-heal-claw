@@ -128,8 +128,13 @@ export interface ApiDimensionRowDto {
  * —— 待 UA-parser / GeoIP / 网络上报接入
  */
 export interface ApiDimensionsDto {
+  readonly device: readonly ApiDimensionRowDto[];
   readonly browser: readonly ApiDimensionRowDto[];
   readonly os: readonly ApiDimensionRowDto[];
+  readonly version: readonly ApiDimensionRowDto[];
+  readonly region: readonly ApiDimensionRowDto[];
+  readonly carrier: readonly ApiDimensionRowDto[];
+  readonly network: readonly ApiDimensionRowDto[];
   readonly platform: readonly ApiDimensionRowDto[];
 }
 

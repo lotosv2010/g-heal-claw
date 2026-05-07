@@ -115,10 +115,17 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   private async applyDdl(): Promise<void> {
     if (!this.sql) return;
+    let success = 0;
     for (const stmt of ALL_DDL) {
-      await this.sql.unsafe(stmt);
+      try {
+        await this.sql.unsafe(stmt);
+        success++;
+      } catch (err) {
+        // 单条 DDL 失败不中断后续（IF NOT EXISTS / IF EXISTS 保证幂等，偶发冲突不阻塞启动）
+        this.logger.warn(`DDL 执行失败（已跳过）：${(err as Error).message?.slice(0, 120)}`);
+      }
     }
-    this.logger.log(`DDL 执行完成（${ALL_DDL.length} 条语句）`);
+    this.logger.log(`DDL 执行完成（${success}/${ALL_DDL.length} 条成功）`);
   }
 
   /**

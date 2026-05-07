@@ -16,7 +16,7 @@ import type { ExposureTrendBucket } from "@/lib/api/exposure";
  *  - 标题副文随视图变化，明示当前 y 轴单位
  */
 const Line = dynamic(
-  () => import("@ant-design/plots").then((m) => m.Line),
+  () => import("@/components/charts/themed-charts").then((m) => ({ default: m.ThemedLine })),
   {
     ssr: false,
     loading: () => <Skeleton className="h-64 w-full" />,

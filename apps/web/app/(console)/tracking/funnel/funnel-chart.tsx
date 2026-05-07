@@ -12,7 +12,7 @@ import type { FunnelStep } from "@/lib/api/funnel";
  * 末步 0 保留柱子（不短路）；totalEntered=0 时渲染占位。
  */
 const Funnel = dynamic(
-  () => import("@ant-design/plots").then((m) => m.Funnel),
+  () => import("@/components/charts/themed-charts").then((m) => ({ default: m.ThemedFunnel })),
   {
     ssr: false,
     loading: () => <Skeleton className="h-80 w-full" />,

@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import type { ErrorEvent } from "@g-heal-claw/shared";
 import { DeadLetterService } from "../../dlq/dead-letter.service.js";
 import { DatabaseService } from "../../shared/database/database.service.js";
+import type { GeoResult } from "../../shared/geoip.service.js";
 import {
   errorEventsRaw,
   type NewErrorEventRow,
@@ -74,7 +75,7 @@ export interface DimensionRow {
 }
 
 /** 支持聚合的 DB 维度列白名单（与 error_events_raw schema 对齐） */
-export type SupportedDimensionColumn = "browser" | "os" | "device_type";
+export type SupportedDimensionColumn = "browser" | "browser_version" | "os" | "os_version" | "device_type" | "network_type" | "country" | "region";
 
 const MESSAGE_HEAD_MAX = 128;
 
@@ -107,11 +108,11 @@ export class ErrorsService {
    *
    * 返回实际插入 raw 行数（冲突不计；issues 统计通过日志暴露，不进返回值以免破坏现有契约）
    */
-  public async saveBatch(events: readonly ErrorEvent[]): Promise<number> {
+  public async saveBatch(events: readonly ErrorEvent[], geo?: GeoResult): Promise<number> {
     if (events.length === 0) return 0;
     const db = this.database.db;
     if (!db) return 0;
-    const rows = events.map(toRow);
+    const rows = events.map((e) => toRow(e, geo));
     try {
       const inserted = await db
         .insert(errorEventsRaw)
@@ -406,7 +407,7 @@ export class ErrorsService {
   }
 }
 
-function toRow(event: ErrorEvent): NewErrorEventRow {
+function toRow(event: ErrorEvent, geo?: GeoResult): NewErrorEventRow {
   const messageHead = (event.message ?? "").slice(0, MESSAGE_HEAD_MAX);
   const request = event.request;
   return {
@@ -441,8 +442,8 @@ function toRow(event: ErrorEvent): NewErrorEventRow {
     osVersion: event.device.osVersion ?? null,
     deviceType: event.device.deviceType,
     networkType: event.device.network?.effectiveType ?? null,
-    country: null,
-    region: null,
+    country: geo?.country ?? null,
+    region: geo?.region ?? null,
     release: event.release,
     environment: event.environment,
   };

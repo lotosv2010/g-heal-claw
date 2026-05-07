@@ -78,8 +78,12 @@ export class DashboardErrorsService {
       categoryTrendRows,
       topRows,
       browserRows,
+      browserVersionRows,
       osRows,
+      osVersionRows,
       deviceRows,
+      networkRows,
+      countryRows,
     ] = await Promise.all([
       this.errors.aggregateSummary(current),
       this.errors.aggregateSummary(previous),
@@ -89,8 +93,12 @@ export class DashboardErrorsService {
       this.errors.aggregateCategoryTrend(current),
       this.errors.aggregateTopGroups(current, limitGroups),
       this.errors.aggregateDimension(current, "browser"),
+      this.errors.aggregateDimension(current, "browser_version"),
       this.errors.aggregateDimension(current, "os"),
+      this.errors.aggregateDimension(current, "os_version"),
       this.errors.aggregateDimension(current, "device_type"),
+      this.errors.aggregateDimension(current, "network_type"),
+      this.errors.aggregateDimension(current, "country"),
     ]);
 
     const summary = buildSummary(summaryCurrent, summaryPrevious);
@@ -103,6 +111,9 @@ export class DashboardErrorsService {
       browser: browserRows,
       os: osRows,
       device: deviceRows,
+      version: browserVersionRows,
+      region: countryRows,
+      network: networkRows,
     });
 
     return {
@@ -420,6 +431,9 @@ interface DimensionInputs {
   readonly browser: readonly DimensionRow[];
   readonly os: readonly DimensionRow[];
   readonly device: readonly DimensionRow[];
+  readonly version: readonly DimensionRow[];
+  readonly region: readonly DimensionRow[];
+  readonly network: readonly DimensionRow[];
 }
 
 function buildDimensions(inputs: DimensionInputs): ErrorDimensionsDto {
@@ -440,14 +454,14 @@ function pickDimension(
   key: ErrorDimensionKey,
 ): readonly DimensionRow[] {
   switch (key) {
-    case "browser":
-      return inputs.browser;
-    case "os":
-      return inputs.os;
-    case "device":
-      return inputs.device;
-    default:
-      return [];
+    case "browser": return inputs.browser;
+    case "os": return inputs.os;
+    case "device": return inputs.device;
+    case "version": return inputs.version;
+    case "region": return inputs.region;
+    case "network": return inputs.network;
+    case "platform": return inputs.device;
+    case "carrier": return [];
   }
 }
 

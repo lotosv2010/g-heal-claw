@@ -3,6 +3,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
 import type { ResourceEvent } from "@g-heal-claw/shared";
 import { DatabaseService } from "../../shared/database/database.service.js";
+import type { GeoResult } from "../../shared/geoip.service.js";
 import {
   resourceEventsRaw,
   type NewResourceEventRow,
@@ -90,11 +91,11 @@ export class ResourcesService {
   public constructor(private readonly database: DatabaseService) {}
 
   /** 批量落库（幂等：event_id UNIQUE） */
-  public async saveBatch(events: readonly ResourceEvent[]): Promise<number> {
+  public async saveBatch(events: readonly ResourceEvent[], geo?: GeoResult): Promise<number> {
     if (events.length === 0) return 0;
     const db = this.database.db;
     if (!db) return 0;
-    const rows = events.map(toRow);
+    const rows = events.map((e) => toRow(e, geo));
     try {
       const inserted = await db
         .insert(resourceEventsRaw)
@@ -414,7 +415,7 @@ export interface ResourceDimensionRow {
 
 // ---- 映射 ----
 
-function toRow(e: ResourceEvent): NewResourceEventRow {
+function toRow(e: ResourceEvent, geo?: GeoResult): NewResourceEventRow {
   return {
     eventId: e.eventId,
     projectId: e.projectId,
@@ -442,8 +443,8 @@ function toRow(e: ResourceEvent): NewResourceEventRow {
     osVersion: e.device?.osVersion ?? null,
     deviceType: e.device?.deviceType,
     networkType: e.device?.network?.effectiveType ?? null,
-    country: null,
-    region: null,
+    country: geo?.country ?? null,
+    region: geo?.region ?? null,
     release: e.release,
     environment: e.environment,
   };

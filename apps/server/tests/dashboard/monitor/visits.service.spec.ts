@@ -211,7 +211,7 @@ describe("DashboardVisitsService / 空窗口", () => {
       trend: [],
       topPages: [],
       topReferrers: [],
-      dimensions: { browser: [], os: [], platform: [] },
+      dimensions: { device: [], browser: [], os: [], version: [], region: [], carrier: [], network: [], platform: [] },
     });
   });
 });

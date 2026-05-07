@@ -3,6 +3,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
 import type { ApiEvent } from "@g-heal-claw/shared";
 import { DatabaseService } from "../../shared/database/database.service.js";
+import type { GeoResult } from "../../shared/geoip.service.js";
 import {
   apiEventsRaw,
   type NewApiEventRow,
@@ -90,7 +91,7 @@ export interface DimensionRow {
 }
 
 /** 已接入的 3 个维度列 */
-export type DimensionKey = "browser" | "os" | "device_type";
+export type DimensionKey = "browser" | "browser_version" | "os" | "os_version" | "device_type" | "network_type" | "country" | "region";
 
 /**
  * API 请求事件落库 + 聚合服务（ADR-0020 §4.2）
@@ -108,11 +109,11 @@ export class ApiService {
 
   public constructor(private readonly database: DatabaseService) {}
 
-  public async saveBatch(events: readonly ApiEvent[]): Promise<number> {
+  public async saveBatch(events: readonly ApiEvent[], geo?: GeoResult): Promise<number> {
     if (events.length === 0) return 0;
     const db = this.database.db;
     if (!db) return 0;
-    const rows = events.map(toRow);
+    const rows = events.map((e) => toRow(e, geo));
     try {
       const inserted = await db
         .insert(apiEventsRaw)
@@ -407,12 +408,18 @@ export class ApiService {
     if (!db) return [];
     const { projectId, sinceMs, untilMs } = params;
     const clampedLimit = Math.max(1, Math.min(50, Math.floor(limit)));
-    const colSql =
-      column === "browser"
-        ? sql`browser`
-        : column === "os"
-          ? sql`os`
-          : sql`device_type`;
+    const colSql = (() => {
+      switch (column) {
+        case "browser": return sql`browser`;
+        case "browser_version": return sql`browser_version`;
+        case "os": return sql`os`;
+        case "os_version": return sql`os_version`;
+        case "device_type": return sql`device_type`;
+        case "network_type": return sql`network_type`;
+        case "country": return sql`country`;
+        case "region": return sql`region`;
+      }
+    })();
     const rows = await db.execute<{
       value: string | null;
       n: string | number;
@@ -496,7 +503,7 @@ export class ApiService {
 }
 
 /** ApiEvent → api_events_raw 行映射 */
-function toRow(e: ApiEvent): NewApiEventRow {
+function toRow(e: ApiEvent, geo?: GeoResult): NewApiEventRow {
   const host = safeHost(e.url);
   const path = safePath(e.url);
   return {
@@ -528,8 +535,8 @@ function toRow(e: ApiEvent): NewApiEventRow {
     osVersion: e.device?.osVersion ?? null,
     deviceType: e.device?.deviceType,
     networkType: e.device?.network?.effectiveType ?? null,
-    country: null,
-    region: null,
+    country: geo?.country ?? null,
+    region: geo?.region ?? null,
     release: e.release,
     environment: e.environment,
   };

@@ -12,7 +12,7 @@ import type { LogLevel, LogTrendBucket } from "@/lib/api/logs";
  * 日志趋势图（info / warn / error 三折线），图例可切换
  */
 const Line = dynamic(
-  () => import("@ant-design/plots").then((m) => m.Line),
+  () => import("@/components/charts/themed-charts").then((m) => ({ default: m.ThemedLine })),
   {
     ssr: false,
     loading: () => <Skeleton className="h-64 w-full" />,
