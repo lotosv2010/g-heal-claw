@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "g-heal-claw 管理后台",
@@ -20,6 +21,7 @@ export default function RootLayout({
           导致 hydration 报文本结构一致但属性不匹配。这里仅关闭此警告，不影响实际行为。 */}
       <body className="min-h-screen antialiased" suppressHydrationWarning>
         {children}
+        <Toaster />
       </body>
     </html>
   );

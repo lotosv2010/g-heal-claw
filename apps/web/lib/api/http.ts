@@ -4,6 +4,7 @@
  * 自动注入 Authorization Bearer，401 时尝试一次 refresh。
  */
 
+import { toast } from "sonner";
 import { getAccessToken, apiRefreshTokens, clearTokens } from "../auth";
 
 export class ApiError extends Error {
@@ -93,7 +94,10 @@ async function fetchWithRefresh<T>(
     if (!ok) {
       clearTokens();
       if (typeof window !== "undefined") {
-        window.location.href = "/login";
+        toast.error("登录已过期，正在跳转登录页...");
+        setTimeout(() => {
+          window.location.href = "/login?reason=session_expired";
+        }, 1500);
       }
       throw err;
     }
