@@ -1133,20 +1133,20 @@
 
 ### M2.2 API 监控
 
-- [ ] **T2.2.1** SDK ApiPlugin（劫持 fetch + XHR，采集 method/url/status/duration/size）— 3d
+- [x] **T2.2.1** SDK ApiPlugin（劫持 fetch + XHR，采集 method/url/status/duration/size）— 3d
 - [ ] **T2.2.2** 慢请求 & 错误请求扩展字段（请求参数 / 响应片段 + 4KB 截断）— 2d
 - [ ] **T2.2.3** TraceID 注入（可配置 header 名）— 1d
-- [ ] **T2.2.4** ApiProcessor（按 method+path 聚合；pathTemplate 提取，如 `/api/users/123` → `/api/users/:id`）— 3d
-- [ ] **T2.2.5** API 大盘 API（总览 / 慢请求 Top / 错误 Top / 按域名/状态码分析）— 2d
-- [ ] **T2.2.6** web/api 页面 — 4d
+- [x] **T2.2.4** ApiProcessor（按 method+path 聚合；pathTemplate 提取，如 `/api/users/123` → `/api/users/:id`）— 3d
+- [x] **T2.2.5** API 大盘 API（总览 / 慢请求 Top / 错误 Top / 按域名/状态码分析）— 2d
+- [x] **T2.2.6** web/api 页面 — 4d
 
 ### M2.3 访问分析
 
-- [ ] **T2.3.1** SDK PageViewPlugin（首次 + SPA 路由监听 + session 保活）— 2d
-- [ ] **T2.3.2** VisitProcessor（PV/UV，会话聚合，IP 地域解析）— 3d
-- [ ] **T2.3.3** IP 地域库加载与缓存（MaxMind / 纯真 db）— 1d
-- [ ] **T2.3.4** 访问大盘 API（总览 / Top 页面 / 访问来源 / 地域分布 / 会话详情）— 2d
-- [ ] **T2.3.5** web/visits 页面 + 会话详情路径还原 — 4d
+- [x] **T2.3.1** SDK PageViewPlugin（首次 + SPA 路由监听 + session 保活）— 2d
+- [x] **T2.3.2** VisitProcessor（PV/UV，会话聚合，IP 地域解析）— 3d
+- [x] **T2.3.3** IP 地域库加载与缓存（MaxMind GeoLite2-City.mmdb + page_view_raw 扩列 country/region/city）— 1d（完成 2026-05-07）
+- [x] **T2.3.4** 访问大盘 API（总览 / Top 页面 / 访问来源 / 地域分布 / 会话详情）— 2d
+- [x] **T2.3.5** web/visits 页面 + 会话详情路径还原 — 4d
 
 ---
 

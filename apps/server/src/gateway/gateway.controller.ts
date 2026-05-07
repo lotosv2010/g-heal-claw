@@ -46,7 +46,7 @@ export class GatewayController {
     @Body() body: IngestRequest,
     @Req() req: AuthedRequest,
   ): Promise<{ accepted: number; persisted: number; duplicates: number }> {
-    return this.gateway.ingest(body, req.auth);
+    return this.gateway.ingest(body, req.auth, req.ip);
   }
 
   @Post("beacon")
@@ -58,6 +58,6 @@ export class GatewayController {
     @Body() body: IngestRequest,
     @Req() req: AuthedRequest,
   ): Promise<{ accepted: number; persisted: number; duplicates: number }> {
-    return this.gateway.ingest(body, req.auth);
+    return this.gateway.ingest(body, req.auth, req.ip);
   }
 }

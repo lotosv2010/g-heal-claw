@@ -2,6 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 import type { PageViewEvent } from "@g-heal-claw/shared";
 import { VisitsService } from "../../../src/modules/visits/visits.service.js";
 import type { DatabaseService } from "../../../src/shared/database/database.service.js";
+import type { GeoIpService } from "../../../src/shared/geoip.service.js";
+
+const mockGeoip = { lookup: () => ({ country: null, region: null, city: null }) } as unknown as GeoIpService;
 
 /**
  * VisitsService 单测（ADR-0020 Tier 2.A / TM.2.A.3）
@@ -42,22 +45,22 @@ describe("VisitsService / db=null 短路", () => {
   const nullDb = { db: null } as unknown as DatabaseService;
 
   it("saveBatch 空数组返回 0", async () => {
-    const svc = new VisitsService(nullDb);
+    const svc = new VisitsService(nullDb, mockGeoip);
     expect(await svc.saveBatch([])).toBe(0);
   });
 
   it("saveBatch db=null 返回 0", async () => {
-    const svc = new VisitsService(nullDb);
+    const svc = new VisitsService(nullDb, mockGeoip);
     expect(await svc.saveBatch([buildPageViewEvent()])).toBe(0);
   });
 
   it("countForProject db=null 返回 0", async () => {
-    const svc = new VisitsService(nullDb);
+    const svc = new VisitsService(nullDb, mockGeoip);
     expect(await svc.countForProject("p")).toBe(0);
   });
 
   it("aggregateSummary db=null 返回零填充", async () => {
-    const svc = new VisitsService(nullDb);
+    const svc = new VisitsService(nullDb, mockGeoip);
     expect(await svc.aggregateSummary(WINDOW)).toEqual({
       pv: 0,
       uv: 0,
@@ -67,7 +70,7 @@ describe("VisitsService / db=null 短路", () => {
   });
 
   it("aggregateTrend / aggregateTopPages / aggregateTopReferrers db=null 返回空数组", async () => {
-    const svc = new VisitsService(nullDb);
+    const svc = new VisitsService(nullDb, mockGeoip);
     expect(await svc.aggregateTrend(WINDOW)).toEqual([]);
     expect(await svc.aggregateTopPages(WINDOW, 10)).toEqual([]);
     expect(await svc.aggregateTopReferrers(WINDOW, 10)).toEqual([]);
@@ -79,7 +82,7 @@ describe("VisitsService / aggregateSummary", () => {
     const { service } = createStubDb([
       [{ pv: "120", uv: "50", spa: "80", reload: "10" }],
     ]);
-    const svc = new VisitsService(service);
+    const svc = new VisitsService(service, mockGeoip);
     const out = await svc.aggregateSummary(WINDOW);
     expect(out).toEqual({
       pv: 120,
@@ -91,7 +94,7 @@ describe("VisitsService / aggregateSummary", () => {
 
   it("空结果集返回零填充", async () => {
     const { service } = createStubDb([[]]);
-    const svc = new VisitsService(service);
+    const svc = new VisitsService(service, mockGeoip);
     expect(await svc.aggregateSummary(WINDOW)).toEqual({
       pv: 0,
       uv: 0,
@@ -117,7 +120,7 @@ describe("VisitsService / aggregateTrend", () => {
         },
       ],
     ]);
-    const svc = new VisitsService(service);
+    const svc = new VisitsService(service, mockGeoip);
     const out = await svc.aggregateTrend(WINDOW);
     expect(out).toEqual([
       { hour: "2026-04-29T10:00:00.000Z", pv: 50, uv: 30 },
@@ -135,7 +138,7 @@ describe("VisitsService / aggregateTopPages", () => {
         { path: "/api", pv: "20", uv: "10", total: "100" },
       ],
     ]);
-    const svc = new VisitsService(service);
+    const svc = new VisitsService(service, mockGeoip);
     const out = await svc.aggregateTopPages(WINDOW, 10);
     expect(out).toHaveLength(3);
     expect(out[0]).toEqual({ path: "/", pv: 60, uv: 40, sharePercent: 60 });
@@ -146,7 +149,7 @@ describe("VisitsService / aggregateTopPages", () => {
     const { service } = createStubDb([
       [{ path: "/", pv: "0", uv: "0", total: "0" }],
     ]);
-    const svc = new VisitsService(service);
+    const svc = new VisitsService(service, mockGeoip);
     const out = await svc.aggregateTopPages(WINDOW, 10);
     expect(out[0]?.sharePercent).toBe(0);
   });
@@ -160,7 +163,7 @@ describe("VisitsService / aggregateTopReferrers", () => {
         { referrer_host: null, pv: "70", total: "100" },
       ],
     ]);
-    const svc = new VisitsService(service);
+    const svc = new VisitsService(service, mockGeoip);
     const out = await svc.aggregateTopReferrers(WINDOW, 10);
     expect(out).toHaveLength(2);
     expect(out[0]).toEqual({

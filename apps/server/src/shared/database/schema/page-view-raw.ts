@@ -57,6 +57,10 @@ export const pageViewRaw = pgTable(
     deviceType: varchar("device_type", { length: 16 }),
     release: varchar("release", { length: 64 }),
     environment: varchar("environment", { length: 32 }),
+    // T2.3.3 GeoIP 地域字段（写入时由服务端根据客户端 IP 解析填充）
+    country: varchar("country", { length: 64 }),
+    region: varchar("region", { length: 64 }),
+    city: varchar("city", { length: 64 }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

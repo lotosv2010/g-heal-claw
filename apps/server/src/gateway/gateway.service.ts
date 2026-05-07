@@ -76,6 +76,7 @@ export class GatewayService {
   public async ingest(
     payload: IngestRequest,
     auth?: GatewayAuthContext,
+    clientIp?: string,
   ): Promise<{
     accepted: number;
     persisted: number;
@@ -143,7 +144,7 @@ export class GatewayService {
       customEvents.length ? this.customEvents.saveBatch(customEvents) : 0,
       customMetrics.length ? this.customMetrics.saveBatch(customMetrics) : 0,
       customLogs.length ? this.logs.saveBatch(customLogs) : 0,
-      pageViewEvents.length ? this.visits.saveBatch(pageViewEvents) : 0,
+      pageViewEvents.length ? this.visits.saveBatch(pageViewEvents, clientIp) : 0,
     ]);
     const persisted =
       perfPersisted +

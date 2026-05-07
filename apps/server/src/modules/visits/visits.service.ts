@@ -3,6 +3,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
 import type { PageViewEvent } from "@g-heal-claw/shared";
 import { DatabaseService } from "../../shared/database/database.service.js";
+import { GeoIpService } from "../../shared/geoip.service.js";
 import {
   pageViewRaw,
   type NewPageViewRow,
@@ -87,13 +88,17 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 export class VisitsService {
   private readonly logger = new Logger(VisitsService.name);
 
-  public constructor(private readonly database: DatabaseService) {}
+  public constructor(
+    private readonly database: DatabaseService,
+    private readonly geoip: GeoIpService,
+  ) {}
 
-  public async saveBatch(events: readonly PageViewEvent[]): Promise<number> {
+  public async saveBatch(events: readonly PageViewEvent[], clientIp?: string): Promise<number> {
     if (events.length === 0) return 0;
     const db = this.database.db;
     if (!db) return 0;
-    const rows = events.map(toRow);
+    const geo = this.geoip.lookup(clientIp);
+    const rows = events.map((e) => toRow(e, geo));
     try {
       const inserted = await db
         .insert(pageViewRaw)
@@ -403,10 +408,9 @@ function toIsoDate(v: Date | string): string {
 }
 
 /** PageViewEvent → page_view_raw 行映射 */
-function toRow(e: PageViewEvent): NewPageViewRow {
+function toRow(e: PageViewEvent, geo?: { country: string | null; region: string | null; city: string | null }): NewPageViewRow {
   const url = e.page?.url ?? "";
   const path = e.page?.path ?? safePath(url);
-  // SDK 端通过 collectPage() 从 document.referrer 采集，放在 page.referrer
   const referrer = e.page?.referrer ?? null;
   return {
     eventId: e.eventId,
@@ -427,6 +431,9 @@ function toRow(e: PageViewEvent): NewPageViewRow {
     deviceType: e.device?.deviceType,
     release: e.release,
     environment: e.environment,
+    country: geo?.country ?? null,
+    region: geo?.region ?? null,
+    city: geo?.city ?? null,
   };
 }
 

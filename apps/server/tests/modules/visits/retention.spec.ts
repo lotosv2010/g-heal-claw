@@ -4,6 +4,9 @@ import {
   type RetentionParams,
 } from "../../../src/modules/visits/visits.service.js";
 import type { DatabaseService } from "../../../src/shared/database/database.service.js";
+import type { GeoIpService } from "../../../src/shared/geoip.service.js";
+
+const mockGeoip = { lookup: () => ({ country: null, region: null, city: null }) } as unknown as GeoIpService;
 
 /**
  * VisitsService.aggregateRetention 单测（ADR-0028 / TM.2.E.1）
@@ -51,7 +54,7 @@ const BASE: RetentionParams = {
 
 describe("VisitsService.aggregateRetention / 防御校验", () => {
   const nullDb = { db: null } as unknown as DatabaseService;
-  const svc = new VisitsService(nullDb);
+  const svc = new VisitsService(nullDb, mockGeoip);
 
   it("cohortDays 越界 (0) → 抛错", async () => {
     await expect(
@@ -84,6 +87,7 @@ describe("VisitsService.aggregateRetention / db=null 短路", () => {
   it("返回空数组", async () => {
     const svc = new VisitsService(
       { db: null } as unknown as DatabaseService,
+      mockGeoip,
     );
     const out = await svc.aggregateRetention({ ...BASE });
     expect(out).toEqual([]);
@@ -115,7 +119,7 @@ describe("VisitsService.aggregateRetention / 正常日 cohort", () => {
         },
       ],
     ]);
-    const svc = new VisitsService(service);
+    const svc = new VisitsService(service, mockGeoip);
     const out = await svc.aggregateRetention({ ...BASE });
     expect(out).toEqual([
       {
@@ -144,7 +148,7 @@ describe("VisitsService.aggregateRetention / 正常日 cohort", () => {
 describe("VisitsService.aggregateRetention / identity=user 切换", () => {
   it("identity=user 时使用 COALESCE(user_id, session_id) 表达式", async () => {
     const { service, calls } = createStubDb([[]]);
-    const svc = new VisitsService(service);
+    const svc = new VisitsService(service, mockGeoip);
     await svc.aggregateRetention({ ...BASE, identity: "user" });
     // 无法直接 assert drizzle sql 节点，退而验证 SQL 结构字符串中包含 COALESCE
     // drizzle `sql` 节点有 queryChunks 字段，纯 identity switch 的结果通过 raw 进入 chunks
@@ -156,7 +160,7 @@ describe("VisitsService.aggregateRetention / identity=user 切换", () => {
 
   it("identity=session 时仅引用 session_id", async () => {
     const { service, calls } = createStubDb([[]]);
-    const svc = new VisitsService(service);
+    const svc = new VisitsService(service, mockGeoip);
     await svc.aggregateRetention({ ...BASE, identity: "session" });
     const chunk = calls[0] as { queryChunks?: unknown[] };
     const serialized = JSON.stringify(chunk.queryChunks ?? []);
