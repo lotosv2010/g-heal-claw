@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-05-04（T1.1.7 认证与项目管理 MVP + T1.1.8 CI 流水线全部完成：JWT 登录/注册/刷新/登出、项目 CRUD、成员 RBAC（owner/admin/member/viewer）、API Token 管理、Web 登录/注册页、ESLint 9 flat config、GitHub Actions CI（lint/typecheck/test/build）、Turbo Remote Cache、370 测试用例全绿；Phase 1 M1.1 基础设施里程碑闭环）
+> 最后更新: 2026-05-07（Phase 5 M5.1~M5.4 AI 自愈 Agent MVP 完成：deepagents ReAct + 6 Provider + BullMQ 双向队列 + HealModule CRUD + heal_jobs 表 + 5 核心 Tools + 仓库配置 + PR 模板 + 端到端联调全绿 538 tests；ADR-0036 采纳 + docs 双向追溯）
 
 ## 状态说明
 
@@ -19,7 +19,7 @@
 |---|---|
 | 仓库结构 | Monorepo 脚手架已就绪（`pnpm-workspace.yaml` + `turbo.json` + `tsconfig.base.json`） |
 | 基础设施 | Docker Compose：PostgreSQL 17 + Redis 7 + MinIO 可用 |
-| 应用子目录 | `apps/server` 已初始化（ADR-0011）；`apps/web` 已初始化（ADR-0012，shadcn/ui + `(console)/` 4 分组菜单 + 性能 / 错误 / API / 资源 / 访问 / 埋点事件大盘 live）；`apps/ai-agent` 已初始化（ADR-0036，LangChain ReAct + 6 Provider + BullMQ） |
+| 应用子目录 | `apps/server` 已初始化（ADR-0011）；`apps/web` 已初始化（ADR-0012，shadcn/ui + `(console)/` 4 分组菜单 + 性能 / 错误 / API / 资源 / 访问 / 埋点事件大盘 live）；`apps/ai-agent` MVP 完成（ADR-0036，deepagents ReAct + 6 Provider + BullMQ + 5 Tools） |
 | 包子目录 | `packages/shared` `packages/sdk` 已初始化并构建；`packages/cli` `packages/vite-plugin` `packages/miniapp-sdk` 尚未初始化 |
 | 文档 | `docs/SPEC.md` `docs/ARCHITECTURE.md` `docs/DESIGN.md` 已对齐 `docs/PRD.md` v2 |
 
@@ -1237,7 +1237,7 @@
     - [x] **T5.1.3.5** `createPr` — simple-git push branch + @octokit/rest 创建 PR
 - [x] **T5.1.4** ReAct 循环 + 护栏 + trace — 1.5d（完成 2026-05-07）
   - 输入：T5.1.2 + T5.1.3
-  - 输出：`src/react/loop.ts`（LangChain createToolCallingAgent + AgentExecutor + AI_MAX_STEPS 步数限制 + trace 收集）；`src/react/prompt.ts`（系统提示词）
+  - 输出：`src/react/loop.ts`（deepagents createDeepAgent + recursionLimit 步数限制 + ToolMessage trace 收集）；`src/agent/prompt.ts`（系统提示词）
   - 验收：typecheck 通过
   - 依赖：T5.1.2, T5.1.3
 
@@ -1284,10 +1284,10 @@
 
 ### M5.4 端到端验证
 
-- [ ] **T5.4.0** 端到端联调 + 文档传导 — 1d
+- [x] **T5.4.0** 端到端联调 + 文档传导 — 1d（完成 2026-05-07）
   - 输入：T5.1.4 + T5.2.2 + T5.3.1
-  - 输出：typecheck 全包全绿 + server test 全绿 + ADR-0036 采纳 + ARCHITECTURE/SPEC 同步 + `apps/docs/docs/reference/heal-api.md` + `apps/docs/docs/guide/settings/ai.md`
-  - 验收：`pnpm typecheck && pnpm test` 全绿；文档双向可追溯
+  - 输出：typecheck 全包全绿（7 packages）+ test 全绿（538 cases）+ ADR-0036 采纳 + `apps/docs/docs/reference/heal-api.md` + `apps/docs/docs/guide/settings/ai.md`
+  - 验收：`pnpm typecheck && pnpm test` 全绿；文档双向可追溯（ADR ↔ docs）
   - 依赖：T5.1.4, T5.2.2, T5.3.2
 
 ### M5.4+ 质量验证（后续迭代）
