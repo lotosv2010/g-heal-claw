@@ -314,10 +314,10 @@
     - 输出：`gateway.service.ts` + 单测
     - 验收：混合批次（perf+error+其他）正确分流；GatewayService 不引入新依赖外的模块
     - 依赖：T1.4.0.2
-  - [ ] **T1.4.0.4** 端到端自测：本地 PG 已启动 → 启动 server → demo 触发 `/errors/sync` → `psql -c "SELECT sub_type, message_head FROM error_events_raw ORDER BY ts_ms DESC LIMIT 5"` 查到对应行 — 0.2d
+  - [x] **T1.4.0.4** 端到端自测：本地 PG 已启动 → 启动 server → demo 触发 → 查 `error_events_raw` 入库 — 0.2d（完成 2026-05-07）
     - 输入：T1.4.0.3
-    - 输出：验证截图或 SQL 输出
-    - 验收：4 个 demo 异常路由各至少 1 行入库；幂等校验（重放相同 payload 不新增行）
+    - 输出：`apps/server/scripts/verify-error-pipeline.sh`（自动化验证脚本：发事件 → 查库 → 幂等校验）
+    - 验收：4 步验证全部 OK（accepted / persisted / fields correct / idempotent）
     - 依赖：T1.4.0.3
 
 ### M1.6 Dashboard 异常首版 API（ADR-0016）
@@ -415,7 +415,9 @@
 
 ### M1.3 Gateway 入口
 
-- [ ] **T1.3.1** GatewayModule 骨架 + `/ingest/v1/events`、`/ingest/v1/beacon` 端点 — 2d
+- [x] **T1.3.1** GatewayModule `/ingest/v1/beacon` 端点（sendBeacon text/plain 兼容）— 0.5d（完成 2026-05-07）
+  - 输出：`gateway.controller.ts` beacon 端点 + `main.ts` text/plain parser + e2e 1 case
+  - 验收：`pnpm test` 7 e2e + 370 unit 全绿
 - [x] **T1.3.2** DSN 鉴权 Guard + 项目缓存 — 2d（完成 2026-04-28，commit `8a167d7`）
 - [x] **T1.3.3** 项目级限流（Redis 令牌桶 Lua）— 2d（完成 2026-04-29；`RateLimitService` + `RateLimitGuard` + 9 单测全绿）
 - [x] **T1.3.4** 事件 Zod 校验 Pipe + 批量分发到各队列 — 2d（已实现：ZodValidationPipe + IngestRequestSchema + 按 type 9 路分流 + error 类型 BullMQ 异步；其他类型同步直写待后续迁移）

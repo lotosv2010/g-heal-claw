@@ -48,4 +48,16 @@ export class GatewayController {
   ): Promise<{ accepted: number; persisted: number; duplicates: number }> {
     return this.gateway.ingest(body, req.auth);
   }
+
+  @Post("beacon")
+  @HttpCode(200)
+  @UseGuards(DsnAuthGuard, RateLimitGuard)
+  @UsePipes(new ZodValidationPipe(IngestRequestSchema))
+  @ApiOperation({ summary: "SDK sendBeacon 上报入口（Content-Type: text/plain 兼容）" })
+  public beacon(
+    @Body() body: IngestRequest,
+    @Req() req: AuthedRequest,
+  ): Promise<{ accepted: number; persisted: number; duplicates: number }> {
+    return this.gateway.ingest(body, req.auth);
+  }
 }

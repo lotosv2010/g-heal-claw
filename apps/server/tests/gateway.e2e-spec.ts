@@ -81,6 +81,21 @@ describe("Gateway e2e", () => {
       credentials: true,
       methods: ["GET", "POST", "OPTIONS"],
     });
+
+    // sendBeacon 以 text/plain 发送 JSON，需注册 parser
+    const fastify = app.getHttpAdapter().getInstance();
+    fastify.addContentTypeParser(
+      "text/plain",
+      { parseAs: "string" },
+      (_req: unknown, body: string, done: (err: null, result: unknown) => void) => {
+        try {
+          done(null, JSON.parse(body));
+        } catch {
+          done(null, body);
+        }
+      },
+    );
+
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -150,6 +165,25 @@ describe("Gateway e2e", () => {
     expect(res.headers["access-control-allow-origin"]).toBe(
       "http://localhost:3100",
     );
+  });
+
+  it("POST /ingest/v1/beacon — text/plain JSON body（sendBeacon 兼容）", async () => {
+    const payload = JSON.stringify({
+      dsn: VALID_DSN,
+      sentAt: Date.now(),
+      events: [buildCustomLogEvent()],
+    });
+    const res = await supertest(app.getHttpServer())
+      .post("/ingest/v1/beacon")
+      .set("Content-Type", "text/plain;charset=UTF-8")
+      .send(payload)
+      .expect(200);
+    expect(res.body).toEqual({
+      accepted: 1,
+      persisted: 0,
+      duplicates: 0,
+      enqueued: 0,
+    });
   });
 
   it("GET /healthz → { status: ok }", async () => {

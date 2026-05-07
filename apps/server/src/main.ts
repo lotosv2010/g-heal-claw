@@ -27,6 +27,20 @@ async function bootstrap(): Promise<void> {
   // 全局请求日志拦截器（补充路由级耗时）
   app.useGlobalInterceptors(new LoggingInterceptor());
 
+  // sendBeacon 以 text/plain 发送 JSON，需注册 parser 使 Fastify 正确解析 body
+  const fastify = app.getHttpAdapter().getInstance();
+  fastify.addContentTypeParser(
+    "text/plain",
+    { parseAs: "string" },
+    (_req: unknown, body: string, done: (err: null, result: unknown) => void) => {
+      try {
+        done(null, JSON.parse(body));
+      } catch {
+        done(null, body);
+      }
+    },
+  );
+
   // Sourcemap .map 文件上传（单文件 ≤ 50MB）
   await app.register(multipart as never, { limits: { fileSize: 50 * 1024 * 1024 } });
 
