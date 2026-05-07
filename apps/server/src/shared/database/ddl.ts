@@ -989,6 +989,59 @@ const DIMENSION_COLUMNS_DDL: readonly string[] = [
   `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS city VARCHAR(64)`,
 ];
 
+// ADR-0038：未入库字段全量持久化扩列
+const UNCOLLECTED_FIELDS_DDL: readonly string[] = (() => {
+  const ALL_RAW_TABLES = [
+    "error_events_raw",
+    "api_events_raw",
+    "perf_events_raw",
+    "resource_events_raw",
+    "page_view_raw",
+    "track_events_raw",
+    "custom_events_raw",
+    "custom_metrics_raw",
+    "custom_logs_raw",
+  ] as const;
+
+  const commonColumns = [
+    `ADD COLUMN IF NOT EXISTS tags JSONB`,
+    `ADD COLUMN IF NOT EXISTS context JSONB`,
+    `ADD COLUMN IF NOT EXISTS user_id VARCHAR(64)`,
+    `ADD COLUMN IF NOT EXISTS page_title TEXT`,
+    `ADD COLUMN IF NOT EXISTS screen_width INTEGER`,
+    `ADD COLUMN IF NOT EXISTS screen_height INTEGER`,
+    `ADD COLUMN IF NOT EXISTS screen_dpr DOUBLE PRECISION`,
+    `ADD COLUMN IF NOT EXISTS language VARCHAR(16)`,
+    `ADD COLUMN IF NOT EXISTS timezone VARCHAR(64)`,
+  ];
+
+  const stmts: string[] = [];
+
+  for (const table of ALL_RAW_TABLES) {
+    for (const col of commonColumns) {
+      stmts.push(`ALTER TABLE ${table} ${col}`);
+    }
+  }
+
+  // page_view_raw 额外 UTM + 流量归因字段
+  stmts.push(
+    `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS utm_source VARCHAR(128)`,
+    `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS utm_medium VARCHAR(128)`,
+    `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR(128)`,
+    `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS utm_term VARCHAR(128)`,
+    `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS utm_content VARCHAR(128)`,
+    `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS search_engine VARCHAR(32)`,
+    `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS channel VARCHAR(64)`,
+  );
+
+  // perf_events_raw 额外 lt_tier
+  stmts.push(
+    `ALTER TABLE perf_events_raw ADD COLUMN IF NOT EXISTS lt_tier VARCHAR(16)`,
+  );
+
+  return stmts;
+})();
+
 /** 合并 DDL：DatabaseService.onModuleInit 按顺序执行 */
 export const ALL_DDL: readonly string[] = [
   ...MAIN_DDL,
@@ -1004,4 +1057,5 @@ export const ALL_DDL: readonly string[] = [
   ...ALERT_DDL,
   ...METRIC_MINUTE_DDL,
   ...DIMENSION_COLUMNS_DDL,
+  ...UNCOLLECTED_FIELDS_DDL,
 ];

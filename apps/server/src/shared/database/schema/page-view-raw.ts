@@ -4,6 +4,8 @@ import {
   boolean,
   doublePrecision,
   index,
+  integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -51,6 +53,28 @@ export const pageViewRaw = pgTable(
     isSpaNav: boolean("is_spa_nav").notNull().default(false),
     /** 停留时长（毫秒，来自 page_duration 事件；本期始终为 NULL） */
     durationMs: doublePrecision("duration_ms"),
+    /** 页面标题 */
+    pageTitle: text("page_title"),
+    /** 用户自定义标签 */
+    tags: jsonb("tags"),
+    /** 用户自定义上下文 */
+    context: jsonb("context"),
+    /** 用户 ID（SDK setUser） */
+    userId: varchar("user_id", { length: 64 }),
+    /** UTM 来源 */
+    utmSource: varchar("utm_source", { length: 128 }),
+    /** UTM 媒介 */
+    utmMedium: varchar("utm_medium", { length: 128 }),
+    /** UTM 营销活动 */
+    utmCampaign: varchar("utm_campaign", { length: 128 }),
+    /** UTM 关键词 */
+    utmTerm: varchar("utm_term", { length: 128 }),
+    /** UTM 内容标识 */
+    utmContent: varchar("utm_content", { length: 128 }),
+    /** 搜索引擎来源 */
+    searchEngine: varchar("search_engine", { length: 32 }),
+    /** 业务渠道 */
+    channel: varchar("channel", { length: 64 }),
     ua: text("ua"),
     browser: varchar("browser", { length: 64 }),
     browserVersion: varchar("browser_version", { length: 32 }),
@@ -58,6 +82,16 @@ export const pageViewRaw = pgTable(
     osVersion: varchar("os_version", { length: 32 }),
     deviceType: varchar("device_type", { length: 16 }),
     networkType: varchar("network_type", { length: 16 }),
+    /** 屏幕宽度 px */
+    screenWidth: integer("screen_width"),
+    /** 屏幕高度 px */
+    screenHeight: integer("screen_height"),
+    /** 设备像素比 */
+    screenDpr: doublePrecision("screen_dpr"),
+    /** 浏览器语言 */
+    language: varchar("language", { length: 16 }),
+    /** IANA 时区 */
+    timezone: varchar("timezone", { length: 64 }),
     release: varchar("release", { length: 64 }),
     environment: varchar("environment", { length: 32 }),
     // T2.3.3 GeoIP 地域字段（写入时由服务端根据客户端 IP 解析填充）

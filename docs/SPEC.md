@@ -291,9 +291,9 @@ interface Breadcrumb {
 | `release` | 应用版本号 / commit hash | ✅ | `release` | |
 | `environment` | 运行环境 | ✅ | `environment` | |
 | `sessionId` | 会话 ID | ✅ | `session_id` | |
-| `user` | 用户身份 | 部分 | `user_id`（仅 track 表） | `email`/`name` 不持久化 |
-| `tags` | 自定义标签 | ❌ | — | 采集但未入库 |
-| `context` | 自定义上下文 | ❌ | — | 采集但未入库 |
+| `user` | 用户身份 | 部分 | `user_id`（全部 9 表） | `email`/`name` 不持久化（ADR-0038） |
+| `tags` | 自定义标签 | ✅ | `tags` (jsonb) | ADR-0038 落地 |
+| `context` | 自定义上下文 | ✅ | `context` (jsonb) | ADR-0038 落地 |
 
 #### Device Context 持久化状态
 
@@ -305,14 +305,14 @@ interface Breadcrumb {
 | `device.browser` | 浏览器名称 | ✅ | `browser` | |
 | `device.browserVersion` | 浏览器版本 | ✅ | `browser_version` | 仅 error/api/perf/resource/page_view 表 |
 | `device.deviceType` | 设备类型 | ✅ | `device_type` | desktop/mobile/tablet/bot/unknown |
-| `device.screen.width` | 屏幕宽度 px | ❌ | — | 采集但未入库 |
-| `device.screen.height` | 屏幕高度 px | ❌ | — | 采集但未入库 |
-| `device.screen.dpr` | 设备像素比 | ❌ | — | 采集但未入库 |
-| `device.network.effectiveType` | 网络类型（4g/3g/2g/slow-2g） | ✅ | `network_type` | 仅 error/api/perf/resource/page_view 表 |
-| `device.network.rtt` | 网络往返时延 ms | ❌ | — | 采集但未入库 |
-| `device.network.downlink` | 下行带宽 Mbps | ❌ | — | 采集但未入库 |
-| `device.language` | 浏览器语言 | ❌ | — | 采集但未入库 |
-| `device.timezone` | IANA 时区 | ❌ | — | 采集但未入库 |
+| `device.screen.width` | 屏幕宽度 px | ✅ | `screen_width` | ADR-0038 落地 |
+| `device.screen.height` | 屏幕高度 px | ✅ | `screen_height` | ADR-0038 落地 |
+| `device.screen.dpr` | 设备像素比 | ✅ | `screen_dpr` | ADR-0038 落地 |
+| `device.network.effectiveType` | 网络类型（4g/3g/2g/slow-2g） | ✅ | `network_type` | |
+| `device.network.rtt` | 网络往返时延 ms | ❌ | — | 高频变化，不持久化 |
+| `device.network.downlink` | 下行带宽 Mbps | ❌ | — | 高频变化，不持久化 |
+| `device.language` | 浏览器语言 | ✅ | `language` | ADR-0038 落地 |
+| `device.timezone` | IANA 时区 | ✅ | `timezone` | ADR-0038 落地 |
 
 #### Page Context 持久化状态
 
@@ -321,10 +321,10 @@ interface Breadcrumb {
 | `page.url` | 当前页面完整 URL | ✅ | `url` / `page_url` | |
 | `page.path` | 归一化路径 | ✅ | `path` / `page_path` | |
 | `page.referrer` | 来源页 URL | 部分 | `referrer` + `referrer_host` | 仅 page_view_raw 表 |
-| `page.title` | 页面标题 | ❌ | — | 采集但未入库 |
-| `page.utm.*` | UTM 来源追踪参数 | ❌ | — | 采集但未入库（计划 T3 落地） |
-| `page.searchEngine` | 搜索引擎来源 | ❌ | — | 采集但未入库（计划 T3 落地） |
-| `page.channel` | 业务渠道 | ❌ | — | 采集但未入库（计划 T3 落地） |
+| `page.title` | 页面标题 | ✅ | `page_title` | ADR-0038 落地 |
+| `page.utm.*` | UTM 来源追踪参数 | ✅ | `utm_source` / `utm_medium` / `utm_campaign` / `utm_term` / `utm_content` | 仅 page_view_raw（ADR-0038） |
+| `page.searchEngine` | 搜索引擎来源 | ✅ | `search_engine` | 仅 page_view_raw（ADR-0038） |
+| `page.channel` | 业务渠道 | ✅ | `channel` | 仅 page_view_raw（ADR-0038） |
 
 #### 服务端补充字段（GeoIP）
 
@@ -457,20 +457,14 @@ interface Breadcrumb {
 
 #### 未入库字段汇总（采集但丢弃）
 
-| 字段 | 适用事件 | 丢弃原因 / 计划 |
+> ADR-0038 已将大部分字段入库，以下为仍不持久化的字段。
+
+| 字段 | 适用事件 | 丢弃原因 |
 |---|---|---|
-| `tags` | 全部 | 预留扩展，当前无消费场景 |
-| `context` | 全部 | 预留扩展，当前无消费场景 |
-| `user.email` / `user.name` | 全部 | 隐私考量，仅保留 `user.id` 且仅 track 表 |
-| `device.screen.*` | 全部 | 考虑后续用于响应式断点分析 |
-| `device.network.rtt` / `downlink` | 全部 | 仅保留 effectiveType 做维度聚合 |
-| `device.language` | 全部 | 考虑后续用于 i18n 分析 |
-| `device.timezone` | 全部 | 考虑后续用于时区分布 |
-| `page.title` | 全部 | 可从 URL 反查 |
-| `page.utm.*` / `searchEngine` / `channel` | 全部 | 计划 T3 阶段落地流量来源分析 |
-| `page.referrer` | 非 page_view 事件 | 仅 page_view 表持久化 |
-| `long_task.tier` | long_task | 可由 duration 阈值还原 |
-| `long_task.attribution[]` | long_task | 数据量大，当前无前端展示 |
+| `user.email` / `user.name` | 全部 | 隐私合规风险，仅保留 `user.id` |
+| `device.network.rtt` / `downlink` | 全部 | 高频变化、effectiveType 已覆盖聚合需求 |
+| `long_task.attribution[]` | long_task | 单条可达数 KB，当前无消费 UI |
+| `page.referrer` | 非 page_view 事件 | page_view 已存，其余表冗余度高 |
 | `resource.startTime` | resource | 可由 ts_ms 推导 |
 | `page_view.enterAt` / `leaveAt` | page_view | 由 ts_ms + duration_ms 覆盖 |
 | `error.request.bizMessage` | error | 仅保留 bizCode |

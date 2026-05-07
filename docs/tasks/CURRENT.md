@@ -1334,6 +1334,52 @@
 
 **目标**：仪表盘打磨、开放 API、小程序 SDK。
 
+### M6.0 未入库字段全量持久化（ADR-0038）
+
+> 将 SDK 采集但未持久化的字段按分层策略补充入库，为 Phase 6 多维下钻、流量归因等场景提供数据基础。
+
+- [x] **T6.0.1** DB Schema 扩列（9 张 raw 表通用字段 + page_view UTM + perf lt_tier）— 0.5d（2026-05-07 完成）
+  - 输入：ADR-0038 已确认；9 张 Drizzle Schema 文件已就绪
+  - 输出：
+    - 9 张 raw 表 Schema 新增 9 个通用列（user_id / tags / context / screen_width / screen_height / screen_dpr / language / timezone / page_title）
+    - `page_view_raw` 额外新增 7 列（utm_source / utm_medium / utm_campaign / utm_term / utm_content / search_engine / channel）
+    - `perf_events_raw` 新增 1 列（lt_tier）
+    - `ddl.ts` 追加幂等 ALTER TABLE DDL
+  - 验收：`pnpm -F @g-heal-claw/server typecheck` 全绿；server 启动时 DDL 自动执行无报错
+  - 依赖：无
+
+- [x] **T6.0.2** Service toRow() 映射补齐（9 个 Service 文件）— 1d（2026-05-07 完成）
+  - 输入：T6.0.1（Schema 列已定义）
+  - 输出：
+    - `errors.service.ts` toRow() 补充 9 通用字段映射
+    - `api.service.ts` toRow() 补充 9 通用字段映射
+    - `performance.service.ts` toRow() 补充 9 通用字段 + lt_tier 映射
+    - `resources.service.ts` toRow() 补充 9 通用字段映射
+    - `visits.service.ts` toRow() 补充 9 通用字段 + 7 UTM 字段映射
+    - `tracking.service.ts` toRow() 补充 8 通用字段映射（user_id 已有）
+    - `custom-events.service.ts` toRow() 补充 9 通用字段映射
+    - `custom-metrics.service.ts` toRow() 补充 9 通用字段映射
+    - `logs.service.ts` toRow() 补充 9 通用字段映射
+  - 验收：`pnpm -F @g-heal-claw/server typecheck` 全绿；demo 触发上报后 DB 新列有值
+  - 依赖：T6.0.1
+
+- [x] **T6.0.3** 单测补齐 + 端到端验证 — 0.5d（2026-05-07 完成）
+  - 输入：T6.0.2（映射已就绪）
+  - 输出：
+    - 现有 toRow 单测扩展（验证新字段在输入有值时正确映射、输入为空时为 null）
+    - `pnpm typecheck && pnpm lint && pnpm test` 全绿
+  - 验收：所有现有测试不回归；新字段覆盖至少 2 个 Service 的 toRow 单测
+  - 依赖：T6.0.2
+
+- [x] **T6.0.4** 文档传导（SPEC §4.1.2 + ADR-0038 状态更新）— 0.3d（2026-05-07 完成）
+  - 输入：T6.0.3（实现验证通过）
+  - 输出：
+    - `docs/SPEC.md §4.1.2` "未入库字段汇总"表同步更新（已入库字段移除）
+    - `docs/decisions/0038-persist-uncollected-fields.md` 状态 提议 → 采纳
+    - `docs/tasks/CURRENT.md` T6.0.1~4 标记 `[x]` + 当前焦点更新
+  - 验收：SPEC 与实际代码一致；双向可追溯
+  - 依赖：T6.0.3
+
 ### M6.1 总览仪表盘
 
 - [ ] **T6.1.1** web/overview（核心指标卡 + Apdex + 错误率 + API 成功率 + 慢页面 Top）— 4d

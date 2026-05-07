@@ -5,6 +5,7 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -56,9 +57,17 @@ export const resourceEventsRaw = pgTable(
     cache: varchar("cache", { length: 16 }).notNull().default("unknown"),
     slow: boolean("slow").notNull().default(false),
     failed: boolean("failed").notNull().default(false),
+    /** 用户自定义标签 */
+    tags: jsonb("tags"),
+    /** 用户自定义上下文 */
+    context: jsonb("context"),
+    /** 用户 ID（SDK setUser） */
+    userId: varchar("user_id", { length: 64 }),
     /** 页面上下文 */
     pageUrl: text("page_url").notNull(),
     pagePath: text("page_path").notNull(),
+    /** 页面标题 */
+    pageTitle: text("page_title"),
     ua: text("ua"),
     browser: varchar("browser", { length: 64 }),
     browserVersion: varchar("browser_version", { length: 32 }),
@@ -66,6 +75,16 @@ export const resourceEventsRaw = pgTable(
     osVersion: varchar("os_version", { length: 32 }),
     deviceType: varchar("device_type", { length: 16 }),
     networkType: varchar("network_type", { length: 16 }),
+    /** 屏幕宽度 px */
+    screenWidth: integer("screen_width"),
+    /** 屏幕高度 px */
+    screenHeight: integer("screen_height"),
+    /** 设备像素比 */
+    screenDpr: doublePrecision("screen_dpr"),
+    /** 浏览器语言 */
+    language: varchar("language", { length: 16 }),
+    /** IANA 时区 */
+    timezone: varchar("timezone", { length: 64 }),
     country: varchar("country", { length: 64 }),
     region: varchar("region", { length: 64 }),
     release: varchar("release", { length: 64 }),

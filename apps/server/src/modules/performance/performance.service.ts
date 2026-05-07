@@ -605,8 +605,12 @@ function toRow(event: PerfOrLongTaskEvent, geo?: GeoResult): NewPerfEventRow {
     sessionId: event.sessionId,
     tsMs: event.timestamp,
     type: event.type,
+    tags: event.tags ?? null,
+    context: event.context ?? null,
+    userId: event.user?.id?.slice(0, 64) ?? null,
     url: event.page.url,
     path: event.page.path,
+    pageTitle: event.page.title ?? null,
     ua: event.device.ua,
     browser: event.device.browser,
     browserVersion: event.device.browserVersion ?? null,
@@ -614,6 +618,11 @@ function toRow(event: PerfOrLongTaskEvent, geo?: GeoResult): NewPerfEventRow {
     osVersion: event.device.osVersion ?? null,
     deviceType: event.device.deviceType,
     networkType: event.device.network?.effectiveType ?? null,
+    screenWidth: event.device.screen?.width ?? null,
+    screenHeight: event.device.screen?.height ?? null,
+    screenDpr: event.device.screen?.dpr ?? null,
+    language: event.device.language?.slice(0, 16) ?? null,
+    timezone: event.device.timezone?.slice(0, 64) ?? null,
     country: geo?.country ?? null,
     region: geo?.region ?? null,
     release: event.release,
@@ -623,6 +632,7 @@ function toRow(event: PerfOrLongTaskEvent, geo?: GeoResult): NewPerfEventRow {
     rating: null,
     ltDurationMs: null,
     ltStartMs: null,
+    ltTier: null,
     navigation: null,
   };
   if (event.type === "performance") {
@@ -639,5 +649,6 @@ function toRow(event: PerfOrLongTaskEvent, geo?: GeoResult): NewPerfEventRow {
     ...base,
     ltDurationMs: event.duration,
     ltStartMs: event.startTime,
+    ltTier: event.tier ?? null,
   };
 }

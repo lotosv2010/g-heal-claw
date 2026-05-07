@@ -73,5 +73,6 @@
 | [ADR-0035](./0035-alert-engine-mvp.md) | 告警引擎 MVP（Phase 4）：AlertModule（规则 CRUD + cron 评估 + firing/resolved 状态机）+ NotificationModule（5 渠道 Provider：email/dingtalk/wecom/slack/webhook + BullMQ Worker + 模板渲染）+ 3 张表 + 预置规则 + Web 管理页面；短信/自愈联动推迟 | 采纳 |
 | [ADR-0036](./0036-ai-heal-agent-mvp.md) | AI 自愈 Agent MVP（Phase 5）：`apps/ai-agent` 纯 Node.js + LangChain ReAct + BullMQ 双向队列 + 5 Tools（readIssue/readFile/grepRepo/writePatch/createPr）+ `heal_jobs` 状态机 + HealModule API；Docker 沙箱/GitLab/Web UI 推迟 | 采纳 |
 | [ADR-0037](./0037-performance-processor-metric-minute.md) | PerformanceProcessor + metric_minute 预聚合 + Apdex cron：BullMQ 异步消费性能事件 → 分钟级 p50/p75/p90/p95/p99 + Apdex(LCP T=2500ms) → UPSERT metric_minute；Gateway PERF_PROCESSOR_MODE 灰度开关 | 提议 |
+| [ADR-0038](./0038-persist-uncollected-fields.md) | 未入库 SDK 字段全量持久化：分 3 层按需入库（通用 9 列 × 9 表 + UTM 仅 page_view + lt_tier 仅 perf）；排除隐私/冗余/可推导字段 | 采纳 |
 
 > 当你需要为某条决策补充详细背景或推翻旧决策时，请新增 `0001-xxx.md`（而非修改旧文件），并在此索引更新状态。

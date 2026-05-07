@@ -3,6 +3,7 @@ import {
   bigserial,
   doublePrecision,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -38,13 +39,31 @@ export const customMetricsRaw = pgTable(
     durationMs: doublePrecision("duration_ms").notNull(),
     /** 扁平属性（可选） */
     properties: jsonb("properties"),
+    /** 用户自定义标签 */
+    tags: jsonb("tags"),
+    /** 用户自定义上下文 */
+    context: jsonb("context"),
+    /** 用户 ID（SDK setUser） */
+    userId: varchar("user_id", { length: 64 }),
     /** 页面上下文 */
     pageUrl: text("page_url").notNull(),
     pagePath: text("page_path").notNull(),
+    /** 页面标题 */
+    pageTitle: text("page_title"),
     ua: text("ua"),
     browser: varchar("browser", { length: 64 }),
     os: varchar("os", { length: 64 }),
     deviceType: varchar("device_type", { length: 16 }),
+    /** 屏幕宽度 px */
+    screenWidth: integer("screen_width"),
+    /** 屏幕高度 px */
+    screenHeight: integer("screen_height"),
+    /** 设备像素比 */
+    screenDpr: doublePrecision("screen_dpr"),
+    /** 浏览器语言 */
+    language: varchar("language", { length: 16 }),
+    /** IANA 时区 */
+    timezone: varchar("timezone", { length: 64 }),
     release: varchar("release", { length: 64 }),
     environment: varchar("environment", { length: 32 }),
     createdAt: timestamp("created_at", { withTimezone: true })
