@@ -56,7 +56,7 @@ export interface DimensionAggregateRow {
 }
 
 /** 维度字段枚举 —— 对应 perf_events_raw 列 */
-export type DimensionField = "browser" | "os" | "deviceType";
+export type DimensionField = "browser" | "browserVersion" | "os" | "osVersion" | "deviceType" | "networkType" | "country" | "region";
 
 /**
  * Dashboard 聚合：按 path 的 FMP（首屏时间）视图
@@ -554,12 +554,14 @@ export class PerformanceService {
     // field → 列标识（白名单，防注入）
     const column = (() => {
       switch (field) {
-        case "browser":
-          return sql`browser`;
-        case "os":
-          return sql`os`;
-        case "deviceType":
-          return sql`device_type`;
+        case "browser": return sql`browser`;
+        case "browserVersion": return sql`browser_version`;
+        case "os": return sql`os`;
+        case "osVersion": return sql`os_version`;
+        case "deviceType": return sql`device_type`;
+        case "networkType": return sql`network_type`;
+        case "country": return sql`country`;
+        case "region": return sql`region`;
       }
     })();
 
@@ -607,8 +609,13 @@ function toRow(event: PerfOrLongTaskEvent): NewPerfEventRow {
     path: event.page.path,
     ua: event.device.ua,
     browser: event.device.browser,
+    browserVersion: event.device.browserVersion ?? null,
     os: event.device.os,
+    osVersion: event.device.osVersion ?? null,
     deviceType: event.device.deviceType,
+    networkType: event.device.network?.effectiveType ?? null,
+    country: null,
+    region: null,
     release: event.release,
     environment: event.environment,
     metric: null,

@@ -51,8 +51,13 @@ export interface VisitsDimensionRow {
 }
 
 export interface VisitsDimensions {
+  readonly device: readonly VisitsDimensionRow[];
   readonly browser: readonly VisitsDimensionRow[];
   readonly os: readonly VisitsDimensionRow[];
+  readonly version: readonly VisitsDimensionRow[];
+  readonly region: readonly VisitsDimensionRow[];
+  readonly carrier: readonly VisitsDimensionRow[];
+  readonly network: readonly VisitsDimensionRow[];
   readonly platform: readonly VisitsDimensionRow[];
 }
 
@@ -134,6 +139,6 @@ export function emptyVisitsOverview(): VisitsOverview {
     trend: [],
     topPages: [],
     topReferrers: [],
-    dimensions: { browser: [], os: [], platform: [] },
+    dimensions: { device: [], browser: [], os: [], version: [], region: [], carrier: [], network: [], platform: [] },
   };
 }

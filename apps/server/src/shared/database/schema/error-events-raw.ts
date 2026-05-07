@@ -50,8 +50,13 @@ export const errorEventsRaw = pgTable(
     path: text("path").notNull(),
     ua: text("ua"),
     browser: varchar("browser", { length: 64 }),
+    browserVersion: varchar("browser_version", { length: 32 }),
     os: varchar("os", { length: 64 }),
+    osVersion: varchar("os_version", { length: 32 }),
     deviceType: varchar("device_type", { length: 16 }),
+    networkType: varchar("network_type", { length: 16 }),
+    country: varchar("country", { length: 64 }),
+    region: varchar("region", { length: 64 }),
     release: varchar("release", { length: 64 }),
     environment: varchar("environment", { length: 32 }),
     createdAt: timestamp("created_at", { withTimezone: true })

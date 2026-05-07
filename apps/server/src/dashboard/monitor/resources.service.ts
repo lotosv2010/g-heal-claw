@@ -68,8 +68,12 @@ export class DashboardResourcesService {
       slowRows,
       failingHostRows,
       dimBrowser,
+      dimBrowserVersion,
       dimOs,
+      dimOsVersion,
       dimPlatform,
+      dimNetwork,
+      dimCountry,
     ] = await Promise.all([
       this.resourceMonitor.aggregateSummary(current),
       this.resourceMonitor.aggregateSummary(previous),
@@ -78,8 +82,12 @@ export class DashboardResourcesService {
       this.resourceMonitor.aggregateSlowResources(current, limitSlow),
       this.resourceMonitor.aggregateFailingHosts(current, limitHosts),
       this.resourceMonitor.aggregateDimension(current, "browser"),
+      this.resourceMonitor.aggregateDimension(current, "browserVersion"),
       this.resourceMonitor.aggregateDimension(current, "os"),
+      this.resourceMonitor.aggregateDimension(current, "osVersion"),
       this.resourceMonitor.aggregateDimension(current, "deviceType"),
+      this.resourceMonitor.aggregateDimension(current, "networkType"),
+      this.resourceMonitor.aggregateDimension(current, "country"),
     ]);
 
     return {
@@ -88,7 +96,16 @@ export class DashboardResourcesService {
       trend: buildTrend(trendRows),
       topSlow: buildTopSlow(slowRows),
       topFailingHosts: buildFailingHosts(failingHostRows),
-      dimensions: { browser: dimBrowser, os: dimOs, platform: dimPlatform },
+      dimensions: {
+        device: dimPlatform,
+        browser: dimBrowser,
+        os: dimOs,
+        version: dimBrowserVersion,
+        region: dimCountry,
+        carrier: [],
+        network: dimNetwork,
+        platform: dimPlatform,
+      },
     };
   }
 }

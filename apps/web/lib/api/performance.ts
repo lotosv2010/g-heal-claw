@@ -130,11 +130,16 @@ export interface DimensionRow {
 }
 
 /** 维度数据键 —— 其他维度（机型 / 版本 / 地域 / 运营商 / 网络）Phase 2 启用 */
-export type DimensionKey = "browser" | "os" | "platform";
+export type DimensionKey = "device" | "browser" | "os" | "version" | "region" | "carrier" | "network" | "platform";
 
 export interface Dimensions {
+  readonly device: readonly DimensionRow[];
   readonly browser: readonly DimensionRow[];
   readonly os: readonly DimensionRow[];
+  readonly version: readonly DimensionRow[];
+  readonly region: readonly DimensionRow[];
+  readonly carrier: readonly DimensionRow[];
+  readonly network: readonly DimensionRow[];
   readonly platform: readonly DimensionRow[];
 }
 
@@ -254,7 +259,7 @@ export function emptyOverview(): PerformanceOverview {
     trend: [],
     slowPages: [],
     fmpPages: [],
-    dimensions: { browser: [], os: [], platform: [] },
+    dimensions: { device: [], browser: [], os: [], version: [], region: [], carrier: [], network: [], platform: [] },
     longTasks: {
       count: 0,
       totalMs: 0,

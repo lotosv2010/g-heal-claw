@@ -436,8 +436,13 @@ function toRow(event: ErrorEvent): NewErrorEventRow {
     path: event.page.path,
     ua: event.device.ua,
     browser: event.device.browser,
+    browserVersion: event.device.browserVersion ?? null,
     os: event.device.os,
+    osVersion: event.device.osVersion ?? null,
     deviceType: event.device.deviceType,
+    networkType: event.device.network?.effectiveType ?? null,
+    country: null,
+    region: null,
     release: event.release,
     environment: event.environment,
   };

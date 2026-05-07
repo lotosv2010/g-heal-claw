@@ -137,10 +137,15 @@ export interface DimensionRowDto {
 /** 维度键（与 perf_events_raw 可用列一一对应；其他维度 Phase 2 启用） */
 export type DimensionKey = "browser" | "os" | "platform";
 
-/** 一组维度数据（浏览器 / OS / 平台） */
+/** 一组维度数据（8 维度统一结构） */
 export interface DimensionsDto {
+  readonly device: readonly DimensionRowDto[];
   readonly browser: readonly DimensionRowDto[];
   readonly os: readonly DimensionRowDto[];
+  readonly version: readonly DimensionRowDto[];
+  readonly region: readonly DimensionRowDto[];
+  readonly carrier: readonly DimensionRowDto[];
+  readonly network: readonly DimensionRowDto[];
   readonly platform: readonly DimensionRowDto[];
 }
 

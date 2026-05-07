@@ -52,7 +52,7 @@ export class DashboardVisitsService {
       environment,
     };
 
-    const [summaryCurrent, summaryPrevious, trendRows, topPageRows, topRefRows, dimBrowser, dimOs, dimPlatform] =
+    const [summaryCurrent, summaryPrevious, trendRows, topPageRows, topRefRows, dimBrowser, dimBrowserVersion, dimOs, dimOsVersion, dimPlatform, dimNetwork, dimCountry, dimRegion] =
       await Promise.all([
         this.visits.aggregateSummary(current),
         this.visits.aggregateSummary(previous),
@@ -60,8 +60,13 @@ export class DashboardVisitsService {
         this.visits.aggregateTopPages(current, limitPages),
         this.visits.aggregateTopReferrers(current, limitReferrers),
         this.visits.aggregateDimension(current, "browser"),
+        this.visits.aggregateDimension(current, "browserVersion"),
         this.visits.aggregateDimension(current, "os"),
+        this.visits.aggregateDimension(current, "osVersion"),
         this.visits.aggregateDimension(current, "deviceType"),
+        this.visits.aggregateDimension(current, "networkType"),
+        this.visits.aggregateDimension(current, "country"),
+        this.visits.aggregateDimension(current, "region"),
       ]);
 
     return {
@@ -69,7 +74,16 @@ export class DashboardVisitsService {
       trend: buildTrend(trendRows),
       topPages: buildTopPages(topPageRows),
       topReferrers: buildTopReferrers(topRefRows),
-      dimensions: { browser: dimBrowser, os: dimOs, platform: dimPlatform },
+      dimensions: {
+        device: dimPlatform,
+        browser: dimBrowser,
+        os: dimOs,
+        version: dimBrowserVersion,
+        region: dimCountry,
+        carrier: [],
+        network: dimNetwork,
+        platform: dimPlatform,
+      },
     };
   }
 }

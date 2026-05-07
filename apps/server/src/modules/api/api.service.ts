@@ -523,8 +523,13 @@ function toRow(e: ApiEvent): NewApiEventRow {
     pagePath: e.page?.path ?? "",
     ua: e.device?.ua,
     browser: e.device?.browser,
+    browserVersion: e.device?.browserVersion ?? null,
     os: e.device?.os,
+    osVersion: e.device?.osVersion ?? null,
     deviceType: e.device?.deviceType,
+    networkType: e.device?.network?.effectiveType ?? null,
+    country: null,
+    region: null,
     release: e.release,
     environment: e.environment,
   };

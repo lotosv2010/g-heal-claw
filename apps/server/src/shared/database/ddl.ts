@@ -929,6 +929,33 @@ export const ALERT_DDL: readonly string[] = [
   `CREATE INDEX IF NOT EXISTS idx_channels_project ON channels(project_id)`,
 ];
 
+// 维度扩列（0015）：所有 raw 表新增 browser_version / os_version / network_type / country / region
+const DIMENSION_COLUMNS_DDL: readonly string[] = [
+  `ALTER TABLE perf_events_raw ADD COLUMN IF NOT EXISTS browser_version VARCHAR(32)`,
+  `ALTER TABLE perf_events_raw ADD COLUMN IF NOT EXISTS os_version VARCHAR(32)`,
+  `ALTER TABLE perf_events_raw ADD COLUMN IF NOT EXISTS network_type VARCHAR(16)`,
+  `ALTER TABLE perf_events_raw ADD COLUMN IF NOT EXISTS country VARCHAR(64)`,
+  `ALTER TABLE perf_events_raw ADD COLUMN IF NOT EXISTS region VARCHAR(64)`,
+  `ALTER TABLE error_events_raw ADD COLUMN IF NOT EXISTS browser_version VARCHAR(32)`,
+  `ALTER TABLE error_events_raw ADD COLUMN IF NOT EXISTS os_version VARCHAR(32)`,
+  `ALTER TABLE error_events_raw ADD COLUMN IF NOT EXISTS network_type VARCHAR(16)`,
+  `ALTER TABLE error_events_raw ADD COLUMN IF NOT EXISTS country VARCHAR(64)`,
+  `ALTER TABLE error_events_raw ADD COLUMN IF NOT EXISTS region VARCHAR(64)`,
+  `ALTER TABLE api_events_raw ADD COLUMN IF NOT EXISTS browser_version VARCHAR(32)`,
+  `ALTER TABLE api_events_raw ADD COLUMN IF NOT EXISTS os_version VARCHAR(32)`,
+  `ALTER TABLE api_events_raw ADD COLUMN IF NOT EXISTS network_type VARCHAR(16)`,
+  `ALTER TABLE api_events_raw ADD COLUMN IF NOT EXISTS country VARCHAR(64)`,
+  `ALTER TABLE api_events_raw ADD COLUMN IF NOT EXISTS region VARCHAR(64)`,
+  `ALTER TABLE resource_events_raw ADD COLUMN IF NOT EXISTS browser_version VARCHAR(32)`,
+  `ALTER TABLE resource_events_raw ADD COLUMN IF NOT EXISTS os_version VARCHAR(32)`,
+  `ALTER TABLE resource_events_raw ADD COLUMN IF NOT EXISTS network_type VARCHAR(16)`,
+  `ALTER TABLE resource_events_raw ADD COLUMN IF NOT EXISTS country VARCHAR(64)`,
+  `ALTER TABLE resource_events_raw ADD COLUMN IF NOT EXISTS region VARCHAR(64)`,
+  `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS browser_version VARCHAR(32)`,
+  `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS os_version VARCHAR(32)`,
+  `ALTER TABLE page_view_raw ADD COLUMN IF NOT EXISTS network_type VARCHAR(16)`,
+];
+
 /** 合并 DDL：DatabaseService.onModuleInit 按顺序执行 */
 export const ALL_DDL: readonly string[] = [
   ...MAIN_DDL,
@@ -942,4 +969,5 @@ export const ALL_DDL: readonly string[] = [
   ...EVENTS_RAW_DDL,
   ...DLQ_DDL,
   ...ALERT_DDL,
+  ...DIMENSION_COLUMNS_DDL,
 ];

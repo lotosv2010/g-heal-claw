@@ -407,7 +407,7 @@ export class VisitsService {
   /** 按维度分布聚合（browser / os / device_type） */
   public async aggregateDimension(
     params: VisitsWindowParams,
-    field: "browser" | "os" | "deviceType",
+    field: "browser" | "browserVersion" | "os" | "osVersion" | "deviceType" | "networkType" | "country" | "region",
     limit = 10,
   ): Promise<VisitsDimensionRow[]> {
     const db = this.database.db;
@@ -417,8 +417,13 @@ export class VisitsService {
     const column = (() => {
       switch (field) {
         case "browser": return sql`browser`;
+        case "browserVersion": return sql`browser_version`;
         case "os": return sql`os`;
+        case "osVersion": return sql`os_version`;
         case "deviceType": return sql`device_type`;
+        case "networkType": return sql`network_type`;
+        case "country": return sql`country`;
+        case "region": return sql`region`;
       }
     })();
 
@@ -484,8 +489,11 @@ function toRow(e: PageViewEvent, geo?: { country: string | null; region: string 
     durationMs: e.duration ?? null,
     ua: e.device?.ua,
     browser: e.device?.browser,
+    browserVersion: e.device?.browserVersion ?? null,
     os: e.device?.os,
+    osVersion: e.device?.osVersion ?? null,
     deviceType: e.device?.deviceType,
+    networkType: e.device?.network?.effectiveType ?? null,
     release: e.release,
     environment: e.environment,
     country: geo?.country ?? null,

@@ -75,8 +75,12 @@ export class DashboardPerformanceService {
       slowPageRows,
       fmpPageRows,
       browserRows,
+      browserVersionRows,
       osRows,
+      osVersionRows,
       platformRows,
+      networkRows,
+      countryRows,
       longTasksCurrent,
     ] = await Promise.all([
       this.perf.aggregateVitals(current),
@@ -87,8 +91,12 @@ export class DashboardPerformanceService {
       this.perf.aggregateSlowPages(current, limitSlowPages),
       this.perf.aggregateFmpPages(current, limitSlowPages),
       this.perf.aggregateDimension(current, "browser"),
+      this.perf.aggregateDimension(current, "browserVersion"),
       this.perf.aggregateDimension(current, "os"),
+      this.perf.aggregateDimension(current, "osVersion"),
       this.perf.aggregateDimension(current, "deviceType"),
+      this.perf.aggregateDimension(current, "networkType"),
+      this.perf.aggregateDimension(current, "country"),
       this.perf.aggregateLongTasks(current),
     ]);
 
@@ -107,8 +115,13 @@ export class DashboardPerformanceService {
     const slowPages = buildSlowPages(slowPageRows);
     const fmpPages = buildFmpPages(fmpPageRows);
     const dimensions: DimensionsDto = {
+      device: buildDimensionRows(platformRows),
       browser: buildDimensionRows(browserRows),
       os: buildDimensionRows(osRows),
+      version: buildDimensionRows(browserVersionRows),
+      region: buildDimensionRows(countryRows),
+      carrier: [],
+      network: buildDimensionRows(networkRows),
       platform: buildDimensionRows(platformRows),
     };
 

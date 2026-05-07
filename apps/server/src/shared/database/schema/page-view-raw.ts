@@ -53,8 +53,11 @@ export const pageViewRaw = pgTable(
     durationMs: doublePrecision("duration_ms"),
     ua: text("ua"),
     browser: varchar("browser", { length: 64 }),
+    browserVersion: varchar("browser_version", { length: 32 }),
     os: varchar("os", { length: 64 }),
+    osVersion: varchar("os_version", { length: 32 }),
     deviceType: varchar("device_type", { length: 16 }),
+    networkType: varchar("network_type", { length: 16 }),
     release: varchar("release", { length: 64 }),
     environment: varchar("environment", { length: 32 }),
     // T2.3.3 GeoIP 地域字段（写入时由服务端根据客户端 IP 解析填充）

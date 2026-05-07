@@ -68,12 +68,7 @@ const PIE_COLORS = [
 ];
 
 export function DimensionTabs({ dimensions }: { dimensions: Dimensions }) {
-  const lookup: Record<string, readonly DimensionRow[]> = {
-    device: dimensions.platform,
-    browser: dimensions.browser,
-    os: dimensions.os,
-    platform: dimensions.platform,
-  };
+  const lookup = dimensions as unknown as Record<string, readonly DimensionRow[]>;
 
   return (
     <Card>
