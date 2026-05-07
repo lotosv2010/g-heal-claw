@@ -1156,22 +1156,22 @@
 
 ### M3.1 资源监控
 
-- [ ] **T3.1.1** SDK ResourcePlugin（`PerformanceResourceTiming` 采集 + 类型分类）— 2d
-- [ ] **T3.1.2** ResourceProcessor（按 host + type 聚合 + 失败率）— 2d
-- [ ] **T3.1.3** 资源大盘 API + web/resources 页面（类型分布、CDN 测速、慢资源 Top）— 3d
+- [x] **T3.1.1** SDK ResourcePlugin（`PerformanceResourceTiming` 采集 + 类型分类）— 2d
+- [x] **T3.1.2** ResourceProcessor（按 host + type 聚合 + 失败率）— 2d
+- [x] **T3.1.3** 资源大盘 API + web/resources 页面（类型分布、CDN 测速、慢资源 Top）— 3d
 
 ### M3.2 自定义上报
 
-- [ ] **T3.2.1** SDK `track` / `time` / `log` API — 1d
-- [ ] **T3.2.2** 全局属性（`setUser` / `setTag` / `setContext`）— 1d
-- [ ] **T3.2.3** 自定义事件/指标/日志 Processor — 2d
-- [ ] **T3.2.4** 自定义查询 API + web/custom 页面（事件流 / 指标趋势 / 日志筛选）— 4d
+- [x] **T3.2.1** SDK `track` / `time` / `log` API — 1d
+- [x] **T3.2.2** 全局属性（`setUser` / `setTag` / `setContext`）— 1d
+- [x] **T3.2.3** 自定义事件/指标/日志 Processor — 2d
+- [x] **T3.2.4** 自定义查询 API + web/custom 页面（事件流 / 指标趋势 / 日志筛选）— 4d
 
 ### M3.3 埋点
 
-- [ ] **T3.3.1** SDK AutoTrackPlugin（`data-track` 自动上报 click/submit）— 2d
-- [ ] **T3.3.2** SDK ExposurePlugin（IntersectionObserver + 500ms 停留）— 2d
-- [ ] **T3.3.3** 页面停留时长（visibilitychange 累计）— 1d
+- [x] **T3.3.1** SDK AutoTrackPlugin（`data-track` 自动上报 click/submit）— 2d
+- [x] **T3.3.2** SDK ExposurePlugin（IntersectionObserver + 500ms 停留）— 2d
+- [x] **T3.3.3** 页面停留时长（visibilitychange 累计）— 1d
 - [ ] **T3.3.4** 埋点事件命名规范校验工具（CLI 检查 data-track 命名）— 2d
 - [-] **T3.3.5** 可视化埋点圈选（MVP 剔除，Phase 6 评审纳入）
 

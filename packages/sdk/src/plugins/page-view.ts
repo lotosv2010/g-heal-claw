@@ -29,6 +29,8 @@ export interface PageViewPluginOptions {
    * 默认 true；关闭后只采初次硬刷新
    */
   readonly autoSpa?: boolean;
+  /** 是否采集页面停留时长（visibilitychange/pagehide 离开时回写），默认 true */
+  readonly trackDuration?: boolean;
 }
 
 interface PatchMarker {
@@ -43,6 +45,7 @@ type LoadType = PageViewEvent["loadType"];
 export function pageViewPlugin(opts: PageViewPluginOptions = {}): Plugin {
   const enabled = opts.enabled ?? true;
   const autoSpa = opts.autoSpa ?? true;
+  const trackDuration = opts.trackDuration ?? true;
 
   return {
     name: "page-view",
@@ -57,14 +60,31 @@ export function pageViewPlugin(opts: PageViewPluginOptions = {}): Plugin {
       }
 
       let lastUrl = safeUrl();
+      let lastEventId = "";
+      let pageEnterAt = Date.now();
 
-      // 1) 初次加载上报：DOM 已就绪立即触发，未就绪则监听一次
+      // T3.3.3：页面离开时回写停留时长（使用相同 eventId，服务端 UPSERT duration_ms）
+      const emitDuration = (): void => {
+        if (!trackDuration || !lastEventId) return;
+        const duration = Date.now() - pageEnterAt;
+        if (duration < 100) return; // 忽略瞬间离开
+        dispatchDuration(hub, {
+          eventId: lastEventId,
+          url: lastUrl,
+          enterAt: pageEnterAt,
+          duration,
+        });
+      };
+
+      // 1) 初次加载上报
       const emitInitial = (): void => {
-        dispatch(hub, {
+        const result = dispatch(hub, {
           url: lastUrl,
           loadType: detectLoadType(),
           isSpaNav: false,
         });
+        lastEventId = result.eventId;
+        pageEnterAt = result.enterAt;
       };
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", emitInitial, {
@@ -74,30 +94,44 @@ export function pageViewPlugin(opts: PageViewPluginOptions = {}): Plugin {
         emitInitial();
       }
 
+      // T3.3.3：visibilitychange → hidden 时上报停留时长
+      if (trackDuration) {
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "hidden") emitDuration();
+        });
+        window.addEventListener("pagehide", emitDuration);
+      }
+
       if (!autoSpa) return;
 
-      // 2) SPA 切换：popstate（前进/后退）
+      // 2) SPA 切换：popstate
       window.addEventListener("popstate", () => {
         const next = safeUrl();
         if (next === lastUrl) return;
+        emitDuration(); // 离开旧页面，回写停留时长
         lastUrl = next;
-        dispatch(hub, {
+        const result = dispatch(hub, {
           url: next,
           loadType: "back_forward",
           isSpaNav: true,
         });
+        lastEventId = result.eventId;
+        pageEnterAt = result.enterAt;
       });
 
-      // 3) SPA 切换：patch pushState / replaceState（幂等）
+      // 3) SPA 切换：patch pushState / replaceState
       patchHistory(hub, () => {
         const next = safeUrl();
         if (next === lastUrl) return;
+        emitDuration(); // 离开旧页面
         lastUrl = next;
-        dispatch(hub, {
+        const result = dispatch(hub, {
           url: next,
           loadType: "navigate",
           isSpaNav: true,
         });
+        lastEventId = result.eventId;
+        pageEnterAt = result.enterAt;
       });
     },
   };
@@ -149,7 +183,12 @@ interface DispatchParams {
   readonly isSpaNav: boolean;
 }
 
-function dispatch(hub: Hub, p: DispatchParams): void {
+interface DispatchResult {
+  readonly eventId: string;
+  readonly enterAt: number;
+}
+
+function dispatch(hub: Hub, p: DispatchParams): DispatchResult {
   const now = Date.now();
   const base = createBaseEvent(hub, "page_view");
   const event: PageViewEvent = {
@@ -158,8 +197,6 @@ function dispatch(hub: Hub, p: DispatchParams): void {
     enterAt: now,
     loadType: p.loadType,
     isSpaNav: p.isSpaNav,
-    // 覆盖 page.url / page.path 以匹配当前导航目标（createBaseEvent 里的 collectPage 也会
-    // 取同一时刻的 location，这里显式一层是为了 SPA 切换后与 dispatch 强一致）
     page: {
       ...base.page,
       url: p.url,
@@ -172,6 +209,34 @@ function dispatch(hub: Hub, p: DispatchParams): void {
     p.isSpaNav ? "spa" : "hard",
     p.url,
   );
+  void hub.transport.send(event);
+  return { eventId: base.eventId, enterAt: now };
+}
+
+/** T3.3.3：页面离开时重发相同 eventId + duration（服务端 UPSERT 回写） */
+function dispatchDuration(hub: Hub, p: {
+  eventId: string;
+  url: string;
+  enterAt: number;
+  duration: number;
+}): void {
+  const base = createBaseEvent(hub, "page_view");
+  const event: PageViewEvent = {
+    ...base,
+    eventId: p.eventId, // 复用原始 eventId 触发 UPSERT
+    type: "page_view",
+    enterAt: p.enterAt,
+    leaveAt: Date.now(),
+    duration: p.duration,
+    loadType: "navigate",
+    isSpaNav: false,
+    page: {
+      ...base.page,
+      url: p.url,
+      path: safePath(p.url),
+    },
+  };
+  hub.logger.debug("page-view duration", p.url, p.duration, "ms");
   void hub.transport.send(event);
 }
 

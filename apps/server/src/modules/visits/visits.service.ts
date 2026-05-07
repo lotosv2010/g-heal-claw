@@ -100,10 +100,14 @@ export class VisitsService {
     const geo = this.geoip.lookup(clientIp);
     const rows = events.map((e) => toRow(e, geo));
     try {
+      // T3.3.3：相同 eventId 重复上报时仅更新 duration_ms（页面离开时回写停留时长）
       const inserted = await db
         .insert(pageViewRaw)
         .values(rows)
-        .onConflictDoNothing({ target: pageViewRaw.eventId })
+        .onConflictDoUpdate({
+          target: pageViewRaw.eventId,
+          set: { durationMs: sql`COALESCE(excluded.duration_ms, ${pageViewRaw.durationMs})` },
+        })
         .returning({ id: pageViewRaw.id });
       return inserted.length;
     } catch (err) {
