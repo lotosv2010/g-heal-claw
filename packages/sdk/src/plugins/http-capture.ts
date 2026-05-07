@@ -106,3 +106,48 @@ export function estimateBodySize(body: unknown): number | undefined {
   if (ArrayBuffer.isView(body)) return body.byteLength;
   return undefined;
 }
+
+/** 最大截断字节数（4KB） */
+const MAX_BODY_BYTES = 4096;
+
+/** 将请求/响应体安全截断为字符串（≤4KB），非字符串类型返回 undefined */
+export function truncateBody(body: unknown): string | undefined {
+  if (body === null || body === undefined) return undefined;
+  let text: string;
+  if (typeof body === "string") {
+    text = body;
+  } else if (typeof body === "object") {
+    try {
+      text = JSON.stringify(body);
+    } catch {
+      return undefined;
+    }
+  } else {
+    return undefined;
+  }
+  if (text.length <= MAX_BODY_BYTES) return text;
+  return text.slice(0, MAX_BODY_BYTES) + "…[truncated]";
+}
+
+/** 安全读取 Response body text（clone 后读取，避免消费原 body） */
+export async function safeReadResponseText(response: Response): Promise<string | undefined> {
+  try {
+    const clone = response.clone();
+    const text = await clone.text();
+    return truncateBody(text);
+  } catch {
+    return undefined;
+  }
+}
+
+/** 生成 TraceID（16 字节 hex = 32 字符） */
+export function generateTraceId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID().replace(/-/g, "");
+  }
+  let id = "";
+  for (let i = 0; i < 32; i++) {
+    id += Math.floor(Math.random() * 16).toString(16);
+  }
+  return id;
+}

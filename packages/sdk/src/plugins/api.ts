@@ -22,11 +22,14 @@ import type { Hub } from "../hub.js";
 import type { Plugin } from "../plugin.js";
 import {
   estimateBodySize,
+  generateTraceId,
   isIgnored,
   isInternal,
   safeNow,
+  safeReadResponseText,
   snapshotBreadcrumbs,
   toUrl,
+  truncateBody,
 } from "./http-capture.js";
 
 /** 默认慢请求阈值：1000ms（ADR-0020 §4.1） */
@@ -39,6 +42,10 @@ export interface ApiPluginOptions {
   readonly slowThresholdMs?: number;
   /** URL 黑名单（字符串子串或正则） */
   readonly ignoreUrls?: ReadonlyArray<string | RegExp>;
+  /** 是否采集请求/响应体（截断 ≤4KB），默认 false */
+  readonly captureBody?: boolean;
+  /** TraceID 注入 header 名（设置后自动注入，如 'X-Trace-Id'），默认不注入 */
+  readonly traceIdHeaderName?: string;
 }
 
 interface PatchMarker {
@@ -48,6 +55,8 @@ interface PatchMarker {
 interface ResolvedOptions {
   readonly slowThresholdMs: number;
   readonly ignoreUrls: ReadonlyArray<string | RegExp>;
+  readonly captureBody: boolean;
+  readonly traceIdHeaderName: string | undefined;
 }
 
 /**
@@ -58,6 +67,8 @@ export function apiPlugin(opts: ApiPluginOptions = {}): Plugin {
   const resolved: ResolvedOptions = {
     slowThresholdMs: opts.slowThresholdMs ?? DEFAULT_SLOW_THRESHOLD_MS,
     ignoreUrls: opts.ignoreUrls ?? [],
+    captureBody: opts.captureBody ?? false,
+    traceIdHeaderName: opts.traceIdHeaderName,
   };
 
   return {
@@ -94,16 +105,29 @@ function patchFetch(hub: Hub, opts: ResolvedOptions): void {
     const method = (init?.method ?? "GET").toUpperCase();
     const start = safeNow();
 
-    // SDK 自身上报 & 黑名单 URL 不进入采集
     if (isInternal(hub, url) || isIgnored(url, opts.ignoreUrls)) {
       return original.call(this, input, init);
     }
 
-    const requestSize = estimateBodySize(init?.body);
+    // T2.2.3：TraceID 注入
+    let traceId: string | undefined;
+    let patchedInit = init;
+    if (opts.traceIdHeaderName) {
+      traceId = generateTraceId();
+      const headers = new Headers(init?.headers);
+      headers.set(opts.traceIdHeaderName, traceId);
+      patchedInit = { ...init, headers };
+    }
+
+    const requestSize = estimateBodySize(patchedInit?.body);
+    // T2.2.2：请求体截断
+    const requestBody = opts.captureBody ? truncateBody(patchedInit?.body) : undefined;
 
     try {
-      const response = await original.call(this, input, init);
+      const response = await original.call(this, input, patchedInit);
       const duration = safeNow() - start;
+      // T2.2.2：响应体截断（异步读取不阻塞返回）
+      const responseBody = opts.captureBody ? await safeReadResponseText(response) : undefined;
       dispatch(hub, {
         method,
         url,
@@ -113,6 +137,9 @@ function patchFetch(hub: Hub, opts: ResolvedOptions): void {
         failed: !response.ok,
         requestSize,
         responseSize: parseContentLength(response.headers.get("content-length")),
+        traceId,
+        requestBody,
+        responseBody,
       });
       return response;
     } catch (err) {
@@ -126,6 +153,8 @@ function patchFetch(hub: Hub, opts: ResolvedOptions): void {
         failed: true,
         errorMessage: (err as Error)?.message ?? "fetch error",
         requestSize,
+        traceId,
+        requestBody,
       });
       throw err;
     }
@@ -182,12 +211,24 @@ function patchXhr(hub: Hub, opts: ResolvedOptions): void {
       return originalSend.call(this, body);
     }
 
+    // T2.2.3：TraceID 注入
+    let traceId: string | undefined;
+    if (opts.traceIdHeaderName) {
+      traceId = generateTraceId();
+      try {
+        this.setRequestHeader(opts.traceIdHeaderName, traceId);
+      } catch { /* ignore if headers already sent */ }
+    }
+
     meta.start = safeNow();
     meta.requestSize = estimateBodySize(body);
+    const requestBody = opts.captureBody ? truncateBody(body) : undefined;
 
     const onDone = (failed: boolean, errorMessage?: string): void => {
       const duration = safeNow() - meta.start;
       const status = this.status;
+      // T2.2.2：XHR 响应体截断
+      const responseBody = opts.captureBody ? truncateBody(this.responseText) : undefined;
       dispatch(hub, {
         method: meta.method,
         url: meta.url,
@@ -200,6 +241,9 @@ function patchXhr(hub: Hub, opts: ResolvedOptions): void {
         responseSize: parseContentLength(
           safeGetResponseHeader(this, "content-length"),
         ),
+        traceId,
+        requestBody,
+        responseBody,
       });
     };
 
@@ -225,6 +269,9 @@ interface DispatchParams {
   readonly errorMessage?: string;
   readonly requestSize?: number;
   readonly responseSize?: number;
+  readonly traceId?: string;
+  readonly requestBody?: string;
+  readonly responseBody?: string;
 }
 
 function dispatch(hub: Hub, p: DispatchParams): void {
@@ -240,6 +287,9 @@ function dispatch(hub: Hub, p: DispatchParams): void {
     requestSize: p.requestSize,
     responseSize: p.responseSize,
     errorMessage: p.errorMessage,
+    traceId: p.traceId,
+    requestBody: p.requestBody,
+    responseBody: p.responseBody,
     breadcrumbs: snapshotBreadcrumbs(hub),
   };
   hub.logger.debug("api dispatch", p.method, p.url, p.status, p.durationMs);

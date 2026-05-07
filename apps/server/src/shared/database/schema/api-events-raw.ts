@@ -60,6 +60,9 @@ export const apiEventsRaw = pgTable(
     failed: boolean("failed").notNull().default(false),
     errorMessage: text("error_message"),
     traceId: varchar("trace_id", { length: 64 }),
+    // T2.2.2：请求/响应体截断（≤4KB）
+    requestBody: text("request_body"),
+    responseBody: text("response_body"),
     breadcrumbs: jsonb("breadcrumbs"),
     /** 页面上下文 */
     pageUrl: text("page_url").notNull(),
