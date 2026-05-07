@@ -70,39 +70,36 @@ export class ProjectsService {
     const secretKey = this.generateKey("sec");
     const platform = input.platform ?? "web";
 
-    // 事务：projects + project_members(owner) + project_keys + environments×3
-    try {
-      await db.execute(sql`BEGIN`);
-
+    // 使用 Drizzle transaction API（postgres.js 禁止裸 BEGIN/COMMIT）
+    await db.transaction(async (tx) => {
       // slug 唯一性在 DB 约束保证，但提前检查给出友好错误
-      const existing = await db.execute<{ id: string }>(
+      const existing = await tx.execute<{ id: string }>(
         sql`SELECT id FROM projects WHERE slug = ${input.slug} LIMIT 1`,
       );
       if (existing.length > 0) {
-        await db.execute(sql`ROLLBACK`);
         throw new ConflictException({
           error: "SLUG_EXISTS",
           message: `slug "${input.slug}" 已被占用`,
         });
       }
 
-      await db.execute(sql`
+      await tx.execute(sql`
         INSERT INTO projects (id, slug, name, platform, owner_user_id, retention_days, is_active, created_at, updated_at)
         VALUES (${projectId}, ${input.slug}, ${input.name}, ${platform}, ${userId}, 30, true, NOW(), NOW())
       `);
 
-      await db.execute(sql`
+      await tx.execute(sql`
         INSERT INTO project_members (project_id, user_id, role, invited_by, joined_at)
         VALUES (${projectId}, ${userId}, 'owner', ${userId}, NOW())
       `);
 
-      await db.execute(sql`
+      await tx.execute(sql`
         INSERT INTO project_keys (id, project_id, public_key, secret_key, label, is_active, created_at)
         VALUES (${keyId}, ${projectId}, ${publicKey}, ${secretKey}, 'default', true, NOW())
       `);
 
       for (const env of DEFAULT_ENVS) {
-        await db.execute(sql`
+        await tx.execute(sql`
           INSERT INTO environments (project_id, name, description, is_production, created_at)
           VALUES (${projectId}, ${env.name}, ${env.description}, ${env.isProduction}, NOW())
         `);
@@ -111,7 +108,7 @@ export class ProjectsService {
       // 插入预设告警规则（默认禁用，用户可手动启用）
       for (const rule of PRESET_ALERT_RULES) {
         const ruleId = generateAlertRuleId();
-        await db.execute(sql`
+        await tx.execute(sql`
           INSERT INTO alert_rules (id, project_id, name, target, condition, filter,
                                    severity, cooldown_ms, channels, enabled, created_at, updated_at)
           VALUES (
@@ -123,21 +120,14 @@ export class ProjectsService {
             ${rule.filter ? JSON.stringify(rule.filter) : null}::jsonb,
             ${rule.severity},
             ${rule.cooldownMs},
-            NULL,
+            '{}',
             false,
             NOW(),
             NOW()
           )
         `);
       }
-
-      await db.execute(sql`COMMIT`);
-    } catch (err) {
-      // ConflictException 已在上面 ROLLBACK 并抛出
-      if (err instanceof ConflictException) throw err;
-      await db.execute(sql`ROLLBACK`).catch(() => {});
-      throw err;
-    }
+    });
 
     return {
       id: projectId,
