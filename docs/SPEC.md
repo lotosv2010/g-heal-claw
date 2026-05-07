@@ -268,6 +268,214 @@ interface Breadcrumb {
 
 容量：默认最多 100 条；超出采用 FIFO 淘汰。
 
+### 4.1.2 字段持久化映射
+
+> 标明 SDK 上报的每个字段是否入库、入哪张表、对应 DB 列名。服务端通过 GeoIP 额外补充 `country`/`region`/`city`。
+
+#### Envelope 级字段（不入库）
+
+| SDK 字段 | 含义 | 处理方式 |
+|---|---|---|
+| `dsn` | SDK 数据端点标识，含 publicKey / host / projectId | 仅用于网关认证与路由，不持久化 |
+| `sentAt` | 客户端发送时间戳 | 仅用于时钟偏移估算，不持久化 |
+
+#### BaseEvent 公共字段持久化状态
+
+| SDK 字段 | 含义 | 入库? | DB 列名 | 备注 |
+|---|---|---|---|---|
+| `eventId` | 事件唯一标识（UUID v7） | ✅ | `event_id` | UNIQUE 约束，用于幂等去重 |
+| `projectId` | 项目 ID（来自 DSN） | ✅ | `project_id` | |
+| `publicKey` | DSN 公钥 | ✅ | `public_key` | |
+| `timestamp` | 客户端事件时间（Unix ms） | ✅ | `ts_ms` | |
+| `type` | 事件类型枚举 | 隐式 | — | 决定目标表，不单独存列 |
+| `release` | 应用版本号 / commit hash | ✅ | `release` | |
+| `environment` | 运行环境 | ✅ | `environment` | |
+| `sessionId` | 会话 ID | ✅ | `session_id` | |
+| `user` | 用户身份 | 部分 | `user_id`（仅 track 表） | `email`/`name` 不持久化 |
+| `tags` | 自定义标签 | ❌ | — | 采集但未入库 |
+| `context` | 自定义上下文 | ❌ | — | 采集但未入库 |
+
+#### Device Context 持久化状态
+
+| SDK 字段 | 含义 | 入库? | DB 列名 | 备注 |
+|---|---|---|---|---|
+| `device.ua` | User-Agent 原始字符串 | ✅ | `ua` | |
+| `device.os` | 操作系统名称 | ✅ | `os` | |
+| `device.osVersion` | 操作系统版本 | ✅ | `os_version` | 仅 error/api/perf/resource/page_view 表 |
+| `device.browser` | 浏览器名称 | ✅ | `browser` | |
+| `device.browserVersion` | 浏览器版本 | ✅ | `browser_version` | 仅 error/api/perf/resource/page_view 表 |
+| `device.deviceType` | 设备类型 | ✅ | `device_type` | desktop/mobile/tablet/bot/unknown |
+| `device.screen.width` | 屏幕宽度 px | ❌ | — | 采集但未入库 |
+| `device.screen.height` | 屏幕高度 px | ❌ | — | 采集但未入库 |
+| `device.screen.dpr` | 设备像素比 | ❌ | — | 采集但未入库 |
+| `device.network.effectiveType` | 网络类型（4g/3g/2g/slow-2g） | ✅ | `network_type` | 仅 error/api/perf/resource/page_view 表 |
+| `device.network.rtt` | 网络往返时延 ms | ❌ | — | 采集但未入库 |
+| `device.network.downlink` | 下行带宽 Mbps | ❌ | — | 采集但未入库 |
+| `device.language` | 浏览器语言 | ❌ | — | 采集但未入库 |
+| `device.timezone` | IANA 时区 | ❌ | — | 采集但未入库 |
+
+#### Page Context 持久化状态
+
+| SDK 字段 | 含义 | 入库? | DB 列名 | 备注 |
+|---|---|---|---|---|
+| `page.url` | 当前页面完整 URL | ✅ | `url` / `page_url` | |
+| `page.path` | 归一化路径 | ✅ | `path` / `page_path` | |
+| `page.referrer` | 来源页 URL | 部分 | `referrer` + `referrer_host` | 仅 page_view_raw 表 |
+| `page.title` | 页面标题 | ❌ | — | 采集但未入库 |
+| `page.utm.*` | UTM 来源追踪参数 | ❌ | — | 采集但未入库（计划 T3 落地） |
+| `page.searchEngine` | 搜索引擎来源 | ❌ | — | 采集但未入库（计划 T3 落地） |
+| `page.channel` | 业务渠道 | ❌ | — | 采集但未入库（计划 T3 落地） |
+
+#### 服务端补充字段（GeoIP）
+
+| DB 列名 | 含义 | 来源 | 覆盖表 |
+|---|---|---|---|
+| `country` | 国家 | MaxMind GeoIP2（按客户端 IP 查询） | 全部 raw 表 |
+| `region` | 省份/地区 | 同上 | 全部 raw 表 |
+| `city` | 城市 | 同上 | 仅 page_view_raw |
+
+#### 各事件类型专有字段持久化
+
+**Error 事件** → `error_events_raw`
+
+| SDK 字段 | 含义 | DB 列名 | 备注 |
+|---|---|---|---|
+| `subType` | 异常子类型 | `sub_type` | js/promise/resource/framework/white_screen/ajax/api_code |
+| `message` | 错误消息 | `message` + `message_head` | message_head 截断 128 字符，用于 Top 聚合 |
+| `stack` | 原始堆栈 | `stack` | |
+| `frames[]` | 解析后堆栈帧 | `frames` (jsonb) | |
+| `componentStack` | React 组件栈 | `component_stack` | |
+| `resource` | 资源错误详情 | `resource` (jsonb) | {url, tagName, kind, outerHTML} |
+| `resource.kind` | 资源类别 | `resource_kind` | 用于维度分布聚合 |
+| `request.url` | 请求 URL（ajax/api_code 错误） | `request_url` | |
+| `request.method` | HTTP 方法 | `request_method` | |
+| `request.status` | HTTP 状态码 | `request_status` | |
+| `request.durationMs` | 请求耗时 | `request_duration_ms` | |
+| `request.bizCode` | 业务错误码 | `request_biz_code` | |
+| `request.bizMessage` | 业务错误信息 | — | ❌ 未入库 |
+| `request.statusText` | HTTP 状态文本 | — | ❌ 未入库 |
+| `breadcrumbs[]` | 面包屑轨迹 | `breadcrumbs` (jsonb) | |
+
+**API 事件** → `api_events_raw`
+
+| SDK 字段 | 含义 | DB 列名 | 备注 |
+|---|---|---|---|
+| `method` | HTTP 方法 | `method` | |
+| `url` | 请求 URL | `request_url` + 派生 `host`/`path`/`path_template` | |
+| `status` | HTTP 状态码 | `status` | |
+| `duration` | 响应耗时 ms | `duration_ms` | |
+| `requestSize` | 请求体大小 B | `request_size` | |
+| `responseSize` | 响应体大小 B | `response_size` | |
+| `slow` | 是否慢请求 | `slow` | |
+| `failed` | 是否失败 | `failed` | |
+| `errorMessage` | 错误信息 | `error_message` | |
+| `traceId` | 链路追踪 ID | `trace_id` | |
+| `requestBody` | 请求体（截断 ≤4KB） | `request_body` | |
+| `responseBody` | 响应体（截断 ≤4KB） | `response_body` | |
+| `breadcrumbs[]` | 面包屑轨迹 | `breadcrumbs` (jsonb) | |
+
+**Performance 事件** → `perf_events_raw`
+
+| SDK 字段 | 含义 | DB 列名 | 备注 |
+|---|---|---|---|
+| `metric` | 指标名 | `metric` | LCP/FCP/CLS/INP/TTFB/FSP/TBT/SI |
+| `value` | 指标值 | `value` | |
+| `rating` | 评级 | `rating` | good/needs-improvement/poor |
+| `navigation` | 页面加载瀑布时序 | `navigation` (jsonb) | 仅 TTFB 事件携带 |
+
+**Long Task 事件** → `perf_events_raw`（同表，`type` 列区分）
+
+| SDK 字段 | 含义 | DB 列名 | 备注 |
+|---|---|---|---|
+| `duration` | 长任务耗时 ms | `lt_duration_ms` | |
+| `startTime` | 长任务开始时间 ms | `lt_start_ms` | |
+| `tier` | 严重级别 | — | ❌ 未入库（long_task/jank/unresponsive） |
+| `attribution[]` | 任务归因 | — | ❌ 未入库 |
+
+**Page View 事件** → `page_view_raw`
+
+| SDK 字段 | 含义 | DB 列名 | 备注 |
+|---|---|---|---|
+| `loadType` | 加载类型 | `load_type` | navigate/reload/back_forward/prerender |
+| `isSpaNav` | 是否 SPA 导航 | `is_spa_nav` | |
+| `enterAt` | 进入时间 | — | ❌ 未入库（由 ts_ms 覆盖） |
+| `leaveAt` | 离开时间 | — | ❌ 未入库 |
+| `duration` | 停留时长 ms | `duration_ms` | 后续 page_leave 事件更新 |
+
+**Resource 事件** → `resource_events_raw`
+
+| SDK 字段 | 含义 | DB 列名 | 备注 |
+|---|---|---|---|
+| `initiatorType` | 资源发起类型 | `initiator_type` | script/link/img/fetch 等 |
+| `category` | 资源分类 | `category` | script/stylesheet/image/font/media/other |
+| `host` | CDN 主机 | `host` | |
+| `url` | 资源 URL | `url` | |
+| `duration` | 加载耗时 ms | `duration_ms` | |
+| `transferSize` | 传输大小 B | `transfer_size` | |
+| `encodedSize` | 编码大小 B | `encoded_size` | |
+| `decodedSize` | 解码大小 B | `decoded_size` | |
+| `protocol` | 协议 | `protocol` | h2/h3/http/1.1 等 |
+| `cache` | 缓存状态 | `cache` | hit/miss/unknown |
+| `slow` | 是否慢加载 | `slow` | |
+| `failed` | 是否失败 | `failed` | |
+| `startTime` | 资源加载开始时间 | — | ❌ 未入库 |
+
+**Track 事件** → `track_events_raw`
+
+| SDK 字段 | 含义 | DB 列名 | 备注 |
+|---|---|---|---|
+| `trackType` | 埋点类型 | `track_type` | click/expose/submit/code |
+| `target.tag` | 目标元素标签 | `target_tag` | 截断 32 字符 |
+| `target.id` | 目标元素 ID | `target_id` | 截断 128 字符 |
+| `target.className` | 目标元素类名 | `target_class` | |
+| `target.selector` | CSS 选择器 | `target_selector` | |
+| `target.text` | 元素文本 | `target_text` | 截断 200 字符 |
+| `properties` | 自定义属性 | `properties` (jsonb) | |
+
+**Custom Event** → `custom_events_raw`
+
+| SDK 字段 | 含义 | DB 列名 | 备注 |
+|---|---|---|---|
+| `name` | 事件名 | `name` | 截断 128 字符 |
+| `properties` | 自定义属性 | `properties` (jsonb) | |
+
+**Custom Metric** → `custom_metrics_raw`
+
+| SDK 字段 | 含义 | DB 列名 | 备注 |
+|---|---|---|---|
+| `name` | 指标名 | `name` | 截断 128 字符 |
+| `duration` | 耗时 ms | `duration_ms` | |
+| `properties` | 自定义属性 | `properties` (jsonb) | |
+
+**Custom Log** → `custom_logs_raw`
+
+| SDK 字段 | 含义 | DB 列名 | 备注 |
+|---|---|---|---|
+| `level` | 日志级别 | `level` | info/warn/error |
+| `message` | 日志消息 | `message` + `message_head` | message_head 截断 128 字符 |
+| `data` | 附加数据 | `data` (jsonb) | 限制 8KB |
+
+#### 未入库字段汇总（采集但丢弃）
+
+| 字段 | 适用事件 | 丢弃原因 / 计划 |
+|---|---|---|
+| `tags` | 全部 | 预留扩展，当前无消费场景 |
+| `context` | 全部 | 预留扩展，当前无消费场景 |
+| `user.email` / `user.name` | 全部 | 隐私考量，仅保留 `user.id` 且仅 track 表 |
+| `device.screen.*` | 全部 | 考虑后续用于响应式断点分析 |
+| `device.network.rtt` / `downlink` | 全部 | 仅保留 effectiveType 做维度聚合 |
+| `device.language` | 全部 | 考虑后续用于 i18n 分析 |
+| `device.timezone` | 全部 | 考虑后续用于时区分布 |
+| `page.title` | 全部 | 可从 URL 反查 |
+| `page.utm.*` / `searchEngine` / `channel` | 全部 | 计划 T3 阶段落地流量来源分析 |
+| `page.referrer` | 非 page_view 事件 | 仅 page_view 表持久化 |
+| `long_task.tier` | long_task | 可由 duration 阈值还原 |
+| `long_task.attribution[]` | long_task | 数据量大，当前无前端展示 |
+| `resource.startTime` | resource | 可由 ts_ms 推导 |
+| `page_view.enterAt` / `leaveAt` | page_view | 由 ts_ms + duration_ms 覆盖 |
+| `error.request.bizMessage` | error | 仅保留 bizCode |
+| `error.request.statusText` | error | HTTP 标准文本可由 status 推导 |
+
 ### 4.2 事件子类型
 
 | `type` | Payload 关键字段 |

@@ -2,7 +2,7 @@
 
 > 本指南帮助开发者在 15 分钟内跑通 g-heal-claw 本地开发环境，并串联 SDK 上报 → Dashboard 可视化 → AI 自愈 PR 的完整链路。
 >
-> **仓库状态**：Phase 1 开发中。`apps/*` 与 `packages/*` 子包尚未初始化，本文档描述目标形态与逐步启用路径。路线图见 `docs/tasks/CURRENT.md`。
+> **仓库状态**：Phase 1~5 已完成，全链路可用。路线图见 `docs/tasks/CURRENT.md`。
 
 ---
 
@@ -57,7 +57,7 @@ docker compose up -d
 cp .env.example .env
 ```
 
-`.env.example` 已覆盖 11 个配置段。**Phase 1 阶段至少要填写**：
+`.env.example` 已覆盖所有配置段。**本地开发至少要填写**：
 
 ```bash
 # Database
@@ -96,7 +96,7 @@ pnpm -F @g-heal-claw/server drizzle:generate
 pnpm -F @g-heal-claw/server drizzle:migrate
 ```
 
-> Phase 1 任务 `T1.1.5` 完成后此命令可用。在此之前可手动执行 `docs/tasks/CURRENT.md` 中列出的首版 Schema。
+> 开发环境下 server 启动时会自动执行幂等 DDL（`CREATE TABLE IF NOT EXISTS` + `ALTER TABLE ADD COLUMN IF NOT EXISTS`），无需手动迁移。
 
 ---
 
@@ -110,9 +110,9 @@ pnpm dev
 
 Turborepo 并行拉起：
 
-- `apps/server` — NestJS (Fastify adapter)，监听 `3000`（API） / `3001`（metrics）
-- `apps/web` — Next.js (App Router)，监听 `3000`（Dashboard，端口见 `apps/web/package.json`）
-- `apps/ai-agent` — LangChain Worker，消费 `ai-diagnosis` / `ai-heal-fix` 队列
+- `apps/server` — NestJS (Fastify adapter)，监听 `:3001`（API + Ingest + Swagger）
+- `apps/web` — Next.js (App Router)，监听 `:3000`（Dashboard 管理面板）
+- `apps/ai-agent` — deepagents Worker，消费 `ai-diagnosis` / `ai-heal-fix` 队列
 - `examples/nextjs-demo` — SDK 演练沙盘（端口 `3100`），测试场景按 Dashboard 菜单分组：**性能（Web Vitals 7 项） · 错误（同步/runtime/promise/白屏） · 接口（ajax 失败/业务码） · 资源（JS/图片/CSS/媒体/通用 404）**
 
 ### 5.2 单独启动某个应用
@@ -126,15 +126,14 @@ pnpm --filter @g-heal-claw/ai-agent dev
 健康检查：
 
 ```bash
-curl http://localhost:3000/healthz   # liveness
-curl http://localhost:3000/readyz    # PG / Redis / Storage 可达性
+curl http://localhost:3001/healthz   # server liveness
 ```
 
 ---
 
 ## 6. 创建第一个项目
 
-1. 浏览器打开 `http://localhost:3002`，注册首个管理员账号。
+1. 浏览器打开 `http://localhost:3000`，注册首个管理员账号。
 2. 登录后创建项目 `demo-web`，选择环境 `development`。
 3. 项目创建成功后，Dashboard 会展示该项目的 **DSN**（形如 `http://<publicKey>@localhost:3000/<projectId>`）和 **secretKey**（用于 CLI 上传 Sourcemap）。
 4. 复制 DSN 备用，下一节 SDK 需要。
@@ -251,7 +250,7 @@ init(
 **本地联调**：
 
 1. 启动基础设施与应用：`docker compose up -d && pnpm dev`
-2. 访问 demo 首页 `http://localhost:3002`，点击「埋点分析」分组任一场景：
+2. 访问 demo 首页 `http://localhost:3100`，点击「埋点分析」分组任一场景：
    - `/tracking/click`、`/tracking/submit`、`/tracking/expose`、`/tracking/code` 四个专项场景
    - `/tracking/playground` 一页速查
 3. DevTools → Network 观察 `/ingest/v1/events` 载荷中的 `trackType`
@@ -301,7 +300,7 @@ init(
 **本地联调**：
 
 1. 启动基础设施与应用：`docker compose up -d && pnpm dev`
-2. 访问 demo 首页 `http://localhost:3002`，点击「静态资源」分组：
+2. 访问 demo 首页 `http://localhost:3100`，点击「静态资源」分组：
    - `/resources/slow-script` —— 动态注入慢 JS 驱动 Top 慢资源
    - `/resources/image-gallery` —— 批量加载图片驱动分类桶计数与失败 Host
 3. 访问 `http://localhost:3000/monitor/resources` 查看聚合大盘
@@ -359,7 +358,7 @@ GHealClaw.log("warn", "payment retry", { orderId, attempt: 2 });
 **本地联调**：
 
 1. 启动基础设施与应用：`docker compose up -d && pnpm dev`
-2. 访问 demo 首页 `http://localhost:3002`，点击「自定义上报」分组：
+2. 访问 demo 首页 `http://localhost:3100`，点击「自定义上报」分组：
    - `/custom/track` —— 触发 custom_event（4 类业务埋点）
    - `/custom/time` —— 触发 custom_metric（checkout 耗时、编辑器冷启动）
    - `/custom/log` —— 触发 info / warn / error 三级别日志（含大 payload 截断演示）

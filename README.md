@@ -2,7 +2,7 @@
 
 前端可观测 + AI 自愈修复平台。SDK 采集 Web/H5/小程序的性能、异常、API、资源、页面、埋点数据 → 后端聚合 → 可视化面板 → 告警 → AI Agent 诊断并生成修复 PR。
 
-> 状态：**Phase 1 开发中**。仓库当前为 Monorepo 脚手架 + 基础设施 Compose；`apps/*` 与 `packages/*` 子包尚未初始化。路线图见 [`docs/tasks/CURRENT.md`](docs/tasks/CURRENT.md)。
+> 状态：**Phase 1~5 已完成**。SDK 采集 + Gateway + Dashboard + 告警引擎 + AI Agent 全链路打通；Phase 6（看板完善 + 开放 API + 小程序 SDK）进行中。路线图见 [`docs/tasks/CURRENT.md`](docs/tasks/CURRENT.md)。
 
 ## 能力范围
 
@@ -47,9 +47,9 @@ g-heal-claw/
 │   ├── cli/                 #   @g-heal-claw/cli — Sourcemap 上传 CLI（⚪ 规划）
 │   └── vite-plugin/         #   @g-heal-claw/vite-plugin — 构建期上传钩子（⚪ 规划）
 ├── apps/                    # 应用
-│   ├── server/              #   NestJS 后端（模块化单体，Fastify）（✅ 已初始化）
-│   ├── web/                 #   Next.js 管理面板（App Router + SSR，4 分组菜单）（✅ 已初始化）
-│   └── ai-agent/            #   LangChain AI Agent（诊断 + 修复）（⚪ 规划）
+│   ├── server/              #   NestJS 后端（模块化单体，Fastify）（✅ 已完成）
+│   ├── web/                 #   Next.js 管理面板（App Router + SSR，4 分组菜单）（✅ 已完成）
+│   └── ai-agent/            #   deepagents AI Agent（诊断 + 修复 PR）（✅ 已完成 ADR-0036）
 ├── examples/
 │   └── nextjs-demo/         #   SDK 演练沙盘（性能 / 错误 / API / 资源 / 埋点 场景）
 ├── docs/
