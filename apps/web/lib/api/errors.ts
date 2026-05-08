@@ -100,16 +100,16 @@ export interface ErrorTopGroup {
   readonly sampleUrl: string;
 }
 
-/** 维度 tab 键 —— 对齐 SPEC（机型/浏览器/操作系统/版本/地域/运营商/网络/平台） */
+/** 维度 tab 键 —— 对齐 SPEC（机型/浏览器/操作系统/版本/地域/语言/网络/时区） */
 export type ErrorDimensionKey =
   | "device"
   | "browser"
   | "os"
   | "version"
   | "region"
-  | "carrier"
+  | "language"
   | "network"
-  | "platform";
+  | "timezone";
 
 export interface ErrorDimensionRow {
   readonly value: string;
@@ -293,9 +293,9 @@ export function emptyErrorOverview(): ErrorOverview {
     os: [],
     version: [],
     region: [],
-    carrier: [],
+    language: [],
     network: [],
-    platform: [],
+    timezone: [],
   };
   return {
     summary: {

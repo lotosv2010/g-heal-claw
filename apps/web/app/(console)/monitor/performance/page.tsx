@@ -21,7 +21,7 @@ import { DimensionTabs } from "./dimension-tabs";
  *  3. 页面加载瀑布图
  *  4. Core Web Vitals：LCP/FID/CLS/FCP/TTI/INP 三段式
  *  5. 首屏时间 FMP Top（按页面聚合）
- *  6. 维度分布（浏览器 / OS / 平台 + 占位项）
+ *  6. 维度分布（浏览器 / OS / 设备类型 + 占位项）
  */
 /**
  * Next.js 16 约定：`searchParams` 为 Promise，需要 await 后再读取。
@@ -93,7 +93,7 @@ export default async function PerformancePage({
         )}
       </section>
 
-      {/* 6. 维度分布（浏览器 / OS / 平台 + 占位项） */}
+      {/* 6. 维度分布（浏览器 / OS / 设备类型 + 占位项） */}
       <section>
         <DimensionTabs dimensions={data.dimensions} />
       </section>

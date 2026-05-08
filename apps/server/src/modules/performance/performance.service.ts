@@ -57,7 +57,7 @@ export interface DimensionAggregateRow {
 }
 
 /** 维度字段枚举 —— 对应 perf_events_raw 列 */
-export type DimensionField = "browser" | "browserVersion" | "os" | "osVersion" | "deviceType" | "networkType" | "country" | "region";
+export type DimensionField = "browser" | "browserVersion" | "os" | "osVersion" | "deviceType" | "networkType" | "country" | "region" | "language" | "timezone";
 
 /**
  * Dashboard 聚合：按 path 的 FMP（首屏时间）视图
@@ -562,6 +562,8 @@ export class PerformanceService {
         case "networkType": return sql`network_type`;
         case "country": return sql`country`;
         case "region": return sql`region`;
+        case "language": return sql`language`;
+        case "timezone": return sql`timezone`;
       }
     })();
 

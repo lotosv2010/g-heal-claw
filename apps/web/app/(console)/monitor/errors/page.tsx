@@ -28,7 +28,7 @@ type Source = ErrorOverviewResult["source"];
  *  1. 9 分类卡片（js / promise / white_screen / ajax / js_load / image_load / css_load / media / api_code）
  *  2. 错误排行表（类型 / 内容 / 状态 / 次数(占比) / 复现率 / 影响用户(占比) / 操作）
  *  3. 异常分析堆叠图（9 类目 + 全部日志共 10 条图例）
- *  4. 维度 Tabs（机型 / 浏览器 / 操作系统 / 版本 / 地域 / 运营商 / 网络 / 平台）
+ *  4. 维度 Tabs（机型 / 浏览器 / 操作系统 / 版本 / 地域 / 语言 / 网络 / 时区）
  *
  * 数据链路：
  *  - server 端已完成 9 分类拆分（resource 按 resource_kind 拆出 4 子类）+ ajax / api_code（SDK httpPlugin）

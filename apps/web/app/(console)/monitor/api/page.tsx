@@ -24,7 +24,7 @@ type Source = ApiOverviewResult["source"];
  *  2. 状态码分布（2xx/3xx/4xx/5xx/0）
  *  3. API 性能趋势（样本数 / 均耗时 / 成功率 三组切换）
  *  4. Tabs 多视图：慢请求 TOP · 请求 TOP · 访问页面 TOP · 异常状态码 TOP
- *  5. 维度分布：浏览器 / 操作系统 / 平台（已接入）+ 6 占位维度
+ *  5. 维度分布：浏览器 / 操作系统 / 设备类型（已接入）+ 语言 / 时区等占位维度
  *
  * 数据源：`api_events_raw` 由 apiPlugin 上报；鉴权与多项目隔离留给 T1.1.7。
  */

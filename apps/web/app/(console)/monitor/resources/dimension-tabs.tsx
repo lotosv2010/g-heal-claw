@@ -21,8 +21,9 @@ const TABS = [
   { key: "os", label: "操作系统" },
   { key: "version", label: "版本" },
   { key: "region", label: "地域" },
+  { key: "language", label: "语言" },
   { key: "network", label: "网络" },
-  { key: "platform", label: "平台" },
+  { key: "timezone", label: "时区" },
 ] as const;
 
 const PIE_COLORS = [
@@ -38,7 +39,7 @@ export function DimensionTabs({ dimensions }: { dimensions: ResourcesDimensions 
       <CardHeader>
         <CardTitle>维度分布</CardTitle>
         <div className="text-muted-foreground text-xs">
-          按请求数占比展示 · 浏览器 / 操作系统 / 平台 已接入；其余维度保留占位
+          按请求数占比展示 · 浏览器 / 操作系统 / 设备类型 已接入；其余维度保留占位
         </div>
       </CardHeader>
       <CardContent>

@@ -349,10 +349,10 @@ export class ResourcesService {
     });
   }
 
-  /** 按维度分布聚合（browser / os / device_type） */
+  /** 按维度分布聚合（browser / os / device_type / language / timezone 等） */
   public async aggregateDimension(
     params: ResourceWindowParams,
-    field: "browser" | "browserVersion" | "os" | "osVersion" | "deviceType" | "networkType" | "country" | "region",
+    field: "browser" | "browserVersion" | "os" | "osVersion" | "deviceType" | "networkType" | "country" | "region" | "language" | "timezone",
     limit = 10,
   ): Promise<ResourceDimensionRow[]> {
     const db = this.database.db;
@@ -369,6 +369,8 @@ export class ResourcesService {
         case "networkType": return sql`network_type`;
         case "country": return sql`country`;
         case "region": return sql`region`;
+        case "language": return sql`language`;
+        case "timezone": return sql`timezone`;
       }
     })();
 

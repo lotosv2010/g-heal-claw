@@ -81,6 +81,8 @@ export class DashboardPerformanceService {
       platformRows,
       networkRows,
       countryRows,
+      languageRows,
+      timezoneRows,
       longTasksCurrent,
     ] = await Promise.all([
       this.perf.aggregateVitals(current),
@@ -97,6 +99,8 @@ export class DashboardPerformanceService {
       this.perf.aggregateDimension(current, "deviceType"),
       this.perf.aggregateDimension(current, "networkType"),
       this.perf.aggregateDimension(current, "country"),
+      this.perf.aggregateDimension(current, "language"),
+      this.perf.aggregateDimension(current, "timezone"),
       this.perf.aggregateLongTasks(current),
     ]);
 
@@ -120,9 +124,9 @@ export class DashboardPerformanceService {
       os: buildDimensionRows(osRows),
       version: buildDimensionRows(browserVersionRows),
       region: buildDimensionRows(countryRows),
-      carrier: [],
       network: buildDimensionRows(networkRows),
-      platform: buildDimensionRows(platformRows),
+      language: buildDimensionRows(languageRows),
+      timezone: buildDimensionRows(timezoneRows),
     };
 
     const longTasks = buildLongTasks(longTasksCurrent);

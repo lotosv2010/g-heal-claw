@@ -77,9 +77,9 @@ export interface VisitsDimensions {
   readonly os: readonly VisitsDimensionRow[];
   readonly version: readonly VisitsDimensionRow[];
   readonly region: readonly VisitsDimensionRow[];
-  readonly carrier: readonly VisitsDimensionRow[];
   readonly network: readonly VisitsDimensionRow[];
-  readonly platform: readonly VisitsDimensionRow[];
+  readonly language: readonly VisitsDimensionRow[];
+  readonly timezone: readonly VisitsDimensionRow[];
 }
 
 export interface VisitsOverviewDto {

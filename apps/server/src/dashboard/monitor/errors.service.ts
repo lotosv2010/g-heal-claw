@@ -84,6 +84,8 @@ export class DashboardErrorsService {
       deviceRows,
       networkRows,
       countryRows,
+      languageRows,
+      timezoneRows,
     ] = await Promise.all([
       this.errors.aggregateSummary(current),
       this.errors.aggregateSummary(previous),
@@ -99,6 +101,8 @@ export class DashboardErrorsService {
       this.errors.aggregateDimension(current, "device_type"),
       this.errors.aggregateDimension(current, "network_type"),
       this.errors.aggregateDimension(current, "country"),
+      this.errors.aggregateDimension(current, "language"),
+      this.errors.aggregateDimension(current, "timezone"),
     ]);
 
     const summary = buildSummary(summaryCurrent, summaryPrevious);
@@ -114,6 +118,8 @@ export class DashboardErrorsService {
       version: browserVersionRows,
       region: countryRows,
       network: networkRows,
+      language: languageRows,
+      timezone: timezoneRows,
     });
 
     return {
@@ -422,9 +428,9 @@ const DIMENSION_KEYS: readonly ErrorDimensionKey[] = [
   "os",
   "version",
   "region",
-  "carrier",
   "network",
-  "platform",
+  "language",
+  "timezone",
 ];
 
 interface DimensionInputs {
@@ -434,6 +440,8 @@ interface DimensionInputs {
   readonly version: readonly DimensionRow[];
   readonly region: readonly DimensionRow[];
   readonly network: readonly DimensionRow[];
+  readonly language: readonly DimensionRow[];
+  readonly timezone: readonly DimensionRow[];
 }
 
 function buildDimensions(inputs: DimensionInputs): ErrorDimensionsDto {
@@ -460,8 +468,8 @@ function pickDimension(
     case "version": return inputs.version;
     case "region": return inputs.region;
     case "network": return inputs.network;
-    case "platform": return inputs.device;
-    case "carrier": return [];
+    case "language": return inputs.language;
+    case "timezone": return inputs.timezone;
   }
 }
 

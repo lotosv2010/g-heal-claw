@@ -129,8 +129,8 @@ export interface DimensionRow {
   readonly fmpAvgMs: number;
 }
 
-/** 维度数据键 —— 其他维度（机型 / 版本 / 地域 / 运营商 / 网络）Phase 2 启用 */
-export type DimensionKey = "device" | "browser" | "os" | "version" | "region" | "carrier" | "network" | "platform";
+/** 维度数据键 —— 其他维度（机型 / 版本 / 地域 / 语言 / 网络）Phase 2 启用 */
+export type DimensionKey = "device" | "browser" | "os" | "version" | "region" | "language" | "network" | "timezone";
 
 export interface Dimensions {
   readonly device: readonly DimensionRow[];
@@ -138,9 +138,9 @@ export interface Dimensions {
   readonly os: readonly DimensionRow[];
   readonly version: readonly DimensionRow[];
   readonly region: readonly DimensionRow[];
-  readonly carrier: readonly DimensionRow[];
+  readonly language: readonly DimensionRow[];
   readonly network: readonly DimensionRow[];
-  readonly platform: readonly DimensionRow[];
+  readonly timezone: readonly DimensionRow[];
 }
 
 /** 长任务 3 级分布（ADR-0018；阈值：50ms~2s / 2s~5s / ≥5s） */
@@ -259,7 +259,7 @@ export function emptyOverview(): PerformanceOverview {
     trend: [],
     slowPages: [],
     fmpPages: [],
-    dimensions: { device: [], browser: [], os: [], version: [], region: [], carrier: [], network: [], platform: [] },
+    dimensions: { device: [], browser: [], os: [], version: [], region: [], language: [], network: [], timezone: [] },
     longTasks: {
       count: 0,
       totalMs: 0,

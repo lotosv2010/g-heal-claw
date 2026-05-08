@@ -85,6 +85,8 @@ export class DashboardApiService {
       dimPlatform,
       dimNetwork,
       dimCountry,
+      dimLanguage,
+      dimTimezone,
     ] = await Promise.all([
       this.apiMonitor.aggregateSummary(current),
       this.apiMonitor.aggregateSummary(previous),
@@ -101,6 +103,8 @@ export class DashboardApiService {
       this.apiMonitor.aggregateDimension(current, "device_type", limitDimension),
       this.apiMonitor.aggregateDimension(current, "network_type", limitDimension),
       this.apiMonitor.aggregateDimension(current, "country", limitDimension),
+      this.apiMonitor.aggregateDimension(current, "language", limitDimension),
+      this.apiMonitor.aggregateDimension(current, "timezone", limitDimension),
     ]);
 
     const summary = buildSummary(summaryCurrent, summaryPrevious);
@@ -119,9 +123,9 @@ export class DashboardApiService {
       os: buildDimensionRows(dimOs),
       version: buildDimensionRows(dimBrowserVersion),
       region: buildDimensionRows(dimCountry),
-      carrier: [],
       network: buildDimensionRows(dimNetwork),
-      platform: buildDimensionRows(dimPlatform),
+      language: buildDimensionRows(dimLanguage),
+      timezone: buildDimensionRows(dimTimezone),
     };
 
     return {

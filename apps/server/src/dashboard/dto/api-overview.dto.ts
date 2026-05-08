@@ -121,11 +121,7 @@ export interface ApiDimensionRowDto {
 }
 
 /**
- * 维度分布聚合结果
- *
- * 已接入：browser / os / platform（device_type）
- * 保留占位：device / browserVersion / osVersion / region / carrier / network
- * —— 待 UA-parser / GeoIP / 网络上报接入
+ * 维度分布聚合结果（8 维度：机型/浏览器/操作系统/版本/地域/网络/语言/时区）
  */
 export interface ApiDimensionsDto {
   readonly device: readonly ApiDimensionRowDto[];
@@ -133,9 +129,9 @@ export interface ApiDimensionsDto {
   readonly os: readonly ApiDimensionRowDto[];
   readonly version: readonly ApiDimensionRowDto[];
   readonly region: readonly ApiDimensionRowDto[];
-  readonly carrier: readonly ApiDimensionRowDto[];
   readonly network: readonly ApiDimensionRowDto[];
-  readonly platform: readonly ApiDimensionRowDto[];
+  readonly language: readonly ApiDimensionRowDto[];
+  readonly timezone: readonly ApiDimensionRowDto[];
 }
 
 export interface ApiOverviewDto {

@@ -134,19 +134,19 @@ export interface DimensionRowDto {
   readonly fmpAvgMs: number;
 }
 
-/** 维度键（与 perf_events_raw 可用列一一对应；其他维度 Phase 2 启用） */
-export type DimensionKey = "browser" | "os" | "platform";
+/** 维度键（与 perf_events_raw 可用列一一对应） */
+export type DimensionKey = "browser" | "os" | "language" | "timezone";
 
-/** 一组维度数据（8 维度统一结构） */
+/** 一组维度数据（8 维度统一结构：机型/浏览器/操作系统/版本/地域/网络/语言/时区） */
 export interface DimensionsDto {
   readonly device: readonly DimensionRowDto[];
   readonly browser: readonly DimensionRowDto[];
   readonly os: readonly DimensionRowDto[];
   readonly version: readonly DimensionRowDto[];
   readonly region: readonly DimensionRowDto[];
-  readonly carrier: readonly DimensionRowDto[];
   readonly network: readonly DimensionRowDto[];
-  readonly platform: readonly DimensionRowDto[];
+  readonly language: readonly DimensionRowDto[];
+  readonly timezone: readonly DimensionRowDto[];
 }
 
 /** 长任务三级分布（ADR-0018；阈值见 SPEC §3.3.2） */

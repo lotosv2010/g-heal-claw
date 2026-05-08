@@ -52,7 +52,7 @@ export class DashboardVisitsService {
       environment,
     };
 
-    const [summaryCurrent, summaryPrevious, trendRows, topPageRows, topRefRows, dimBrowser, dimBrowserVersion, dimOs, dimOsVersion, dimPlatform, dimNetwork, dimCountry, dimRegion] =
+    const [summaryCurrent, summaryPrevious, trendRows, topPageRows, topRefRows, dimBrowser, dimBrowserVersion, dimOs, dimOsVersion, dimPlatform, dimNetwork, dimCountry, dimRegion, dimLanguage, dimTimezone] =
       await Promise.all([
         this.visits.aggregateSummary(current),
         this.visits.aggregateSummary(previous),
@@ -67,6 +67,8 @@ export class DashboardVisitsService {
         this.visits.aggregateDimension(current, "networkType"),
         this.visits.aggregateDimension(current, "country"),
         this.visits.aggregateDimension(current, "region"),
+        this.visits.aggregateDimension(current, "language"),
+        this.visits.aggregateDimension(current, "timezone"),
       ]);
 
     return {
@@ -80,9 +82,9 @@ export class DashboardVisitsService {
         os: dimOs,
         version: dimBrowserVersion,
         region: dimCountry,
-        carrier: [],
         network: dimNetwork,
-        platform: dimPlatform,
+        language: dimLanguage,
+        timezone: dimTimezone,
       },
     };
   }

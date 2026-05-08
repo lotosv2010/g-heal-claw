@@ -400,10 +400,10 @@ export class VisitsService {
     }));
   }
 
-  /** 按维度分布聚合（browser / os / device_type） */
+  /** 按维度分布聚合（browser / os / device_type / language / timezone 等） */
   public async aggregateDimension(
     params: VisitsWindowParams,
-    field: "browser" | "browserVersion" | "os" | "osVersion" | "deviceType" | "networkType" | "country" | "region",
+    field: "browser" | "browserVersion" | "os" | "osVersion" | "deviceType" | "networkType" | "country" | "region" | "language" | "timezone",
     limit = 10,
   ): Promise<VisitsDimensionRow[]> {
     const db = this.database.db;
@@ -420,6 +420,8 @@ export class VisitsService {
         case "networkType": return sql`network_type`;
         case "country": return sql`country`;
         case "region": return sql`region`;
+        case "language": return sql`language`;
+        case "timezone": return sql`timezone`;
       }
     })();
 

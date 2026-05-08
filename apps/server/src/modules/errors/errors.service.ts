@@ -75,7 +75,7 @@ export interface DimensionRow {
 }
 
 /** 支持聚合的 DB 维度列白名单（与 error_events_raw schema 对齐） */
-export type SupportedDimensionColumn = "browser" | "browser_version" | "os" | "os_version" | "device_type" | "network_type" | "country" | "region";
+export type SupportedDimensionColumn = "browser" | "browser_version" | "os" | "os_version" | "device_type" | "network_type" | "country" | "region" | "language" | "timezone";
 
 const MESSAGE_HEAD_MAX = 128;
 

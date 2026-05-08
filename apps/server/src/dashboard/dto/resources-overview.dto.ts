@@ -113,9 +113,9 @@ export interface ResourcesDimensions {
   readonly os: readonly ResourcesDimensionRow[];
   readonly version: readonly ResourcesDimensionRow[];
   readonly region: readonly ResourcesDimensionRow[];
-  readonly carrier: readonly ResourcesDimensionRow[];
   readonly network: readonly ResourcesDimensionRow[];
-  readonly platform: readonly ResourcesDimensionRow[];
+  readonly language: readonly ResourcesDimensionRow[];
+  readonly timezone: readonly ResourcesDimensionRow[];
 }
 
 export interface ResourcesOverviewDto {

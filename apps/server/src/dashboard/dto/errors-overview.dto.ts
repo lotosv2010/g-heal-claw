@@ -49,16 +49,16 @@ export type ErrorCategory =
   | "media"
   | "api_code";
 
-/** 8 维度 tab 键（SPEC：机型/浏览器/操作系统/版本/地域/运营商/网络/平台） */
+/** 8 维度 tab 键（ADR-0038：机型/浏览器/操作系统/版本/地域/网络/语言/时区） */
 export type ErrorDimensionKey =
   | "device"
   | "browser"
   | "os"
   | "version"
   | "region"
-  | "carrier"
   | "network"
-  | "platform";
+  | "language"
+  | "timezone";
 
 export type DeltaDirection = "up" | "down" | "flat";
 

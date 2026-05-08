@@ -90,8 +90,8 @@ export interface DimensionRow {
   readonly failureRatio: number;
 }
 
-/** 已接入的 3 个维度列 */
-export type DimensionKey = "browser" | "browser_version" | "os" | "os_version" | "device_type" | "network_type" | "country" | "region";
+/** 已接入的维度列白名单 */
+export type DimensionKey = "browser" | "browser_version" | "os" | "os_version" | "device_type" | "network_type" | "country" | "region" | "language" | "timezone";
 
 /**
  * API 请求事件落库 + 聚合服务（ADR-0020 §4.2）
@@ -418,6 +418,8 @@ export class ApiService {
         case "network_type": return sql`network_type`;
         case "country": return sql`country`;
         case "region": return sql`region`;
+        case "language": return sql`language`;
+        case "timezone": return sql`timezone`;
       }
     })();
     const rows = await db.execute<{

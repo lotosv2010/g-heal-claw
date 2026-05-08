@@ -87,9 +87,9 @@ export interface ResourcesDimensions {
   readonly os: readonly ResourcesDimensionRow[];
   readonly version: readonly ResourcesDimensionRow[];
   readonly region: readonly ResourcesDimensionRow[];
-  readonly carrier: readonly ResourcesDimensionRow[];
+  readonly language: readonly ResourcesDimensionRow[];
   readonly network: readonly ResourcesDimensionRow[];
-  readonly platform: readonly ResourcesDimensionRow[];
+  readonly timezone: readonly ResourcesDimensionRow[];
 }
 
 export interface ResourcesOverview {
@@ -215,6 +215,6 @@ export function emptyResourcesOverview(): ResourcesOverview {
     trend: [],
     topSlow: [],
     topFailingHosts: [],
-    dimensions: { device: [], browser: [], os: [], version: [], region: [], carrier: [], network: [], platform: [] },
+    dimensions: { device: [], browser: [], os: [], version: [], region: [], language: [], network: [], timezone: [] },
   };
 }

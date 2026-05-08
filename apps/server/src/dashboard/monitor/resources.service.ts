@@ -74,6 +74,8 @@ export class DashboardResourcesService {
       dimPlatform,
       dimNetwork,
       dimCountry,
+      dimLanguage,
+      dimTimezone,
     ] = await Promise.all([
       this.resourceMonitor.aggregateSummary(current),
       this.resourceMonitor.aggregateSummary(previous),
@@ -88,6 +90,8 @@ export class DashboardResourcesService {
       this.resourceMonitor.aggregateDimension(current, "deviceType"),
       this.resourceMonitor.aggregateDimension(current, "networkType"),
       this.resourceMonitor.aggregateDimension(current, "country"),
+      this.resourceMonitor.aggregateDimension(current, "language"),
+      this.resourceMonitor.aggregateDimension(current, "timezone"),
     ]);
 
     return {
@@ -102,9 +106,9 @@ export class DashboardResourcesService {
         os: dimOs,
         version: dimBrowserVersion,
         region: dimCountry,
-        carrier: [],
         network: dimNetwork,
-        platform: dimPlatform,
+        language: dimLanguage,
+        timezone: dimTimezone,
       },
     };
   }

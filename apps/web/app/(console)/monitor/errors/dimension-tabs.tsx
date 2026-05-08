@@ -28,11 +28,11 @@ import type {
 /**
  * 异常维度分布（SPEC 第 4 区）
  *
- * Tabs 顺序固定：机型 / 浏览器 / 操作系统 / 版本 / 地域 / 运营商 / 网络 / 平台
+ * Tabs 顺序固定：机型 / 浏览器 / 操作系统 / 版本 / 地域 / 语言 / 网络 / 时区
  * 每个 Tab 内：左 1/3 环图 · 右 2/3 表格（# / 取值 / 占比 / 影响会话数）
  *
  * server 端已聚合：device（device_type 列）/ browser / os 三项；
- * 其余 5 项（version / region / carrier / network / platform）保留 "待采集" 占位，待上报字段扩展。
+ * 其余 5 项（version / region / language / network / timezone）保留 "待采集" 占位，待上报字段扩展。
  */
 
 const Pie = dynamic(() => import("@ant-design/plots").then((m) => m.Pie), {
@@ -51,8 +51,9 @@ const TABS: readonly TabDef[] = [
   { key: "os", label: "操作系统" },
   { key: "version", label: "版本" },
   { key: "region", label: "地域" },
+  { key: "language", label: "语言" },
   { key: "network", label: "网络" },
-  { key: "platform", label: "平台" },
+  { key: "timezone", label: "时区" },
 ];
 
 const PIE_COLORS = [

@@ -27,9 +27,9 @@ import type { ApiDimensionRow, ApiDimensions } from "@/lib/api/api";
  * 已接入维度（api_events_raw 列）：
  *  - 浏览器 browser
  *  - 操作系统 os
- *  - 平台 device_type（desktop / mobile / tablet / unknown）
+ *  - 设备类型 device_type（desktop / mobile / tablet / unknown）
  *
- * 占位 Tab（待采集）：机型 / 浏览器版本 / 操作系统版本 / 地域 / 运营商 / 网络
+ * 占位 Tab（待采集）：机型 / 浏览器版本 / 操作系统版本 / 地域 / 语言 / 网络 / 时区
  *
  * 每个 Tab：左 1/3 环图 · 右 2/3 表格（# / 取值 / 样本数 / 占比 / 均耗时 / 失败率）
  */
@@ -46,8 +46,9 @@ const TABS = [
   { key: "os", label: "操作系统" },
   { key: "version", label: "版本" },
   { key: "region", label: "地域" },
+  { key: "language", label: "语言" },
   { key: "network", label: "网络" },
-  { key: "platform", label: "平台" },
+  { key: "timezone", label: "时区" },
 ] as const;
 
 const PIE_COLORS = [
@@ -75,7 +76,7 @@ export function DimensionTabs({
       <CardHeader>
         <CardTitle>维度分布</CardTitle>
         <div className="text-muted-foreground text-xs">
-          按 API 请求样本数占比展示 · 浏览器 / 操作系统 / 平台 已接入；其余维度保留占位
+          按 API 请求样本数占比展示 · 浏览器 / 操作系统 / 设备类型 已接入；其余维度保留占位
         </div>
       </CardHeader>
       <CardContent>
