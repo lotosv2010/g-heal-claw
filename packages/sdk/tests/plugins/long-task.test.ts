@@ -5,7 +5,7 @@ import type { Hub, Scope } from "../../src/hub.js";
 import type { Transport } from "../../src/transport/types.js";
 
 /**
- * LongTaskPlugin 单元测试（ADR-0018 P1.1）
+ * LongTaskPlugin 单元测试
  *
  * 覆盖：
  *  - PerformanceObserver 不支持 / 不支持 longtask 的降级

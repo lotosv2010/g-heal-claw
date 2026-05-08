@@ -62,7 +62,7 @@ export interface FunnelStepRow {
   readonly users: number;
 }
 
-/** 漏斗聚合参数（ADR-0027） */
+/** 漏斗聚合参数 */
 export interface FunnelParams {
   readonly projectId: string;
   readonly sinceMs: number;
@@ -97,7 +97,7 @@ export interface TopExposureSelectorRow {
 }
 
 /**
- * 埋点事件落库 + 聚合服务（P0-3 §2）
+ * 埋点事件落库 + 聚合服务
  *
  * 职责：
  *  - `saveBatch`：trackPlugin 批量明细 → `track_events_raw`，`event_id UNIQUE` 幂等
@@ -475,7 +475,7 @@ export class TrackingService {
   }
 
   /**
-   * 漏斗聚合（ADR-0027 / TM.2.D.1）
+   * 漏斗聚合
    *
    * 动态 N 步 CTE 逐步推进：
    *  - step 1：窗口内命中首事件的去重用户 t1 = MIN(ts_ms)

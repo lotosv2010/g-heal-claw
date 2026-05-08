@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Dashboard 埋点大盘契约（P0-3 §2）
+ * Dashboard 埋点大盘契约
  *
  * 数据源：`track_events_raw`（trackPlugin 上报）；仅只读聚合视图。
  *

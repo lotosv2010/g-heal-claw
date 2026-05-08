@@ -2,7 +2,7 @@ import { z } from "zod";
 import { DimensionFilterSchema } from "@g-heal-claw/shared";
 
 /**
- * Dashboard 异常大盘 API 契约（ADR-0016 §3 + SPEC 9 分类扩展）
+ * Dashboard 异常大盘 API 契约
  *
  * 面向 Web 前端：server 已承担 9 分类拆分（resource 依赖 resource_kind 列）
  * 和 8 维度聚合，前端只做 UI 渲染。
@@ -50,7 +50,7 @@ export type ErrorCategory =
   | "media"
   | "api_code";
 
-/** 8 维度 tab 键（ADR-0038：机型/浏览器/操作系统/版本/地域/网络/语言/时区） */
+/** 8 维度 tab 键（机型/浏览器/操作系统/版本/地域/网络/语言/时区） */
 export type ErrorDimensionKey =
   | "device"
   | "browser"

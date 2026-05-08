@@ -10,11 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 通用事件归档父表（ADR-0017 §3.8）
- *
- * **本期定位**：仅建父表 + 4 张周分区 + 索引骨架；Gateway 不写入。
- * 当 T1.4.1 完整 Processor 落地时，Gateway 切换为统一 events_raw.INSERT，
- * 切片表（perf / error）降级为特化索引或物化视图。
+ * 通用事件归档父表
  *
  * **分区**：`PARTITION BY RANGE (ingested_at)`，Drizzle ORM 不支持原生分区 DSL，
  * 分区语法（父表 `PARTITION BY` + 子分区 `PARTITION OF ... FOR VALUES`）在

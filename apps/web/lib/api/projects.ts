@@ -1,5 +1,5 @@
 /**
- * 项目管理 API 客户端（对齐 ADR-0032 ProjectsController）
+ * 项目管理 API 客户端
  *
  * 端点前缀: /api/v1/projects
  * 鉴权: JWT Bearer（Server Component 从 cookie 注入）

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FunnelOverview } from "@/lib/api/funnel";
 
 /**
- * 漏斗大盘顶部 4 张汇总卡（ADR-0027）：
+ * 漏斗大盘顶部 4 张汇总卡：
  *  - 总进入用户（step 1）
  *  - 总转化率（末步 / 首步）
  *  - 窗口（小时）

@@ -5,7 +5,7 @@ import { STORAGE_SERVICE, type StorageService } from "../../modules/sourcemap/st
 import { Inject } from "@nestjs/common";
 
 /**
- * Dashboard Sourcemap 代理层（ADR-0033 §1）
+ * Dashboard Sourcemap 代理层
  *
  * 薄装配：直查 releases / release_artifacts 表，仅供管理页面使用。
  * 上传仍走 SourcemapController（X-Api-Key），此处只提供查看和删除。

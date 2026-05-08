@@ -46,7 +46,7 @@
 | Phase 3 | 资源监控 + 自定义上报 + 埋点 | 3 周 |
 | Phase 4 | 告警引擎 + 通知渠道 | 2 周 |
 | Phase 5 | AI 诊断 + 自愈 PR | 4 周 |
-| Phase 6 | 看板完善 + 开放 API + 小程序 SDK | 3 周 |
+| Phase 6 | 看板完善 + 开放 API + 自举可观测 | 3 周 |
 
 ---
 
@@ -1330,9 +1330,9 @@
 
 ---
 
-## Phase 6：看板完善 + 开放 API + 多端
+## Phase 6：看板完善 + 开放 API + 自举可观测
 
-**目标**：仪表盘打磨、开放 API、小程序 SDK。
+**目标**：仪表盘打磨、开放 API、自举与可观测。
 
 ### M6.0 未入库字段全量持久化（ADR-0038）
 
@@ -1394,13 +1394,15 @@
 - [ ] **T6.2.4** `/open/v1/export` 批量导出（CSV / JSONL，异步任务 + 下载链接）— 3d
 - [ ] **T6.2.5** OpenAPI 文档站（Swagger UI + 示例代码）— 2d
 
-### M6.3 小程序 SDK
+### M6.3 小程序 SDK — 跳过
 
-- [ ] **T6.3.1** `packages/miniapp-sdk` 骨架（复用 shared Schema）— 2d
-- [ ] **T6.3.2** 微信小程序适配（App.onError / App.onUnhandledRejection / wx.request 劫持）— 3d
-- [ ] **T6.3.3** 支付宝小程序适配 — 2d
-- [ ] **T6.3.4** 小程序端性能采集（startup / page lifecycle）— 2d
-- [-] **T6.3.5** 移动端 Native SDK（推迟，MVP 走 Hybrid WebView + H5 SDK）
+> 决策：MVP 阶段不做小程序 SDK，Web/H5 SDK 已覆盖核心场景；小程序需求视用户反馈再启动。
+
+- [-] **T6.3.1** `packages/miniapp-sdk` 骨架 — 跳过
+- [-] **T6.3.2** 微信小程序适配 — 跳过
+- [-] **T6.3.3** 支付宝小程序适配 — 跳过
+- [-] **T6.3.4** 小程序端性能采集 — 跳过
+- [-] **T6.3.5** 移动端 Native SDK — 跳过
 
 ### M6.4 自举与可观测
 

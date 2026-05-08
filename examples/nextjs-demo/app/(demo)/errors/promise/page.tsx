@@ -6,7 +6,7 @@ import { useState } from "react";
  * 未处理的 Promise rejection 场景
  *
  * 不带 .catch() 的 Promise rejection 会触发 window.unhandledrejection。
- * SDK ErrorPlugin（T1.2.2）应监听该事件并上报为 errorType=unhandledrejection。
+ * SDK ErrorPlugin 应监听该事件并上报为 errorType=unhandledrejection。
  */
 export default function PromiseErrorPage() {
   const [count, setCount] = useState(0);

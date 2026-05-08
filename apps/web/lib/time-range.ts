@@ -5,7 +5,7 @@
  *  - 预设（24h 等）：URL 参数 `?range=<key>`
  *  - 自定义区间：URL 参数 `?from=<ISO>&to=<ISO>`，二者同时存在才生效
  *
- * 默认 24h（与 ADR-0015 大盘默认窗口一致）。
+ * 默认 24h（与大盘默认窗口一致）。
  */
 
 export const TIME_PRESETS = [

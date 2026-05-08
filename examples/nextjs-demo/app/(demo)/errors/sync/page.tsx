@@ -7,7 +7,7 @@ import { useState } from "react";
  * 同步异常场景
  *
  * 在 React 事件回调中直接 throw，会冒泡到 React 的错误边界 / window.onerror。
- * 若 SDK 已注册 ErrorPlugin（T1.2.2），会由 window.onerror 捕获并上报；
+ * 若 SDK 已注册 ErrorPlugin，会由 window.onerror 捕获并上报；
  * 本页同时演示通过 <code>GHealClaw.captureException</code> 的手动上报路径
  *（ESM 具名导入的命名空间对象，自动解析当前 Hub；
  *   UMD 用户可直接改写为 <code>window.GHealClaw.captureException(...)</code>）。

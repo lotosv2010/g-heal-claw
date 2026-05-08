@@ -7,7 +7,7 @@ import { HealController } from "./heal.controller.js";
 import { HealResultWorker } from "./heal-result.worker.js";
 
 /**
- * HealModule（Phase 5 · T5.2.1）
+ * HealModule
  *
  * AI 自愈触发 + 状态查询 + 结果回写
  * - HealService：创建 heal_job + 入队 ai-diagnosis + 状态查询

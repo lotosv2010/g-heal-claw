@@ -1,7 +1,7 @@
 import type { RetentionCohort } from "@/lib/api/retention";
 
 /**
- * 留存矩阵热力图（ADR-0028）
+ * 留存矩阵热力图
  *
  * CSS Grid 渲染：
  *  - 行：cohort 日期（ASC）

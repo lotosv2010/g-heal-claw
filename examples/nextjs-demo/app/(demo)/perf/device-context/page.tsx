@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * 设备上下文采集 Demo（T1.2.4）
+ * 设备上下文采集 Demo
  *
  * 展示 SDK 自动采集的设备与网络信息：browser / browserVersion / os / osVersion /
  * deviceType / screen / network (effectiveType / rtt / downlink) / language / timezone。

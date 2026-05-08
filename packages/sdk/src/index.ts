@@ -1,5 +1,5 @@
 /**
- * @g-heal-claw/sdk — g-heal-claw 浏览器端 SDK（骨架阶段，T1.2.1 / ADR-0010）
+ * @g-heal-claw/sdk — g-heal-claw 浏览器端 SDK
  *
  * 设计要点：
  * - 零 Node.js API，浏览器兼容
@@ -143,7 +143,7 @@ export const GHealClaw = {
   breadcrumbPlugin: _breadcrumbPlugin,
   contextPlugin: _contextPlugin,
   /**
-   * 业务埋点（customPlugin · ADR-0023）→ type='custom_event'
+   * 业务埋点 → type='custom_event'
    *
    * 旧的 trackPlugin.track（type='track', trackType='code'）保留为 `trackDom`，
    * 供被动 DOM 埋点演示使用。

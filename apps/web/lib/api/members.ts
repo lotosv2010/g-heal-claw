@@ -1,5 +1,5 @@
 /**
- * 成员管理 API 客户端（对齐 ADR-0032 MembersController）
+ * 成员管理 API 客户端
  *
  * 端点前缀: /api/v1/projects/:projectId/members
  * 鉴权: JWT Bearer

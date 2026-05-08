@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 埋点事件原始表（SPEC §3.3.7 / P0-3）
+ * 埋点事件原始表
  *
  * 目的：承载 trackPlugin（type='track'）采集的代码 / 点击 / 曝光 / 表单埋点明细，
  * 供 Dashboard `/dashboard/v1/tracking/overview` 聚合 PV / UV / Top 事件 / 趋势。

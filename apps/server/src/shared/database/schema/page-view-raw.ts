@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 页面访问原始表（ADR-0020 Tier 2.A / SPEC §3.3.5）
+ * 页面访问原始表
  *
  * 目的：承载 pageViewPlugin（type='page_view'）的每一次页面进入事件，
  * 供 Dashboard `/dashboard/v1/visits/overview` 聚合 PV/UV/TopPages/TopReferrers/Trend。
@@ -24,7 +24,7 @@ import {
  *  - `(project_id, ts_ms)` 复合索引：24h/7d 窗口扫描
  *  - `(project_id, path, ts_ms)` 支撑 TopPages / Trend by path
  *  - `(project_id, session_id, ts_ms)` 支撑 UV 估算（DISTINCT session_id）
- *  - 30d TTL 由后续 pg_cron 脚本清理（本期手动 prune）
+ *  - 30d TTL 由 pg_cron 脚本清理
  *
  * 与 track_events_raw 的分工：
  *  - track_events_raw：click / submit / expose / code 主动埋点
@@ -51,7 +51,7 @@ export const pageViewRaw = pgTable(
     loadType: varchar("load_type", { length: 16 }).notNull(),
     /** 是否 SPA 路由切换 */
     isSpaNav: boolean("is_spa_nav").notNull().default(false),
-    /** 停留时长（毫秒，来自 page_duration 事件；本期始终为 NULL） */
+    /** 停留时长（毫秒，来自 page_duration 事件） */
     durationMs: doublePrecision("duration_ms"),
     /** 页面标题 */
     pageTitle: text("page_title"),
@@ -94,7 +94,7 @@ export const pageViewRaw = pgTable(
     timezone: varchar("timezone", { length: 64 }),
     release: varchar("release", { length: 64 }),
     environment: varchar("environment", { length: 32 }),
-    // T2.3.3 GeoIP 地域字段（写入时由服务端根据客户端 IP 解析填充）
+    // GeoIP 地域字段（写入时由服务端根据客户端 IP 解析填充）
     country: varchar("country", { length: 64 }),
     region: varchar("region", { length: 64 }),
     city: varchar("city", { length: 64 }),

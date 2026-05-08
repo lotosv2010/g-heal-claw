@@ -14,14 +14,13 @@ export const dynamic = "force-dynamic";
 type Source = OverviewSummaryResult["source"];
 
 /**
- * 数据总览页面（ADR-0029 / TM.3.A.3）
+ * 数据总览页面
  *
  * 自上而下：
  *  1. HealthHeroCard：全站健康度 0~100 + tone + top 扣分项明细
  *  2. 5 张 DomainSummaryCard（errors / performance / api / resources / visits）等宽排列
  *
  * 数据源：`/dashboard/v1/overview/summary`（Promise.allSettled 并发 5 域 service）
- * 鉴权 / 项目隔离：留给 T1.1.7，当前固定 NEXT_PUBLIC_DEFAULT_PROJECT_ID
  */
 export default async function OverviewPage({
   searchParams,

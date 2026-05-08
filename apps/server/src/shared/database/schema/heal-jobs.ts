@@ -4,7 +4,7 @@ import { issues } from "./issues.js";
 import { users } from "./users.js";
 
 /**
- * AI 自愈任务表（Phase 5 · ADR-0036）
+ * AI 自愈任务表
  *
  * 状态机：queued → diagnosing → patching → verifying → pr_created | failed
  */

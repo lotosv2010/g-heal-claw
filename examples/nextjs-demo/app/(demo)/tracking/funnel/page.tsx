@@ -4,7 +4,7 @@ import { track } from "@g-heal-claw/sdk";
 import { useState } from "react";
 
 /**
- * 转化漏斗触发场景（ADR-0027）
+ * 转化漏斗触发场景
  *
  * 3 个按钮按序上报 `view_home` → `click_cta` → `submit_form`，
  * 用于驱动 Web 大盘「埋点分析 → 转化漏斗」的默认 steps 视图。

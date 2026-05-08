@@ -2,10 +2,10 @@ import { z } from "zod";
 import { DimensionFilterSchema } from "@g-heal-claw/shared";
 
 /**
- * Dashboard 性能大盘 API 契约（ADR-0015）
+ * Dashboard 性能大盘 API 契约
  *
  * 与 `apps/web/lib/api/performance.ts` 的 PerformanceOverview 字段形状保持一致；
- * 前后端类型刻意不共享，保留字段命名演进自由度，待 Phase 6 稳定后再抽入 shared。
+ * 前后端类型刻意不共享，保留字段命名演进自由度。
  */
 
 // ------- 请求 query -------
@@ -94,7 +94,7 @@ export interface TrendBucketDto {
   readonly tbtP75: number;
   // 自定义 FSP / 首屏时间（p75）
   readonly fmpP75: number;
-  // Lighthouse 实验室近似 Speed Index（p75；ADR-0018 补齐）
+  // Lighthouse 实验室近似 Speed Index（p75）
   readonly siP75: number;
   // Navigation 阶段（p75）
   readonly dnsP75: number;
@@ -113,7 +113,7 @@ export interface SlowPageDto {
   readonly sampleCount: number;
   readonly lcpP75Ms: number;
   readonly ttfbP75Ms: number;
-  /** Phase 2.3 访问分析落地前，本字段恒为 0 */
+  /** 跳出率 */
   readonly bounceRate: number;
 }
 
@@ -150,7 +150,7 @@ export interface DimensionsDto {
   readonly timezone: readonly DimensionRowDto[];
 }
 
-/** 长任务三级分布（ADR-0018；阈值见 SPEC §3.3.2） */
+/** 长任务三级分布 */
 export interface LongTaskTiersDto {
   /** 50 ms ≤ duration < 2000 ms */
   readonly longTask: number;

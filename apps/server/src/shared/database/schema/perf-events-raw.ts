@@ -13,13 +13,10 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 性能事件原始表（ADR-0013）
+ * 性能事件原始表
  *
  * 合并 performance / long_task 两类事件，按 event_id 幂等写入。
  * 字段命名保持 snake_case；`type` 为判别列区分两种子类型。
- *
- * 迁移备注：project_id 暂不加 FK（保持 demo 硬编码 "demo" 可用）；
- * T1.4.1 完整 Processor 落地时迁入 events_raw 分区并补 FK。
  */
 export const perfEventsRaw = pgTable(
   "perf_events_raw",

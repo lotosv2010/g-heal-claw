@@ -1,5 +1,5 @@
 /**
- * 自定义日志大盘数据契约（对齐 ADR-0023 §4 / TM.1.C.5）
+ * 自定义日志大盘数据契约
  *
  * Web 层消费 server `/dashboard/v1/logs/overview`。
  */

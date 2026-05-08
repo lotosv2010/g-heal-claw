@@ -11,7 +11,7 @@ import {
 import { users } from "./users.js";
 
 /**
- * 项目主表（多租户根 —— ADR-0017 §3.2）
+ * 项目主表（多租户根）
  *
  * slug 用于 URL 友好访问；platform 预留扩展（web / miniapp / mobile）。
  * owner 通过 users FK 强绑定，ON DELETE RESTRICT 避免孤儿项目。
@@ -43,9 +43,9 @@ export type ProjectRow = typeof projects.$inferSelect;
 export type NewProjectRow = typeof projects.$inferInsert;
 
 /**
- * DSN 鉴权键（ADR-0017 §3.3）
+ * DSN 鉴权键
  *
- * public_key：SDK DSN 公开半，Gateway 鉴权入口（T1.3.2）
+ * public_key：SDK DSN 公开半，Gateway 鉴权入口
  * secret_key：CLI / Sourcemap 私有半，禁止前端暴露
  * is_active：软禁用（轮转场景）；partial index 仅走热集合
  */
@@ -75,7 +75,7 @@ export type ProjectKeyRow = typeof projectKeys.$inferSelect;
 export type NewProjectKeyRow = typeof projectKeys.$inferInsert;
 
 /**
- * 项目成员（RBAC —— ADR-0017 §3.4）
+ * 项目成员（RBAC）
  *
  * 复合主键 (project_id, user_id)，role 为项目级（区别于 users.role 系统级）。
  * invited_by 追溯邀请关系，删除用户时置 NULL 保留审计链。
@@ -108,7 +108,7 @@ export type ProjectMemberRow = typeof projectMembers.$inferSelect;
 export type NewProjectMemberRow = typeof projectMembers.$inferInsert;
 
 /**
- * 环境表（ADR-0017 §3.5）
+ * 环境表
  *
  * 复合主键 (project_id, name)；is_production 标记生产环境便于告警分组。
  */

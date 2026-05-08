@@ -17,7 +17,7 @@ async function loadSourceMap(): Promise<void> {
 }
 
 /**
- * Sourcemap 堆栈还原（ADR-0031 §5）
+ * Sourcemap 堆栈还原
  *
  * LRU 缓存 SourceMapConsumer，evict 时调 .destroy() 释放 WASM 内存。
  * 任何环节失败 → 原样返回对应 frame，永不抛错。

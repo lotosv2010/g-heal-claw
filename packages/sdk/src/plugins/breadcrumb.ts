@@ -3,7 +3,7 @@ import type { Hub } from "../hub.js";
 import type { Plugin } from "../plugin.js";
 
 /**
- * Breadcrumb 自动采集插件（ADR-0034 T1.2.3）
+ * Breadcrumb 自动采集插件
  *
  * 采集 5 种 category 的用户轨迹，写入 Hub.scope.breadcrumbs 环形缓冲。
  * 当 error 事件上报时，breadcrumbs 快照附加到事件 payload。

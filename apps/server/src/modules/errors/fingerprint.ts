@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { ErrorEvent } from "@g-heal-claw/shared";
 
 /**
- * 指纹计算（ADR-0016 §3；T1.4.1 合并 T1.4.2 范围）
+ * 指纹计算
  *
  * 规则：`sha1(subType + '|' + normalize(message) + '|' + topFrameFile + '|' + topFrameFunction)`
  *

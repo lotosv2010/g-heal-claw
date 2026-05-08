@@ -43,7 +43,7 @@ import {
  *   在页面加载完成后立即可见）
  * - LongTaskPlugin：采集 ≥50ms 主线程阻塞任务（PerformanceObserver longtask）
  * - SpeedIndexPlugin：近似采集 Speed Index（FP/FCP/LCP 三里程碑 AUC）
- * - FspPlugin：MutationObserver + rAF 采集首屏稳定时间（ADR-0018 P0.3）
+ * - FspPlugin：MutationObserver + rAF 采集首屏稳定时间
  * - ErrorPlugin：捕获 window.error（JS + 资源）+ unhandledrejection
  * - HttpPlugin：捕获 fetch / XHR 的 ajax 失败 + 业务 code 异常（type='error'）
  * - ApiPlugin：采集 fetch / XHR 全量请求明细（含成功，type='api'），驱动 API 大盘

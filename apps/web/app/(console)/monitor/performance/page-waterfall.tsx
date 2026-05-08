@@ -39,12 +39,11 @@ const STAGE_COLORS = [
  * 2. 通过 `coordinate.transpose` 旋转 90° 即得到横向条
  * 3. 翻转后 x/y 对调：类目在"y 轴"（视觉左侧）、时间区间在"x 轴"（视觉底部）
  *
- * 计算方式（ADR-0018 P2.2）：
+ * 计算方式：
  * - Navigation 串联阶段（DNS / TCP / SSL / 请求 / 响应 / 解析 / 资源）取窗口内采样的 p75 串联累积
  * - 首屏 / LCP 取同窗口 vital p75，单独起点为 0（整段时间轴的右界）
  * - 选 p75 是稳定性优先而非压线：更贴近 Core Web Vitals 通行口径
- * - `metric_minute` 预聚合路径被 T2.1.8 排除（见 ADR-0018 Excluded）；
- *   启用后将替换此处运行时聚合——届时本组件只做渲染、不再依赖 overview live 计算。
+ * - 后续 `metric_minute` 预聚合启用后将替换此处运行时聚合
  */
 /** 所有页面聚合的占位值 */
 const ALL_PAGES_VALUE = "__all__";
@@ -181,7 +180,7 @@ export function PageWaterfall({
                     选 p75 而非 p50 为稳定性优先，贴合 Core Web Vitals 口径。
                     <br />
                     <span className="text-muted-foreground">
-                      后续 <code className="rounded bg-muted px-1 py-0.5">metric_minute</code> 预聚合启用后将替换此运行时计算（ADR-0018）。
+                      后续 <code className="rounded bg-muted px-1 py-0.5">metric_minute</code> 预聚合启用后将替换此运行时计算。
                     </span>
                   </p>
                 </TooltipContent>

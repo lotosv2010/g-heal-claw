@@ -1,5 +1,5 @@
 /**
- * 服务端 DSN 解析（T1.3.2）
+ * 服务端 DSN 解析
  *
  * 与 `packages/sdk/src/dsn.ts` 协议同步，但不依赖 SDK —— 架构红线：apps/server
  * 不得 import sdk。函数极小，重复成本远低于跨包依赖成本。

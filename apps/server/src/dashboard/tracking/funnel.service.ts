@@ -10,7 +10,7 @@ import type {
 } from "../dto/tracking-funnel.dto.js";
 
 /**
- * Dashboard 漏斗装配层（ADR-0027）
+ * Dashboard 漏斗装配层
  *
  * 职责：
  *  - 将 stepWindowMinutes（API 单位）换算为 stepWindowMs 传给 TrackingService
@@ -81,7 +81,7 @@ function buildSteps(
   });
 }
 
-/** 保留 4 位小数（ADR-0027 §4 契约） */
+/** 保留 4 位小数 */
 function round4(n: number): number {
   return Math.round(n * 10000) / 10000;
 }

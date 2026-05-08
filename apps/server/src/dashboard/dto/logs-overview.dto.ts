@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Dashboard Logs 大盘契约（ADR-0023 §4 / TM.1.C.4）
+ * Dashboard Logs 大盘契约
  *
  * 数据源：`custom_logs_raw`（customPlugin 主动 log）；与 errors 模块（被动捕获）互补。
  *

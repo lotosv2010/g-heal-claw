@@ -20,7 +20,7 @@ import {
 } from "@/lib/api/retention";
 
 /**
- * 留存配置表单（URL 驱动 · ADR-0028）
+ * 留存配置表单（URL 驱动）
  *
  * 所有状态通过 URL searchParams 持久化，天然可分享；Client Component 仅负责：
  *  1. 维护 cohortDays / returnDays / identity / since / until 的草稿

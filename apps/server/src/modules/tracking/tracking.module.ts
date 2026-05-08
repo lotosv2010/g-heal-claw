@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 import { TrackingService } from "./tracking.service.js";
 
 /**
- * TrackingModule（P0-3 §2）
+ * TrackingModule
  *
  * 职责：承载 `trackPlugin`（type='track'）的明细落库 + 聚合查询服务。
  *  - 由 GatewayService 依赖注入调用 `saveBatch`

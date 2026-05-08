@@ -9,7 +9,7 @@ import {
 import { projects } from "./projects.js";
 
 /**
- * 通知渠道表（ADR-0035 §2）
+ * 通知渠道表
  */
 export const channels = pgTable(
   "channels",

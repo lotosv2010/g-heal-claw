@@ -28,7 +28,7 @@ const Pie = dynamic(() => import("@ant-design/plots").then((m) => m.Pie), {
 });
 
 /**
- * 维度分布 Tabs（8 维度全量接入，ADR-0038 字段已持久化）
+ * 维度分布 Tabs（8 维度全量接入）
  *
  * 每个 Tab 内：左 1/3 环图 · 右 2/3 表格（#/取值/占比/FMP 均值）
  */

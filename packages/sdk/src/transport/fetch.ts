@@ -11,7 +11,7 @@ interface FetchTransportOptions {
 /**
  * 骨架占位 Transport：单事件 POST，keepalive=true
  *
- * 故意不做批量、不做重试、不落 IndexedDB——那是 T1.2.5 / T1.2.6 的工作。
+ * 故意不做批量、不做重试、不落 IndexedDB——由生产级 Transport 负责。
  * 当前实现仅为端到端冒烟：demo 触发 → Network 能观测到 POST。
  */
 export function createFetchTransport(
@@ -23,7 +23,7 @@ export function createFetchTransport(
     name: "fetch",
     async send(event: SdkEvent): Promise<boolean> {
       if (typeof fetch === "undefined") {
-        logger.warn("fetch 不可用，transport 降级待 T1.2.5 实现");
+        logger.warn("fetch 不可用，降级至离线队列");
         return false;
       }
       try {

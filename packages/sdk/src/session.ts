@@ -1,7 +1,7 @@
 /**
  * Session 管理（SPEC §3.3.5 精简版）
  *
- * 骨架只负责生成与读取 sessionId；跨标签页同步 / 30min 失效 留给后续任务。
+ * 骨架只负责生成与读取 sessionId。
  */
 
 const KEY_PREFIX = "_ghc_session_";

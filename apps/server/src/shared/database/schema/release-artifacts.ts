@@ -10,7 +10,7 @@ import { projects } from "./projects.js";
 import { releases } from "./releases.js";
 
 /**
- * Release Artifacts（ADR-0031 §2.1）
+ * Release Artifacts
  *
  * 存储 Sourcemap .map 文件的元数据，实际文件放 MinIO。
  * (release_id, filename) 唯一：同 release 同 JS 文件只保留最新 map。

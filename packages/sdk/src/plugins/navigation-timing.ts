@@ -26,7 +26,7 @@ function mapNavigationType(
 /**
  * 将 `PerformanceNavigationTiming` 映射为 `NavigationTiming`（SPEC §4.2.1）
  *
- * 字段策略（对齐 ADR-0014 §4）：
+ * 字段策略：
  * - `secureConnectionStart === 0` 视为 HTTP 请求，ssl 置 undefined（Zod 可选）
  * - `redirectEnd === 0` 视为无重定向，redirect 置 undefined
  * - 所有阶段差值使用 `Math.max(0, ...)` 防御负值（浏览器 clock skew 边界）

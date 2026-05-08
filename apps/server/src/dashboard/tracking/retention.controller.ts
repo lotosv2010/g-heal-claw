@@ -16,12 +16,12 @@ import {
 } from "../dto/tracking-retention.dto.js";
 
 /**
- * Dashboard 用户留存大盘 API（ADR-0028 / tracking/retention 切片）
+ * Dashboard 用户留存大盘 API
  *
  * 只读视图层：`page_view_raw` → VisitsService.aggregateRetention → 装配层计算留存率。
- * 零新表 / 零 SDK / 零 RBAC 依赖；cohort 窗口与观察期由 URL query 传入，天然可分享。
+ * 零新表 / 零 SDK 依赖；cohort 窗口与观察期由 URL query 传入，天然可分享。
  *
- * 注：聚合方法位于 VisitsService（ADR-0025 模块边界：page_view_raw 归 VisitsService），
+ * 注：聚合方法位于 VisitsService（page_view_raw 归 VisitsService），
  *     Controller 仍挂在 tracking/ 用户视角菜单，形成 domain=Visits / presentation=Tracking。
  */
 @ApiTags("dashboard")

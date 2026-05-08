@@ -14,7 +14,7 @@ import { RateLimitService } from "./rate-limit.service.js";
 type AuthedRequest = FastifyRequest & { auth?: GatewayAuthContext };
 
 /**
- * Gateway 项目级限流 Guard（T1.3.3 / ADR-0016 §4）
+ * Gateway 项目级限流 Guard
  *
  * 必须在 DsnAuthGuard 之后执行：依赖 req.auth.projectId 区分租户。
  * 超限 → 429 `RATE_LIMITED`，附 Retry-After 头（秒级向上取整）

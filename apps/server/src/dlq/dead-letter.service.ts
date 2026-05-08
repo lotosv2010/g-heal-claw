@@ -25,10 +25,10 @@ export interface DlqEntry {
 }
 
 /**
- * 死信队列服务（T1.4.4 / ADR-0016 §5）
+ * 死信队列服务
  *
  * 设计取舍：
- *  - 本期无 BullMQ，DLQ 存储退到 Postgres 单表，写入走 INSERT 即可
+ *  - DLQ 存储退到 Postgres 单表，写入走 INSERT 即可
  *  - 写入失败不抛错：DLQ 本身是兜底，自身失败只记告警日志，避免级联故障
  *  - 告警语义：WARN 级日志 + 结构化字段，等 M4 告警引擎接入 Slack/钉钉时再升级
  *  - Test 环境（db=null）静默 no-op

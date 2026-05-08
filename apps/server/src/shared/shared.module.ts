@@ -7,8 +7,7 @@ import { RedisModule } from "./redis/redis.module.js";
 /**
  * 全局基础设施模块
  *
- * 聚合 Logger + DatabaseModule（ADR-0013）+ RedisModule（T1.3.5 / T1.3.3）
- * + QueueModule（TM.E.1 BullMQ 连接）+ GeoIpService（T2.3.3）
+ * 聚合 Logger + DatabaseModule + RedisModule + QueueModule + GeoIpService
  */
 @Global()
 @Module({

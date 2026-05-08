@@ -8,7 +8,7 @@ import { createPersistence } from "./persistence.js";
 import { applyFilters } from "../filter.js";
 
 /**
- * 生产级 Transport 工厂（ADR-0034 + T1.2.7 过滤链）
+ * 生产级 Transport 工厂
  *
  * 组装：Filter → EventQueue → Sender → Persistence
  *  - send(event) → applyFilters → enqueue → flush → sendBatch
@@ -63,7 +63,7 @@ export function createTransport(opts: TransportOptions): Transport {
   return {
     name: "batch-transport",
     async send(event: SdkEvent): Promise<boolean> {
-      // T1.2.7 过滤链：采样 → ignoreErrors → 敏感字段 → beforeSend
+      // 过滤链：采样 → ignoreErrors → 敏感字段 → beforeSend
       const filtered = applyFilters(event, opts.sdkOptions);
       if (filtered === null) {
         logger.debug("transport: 事件被过滤丢弃");

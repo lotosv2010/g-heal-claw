@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import type { DeltaDirection, VisitsSummary } from "@/lib/api/visits";
 
 /**
- * Visits 大盘顶部 4 张汇总卡（TM.2.A.6）：
+ * Visits 大盘顶部 4 张汇总卡：
  *  - PV（含环比 vs 上一等长窗口）
  *  - UV（按 session_id 去重）
  *  - SPA 切换占比（spaNavCount / pv）

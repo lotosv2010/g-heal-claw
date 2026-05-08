@@ -22,7 +22,7 @@ export interface GatewayAuthContext {
 type AuthedRequest = FastifyRequest & { auth?: GatewayAuthContext };
 
 /**
- * Gateway DSN 鉴权 Guard（T1.3.2）
+ * Gateway DSN 鉴权 Guard
  *
  * 流程：
  *  1. 从 body.dsn 解析 publicKey + projectId；失败 → 401 INVALID_DSN

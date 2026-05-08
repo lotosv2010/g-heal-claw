@@ -51,7 +51,7 @@ const FIXED_LEVELS: readonly ("info" | "warn" | "error")[] = [
 ];
 
 /**
- * 自定义分级日志（type='custom_log'）落库 + 聚合服务（ADR-0023 §4）
+ * 自定义分级日志（type='custom_log'）落库 + 聚合服务
  *
  * 聚合驱动 Dashboard `/dashboard/v1/logs/overview`：level 分桶 / 趋势三曲线 / Top message。
  */

@@ -16,10 +16,10 @@ import {
 } from "../dto/exposure-overview.dto.js";
 
 /**
- * Dashboard 曝光大盘 API（ADR-0024 / tracking/exposure 切片）
+ * Dashboard 曝光大盘 API
  *
- * 本端点仅 Web 读取；数据源复用 `track_events_raw` 中 `track_type='expose'`
- * 子集，不新增 schema / 队列 / SDK 能力。鉴权 / 项目隔离交给 T1.1.7。
+ * 数据源复用 `track_events_raw` 中 `track_type='expose'`
+ * 子集，不新增 schema / 队列 / SDK 能力。
  */
 @ApiTags("dashboard")
 @UseGuards(JwtAuthGuard, ProjectGuard)

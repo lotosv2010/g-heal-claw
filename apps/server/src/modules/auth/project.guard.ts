@@ -22,7 +22,7 @@ export type ProjectAuthedRequest = FastifyRequest & {
 };
 
 /**
- * ProjectGuard（ADR-0032 §3.2）
+ * ProjectGuard
  *
  * 前置依赖：JwtAuthGuard 已注入 req.user
  * 流程：

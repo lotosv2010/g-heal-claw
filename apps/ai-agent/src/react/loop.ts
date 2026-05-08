@@ -12,7 +12,7 @@ interface TraceEntry {
 }
 
 /**
- * ReAct 循环执行器（ADR-0036 · DESIGN §8.2）
+ * ReAct 循环执行器
  *
  * 组装 Model + Tools → DeepAgent，执行诊断，收集 trace。
  */

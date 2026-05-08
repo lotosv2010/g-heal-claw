@@ -16,9 +16,7 @@ import {
 } from "../dto/api-overview.dto.js";
 
 /**
- * Dashboard API 大盘 API（ADR-0020 §4.2 / TM.1.A.4）
- *
- * 本期仅面向 Web 前端；鉴权 / 项目隔离交给 T1.1.7。
+ * Dashboard API 大盘 API
  */
 @ApiTags("dashboard")
 @UseGuards(JwtAuthGuard, ProjectGuard)

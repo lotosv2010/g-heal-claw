@@ -7,7 +7,7 @@ import { createWritePatchTool } from "./write-patch.js";
 import { createCreatePrTool } from "./create-pr.js";
 
 /**
- * 为当前 heal job 创建工具集合（ADR-0036 · 5 核心 Tools）
+ * 为当前 heal job 创建工具集合（5 核心 Tools）
  */
 export function createTools(
   payload: HealJobPayload,

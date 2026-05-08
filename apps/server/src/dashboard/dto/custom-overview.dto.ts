@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Dashboard Custom 大盘契约（ADR-0023 §4 / TM.1.C.4）
+ * Dashboard Custom 大盘契约
  *
  * 数据源：`custom_events_raw` + `custom_metrics_raw`（customPlugin 主动上报）
  *

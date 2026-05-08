@@ -1,5 +1,5 @@
 /**
- * 自定义上报插件（ADR-0023 §2）
+ * 自定义上报插件
  *
  * 职责：SDK 主动业务 API 封装层，分发三类事件：
  *  - custom_event  — 业务埋点（GHealClaw.track）

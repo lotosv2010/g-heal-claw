@@ -1,5 +1,5 @@
 /**
- * 页面访问采集插件（ADR-0020 Tier 2.A / SPEC §3.3.5）
+ * 页面访问采集插件
  *
  * 职责：采集页面加载 + SPA 路由切换，映射到 `PageViewEventSchema`（`type: 'page_view'`）
  *  - 初次加载：`DOMContentLoaded` 或立即触发，loadType 读自 Performance Navigation API
@@ -63,7 +63,7 @@ export function pageViewPlugin(opts: PageViewPluginOptions = {}): Plugin {
       let lastEventId = "";
       let pageEnterAt = Date.now();
 
-      // T3.3.3：页面离开时回写停留时长（使用相同 eventId，服务端 UPSERT duration_ms）
+      // 页面离开时回写停留时长（使用相同 eventId，服务端 UPSERT duration_ms）
       const emitDuration = (): void => {
         if (!trackDuration || !lastEventId) return;
         const duration = Date.now() - pageEnterAt;
@@ -94,7 +94,7 @@ export function pageViewPlugin(opts: PageViewPluginOptions = {}): Plugin {
         emitInitial();
       }
 
-      // T3.3.3：visibilitychange → hidden 时上报停留时长
+      // visibilitychange → hidden 时上报停留时长
       if (trackDuration) {
         document.addEventListener("visibilitychange", () => {
           if (document.visibilityState === "hidden") emitDuration();
@@ -213,7 +213,7 @@ function dispatch(hub: Hub, p: DispatchParams): DispatchResult {
   return { eventId: base.eventId, enterAt: now };
 }
 
-/** T3.3.3：页面离开时重发相同 eventId + duration（服务端 UPSERT 回写） */
+/** 页面离开时重发相同 eventId + duration（服务端 UPSERT 回写） */
 function dispatchDuration(hub: Hub, p: {
   eventId: string;
   url: string;

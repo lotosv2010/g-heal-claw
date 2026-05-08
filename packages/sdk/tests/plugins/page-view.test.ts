@@ -5,7 +5,7 @@ import type { Hub, Scope } from "../../src/hub.js";
 import type { Transport } from "../../src/transport/types.js";
 
 /**
- * pageViewPlugin 单元测试（ADR-0020 Tier 2.A / TM.2.A.1）
+ * pageViewPlugin 单元测试
  *
  * 覆盖：
  *  - 初次加载：DOMContentLoaded 已完成 → 立即 dispatch

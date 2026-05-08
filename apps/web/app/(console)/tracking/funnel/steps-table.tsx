@@ -9,7 +9,7 @@ import {
 import type { FunnelStep } from "@/lib/api/funnel";
 
 /**
- * 漏斗步骤明细表（ADR-0027）
+ * 漏斗步骤明细表
  *
  * 列：序号 · 事件名 · 用户数 · 本步/上一步 · 本步/首步
  *  - 比例渲染为百分比（1 位小数）

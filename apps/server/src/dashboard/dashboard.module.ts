@@ -42,7 +42,7 @@ import { DimensionsService } from "./dashboard/dimensions.service.js";
 import { DebugModule } from "./debug/debug.module.js";
 
 /**
- * Dashboard 前端数据聚合模块（ADR-0015 + ADR-0016 §3 + ADR-0020 §4.2 + ADR-0022 §4 + P0-3 §2）
+ * Dashboard 前端数据聚合模块
  *
  * 依赖各领域 Module 暴露的 Service 做 DB 聚合；不引入任何队列或 ETL，保持"只读视图层"定位。
  */

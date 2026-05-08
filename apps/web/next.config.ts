@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   transpilePackages: ["@g-heal-claw/shared"],
   reactStrictMode: true,
-  // 菜单重构（ADR-0021）：所有菜单按一级分组（dashboard/monitor/tracking/settings）归类
+  // 所有菜单按一级分组（dashboard/monitor/tracking/settings）归类
   // URL 新增分组前缀；保留 301 永久重定向，避免旧文档/书签失效
   async redirects() {
     // 旧 → 新路由映射表

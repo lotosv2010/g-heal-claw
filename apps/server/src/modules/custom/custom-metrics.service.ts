@@ -32,7 +32,7 @@ export interface CustomMetricTrendRow {
 }
 
 /**
- * 自定义业务测速（type='custom_metric'）落库 + 聚合服务（ADR-0023 §4）
+ * 自定义业务测速（type='custom_metric'）落库 + 聚合服务
  */
 @Injectable()
 export class CustomMetricsService {

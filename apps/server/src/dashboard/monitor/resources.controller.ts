@@ -16,9 +16,7 @@ import {
 } from "../dto/resources-overview.dto.js";
 
 /**
- * Dashboard Resources 大盘 API（ADR-0022 §4 / TM.1.B.4）
- *
- * 本期仅面向 Web 前端；鉴权 / 项目隔离交给 T1.1.7。
+ * Dashboard Resources 大盘 API
  */
 @ApiTags("dashboard")
 @UseGuards(JwtAuthGuard, ProjectGuard)

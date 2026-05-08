@@ -3,7 +3,7 @@ import { BullModule } from "@nestjs/bullmq";
 import { SERVER_ENV, type ServerEnv } from "../../config/env.js";
 
 /**
- * BullMQ 全局连接模块（TM.E.1 / ADR-0026）
+ * BullMQ 全局连接模块
  *
  * - 通过 BullModule.forRootAsync 注入 REDIS_URL，避免字符串硬编码
  * - NODE_ENV=test 下返回一个指向本地 loopback 的连接配置；测试用 mock Queue 覆盖真实消费

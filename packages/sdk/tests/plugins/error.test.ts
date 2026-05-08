@@ -5,7 +5,7 @@ import type { Hub, Scope } from "../../src/hub.js";
 import type { Transport } from "../../src/transport/types.js";
 
 /**
- * ErrorPlugin 单元测试（ADR-0016 + ADR-0019）
+ * ErrorPlugin 单元测试
  *
  * 覆盖：
  *  - JS 异常（window.error 冒泡）

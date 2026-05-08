@@ -22,7 +22,7 @@ import type {
 } from "../dto/tracking-overview.dto.js";
 
 /**
- * Dashboard 埋点大盘装配层（P0-3 §2）
+ * Dashboard 埋点大盘装配层
  *
  * 策略与 DashboardApiService 对齐：
  *  - 两次窗口聚合 → summary 环比

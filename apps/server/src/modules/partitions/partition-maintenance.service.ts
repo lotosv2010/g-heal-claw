@@ -10,7 +10,7 @@ import { SERVER_ENV, type ServerEnv } from "../../config/env.js";
 import { DatabaseService } from "../../shared/database/database.service.js";
 
 /**
- * events_raw 分区维护（TM.E.5 / ADR-0026）
+ * events_raw 分区维护
  *
  * 策略：
  *  - 启动时立即 tick 一次：保证服务重启后快速收敛，无需等到下一个 cron 周期
@@ -57,7 +57,7 @@ export class PartitionMaintenanceService implements OnModuleInit {
    * 声明式 cron：默认每周一 03:00（UTC）
    *
    * 实际 env.PARTITION_MAINTENANCE_CRON 生效需改为 SchedulerRegistry 动态注册；
-   * 为避免引入 `cron` 直接依赖，本期固定为编译期常量。
+   * 为避免引入 `cron` 直接依赖，固定为编译期常量。
    */
   @Cron("0 3 * * 1", { name: "partition-maintenance" })
   public async onCronTick(): Promise<void> {

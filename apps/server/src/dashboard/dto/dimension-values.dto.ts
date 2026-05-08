@@ -2,7 +2,7 @@ import { z } from "zod";
 import { DIMENSION_KEYS } from "@g-heal-claw/shared";
 
 /**
- * 维度值枚举 API 契约（T6.1.3）
+ * 维度值枚举 API 契约
  *
  * 前端筛选器下拉需要知道各维度的可选值列表。
  * 按事件表维度列 distinct + count 取 Top N。

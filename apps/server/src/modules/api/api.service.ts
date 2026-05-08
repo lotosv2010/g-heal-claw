@@ -96,13 +96,13 @@ export interface DimensionRow {
 export type DimensionKey = "browser" | "browser_version" | "os" | "os_version" | "device_type" | "network_type" | "country" | "region" | "language" | "timezone";
 
 /**
- * API 请求事件落库 + 聚合服务（ADR-0020 §4.2）
+ * API 请求事件落库 + 聚合服务
  *
  * 职责：
  *  - `saveBatch`：apiPlugin 批量明细 → `api_events_raw`，`event_id UNIQUE` 幂等
- *  - `aggregate*`：Dashboard `/dashboard/v1/api/overview` 聚合驱动（下一子任务实装）
+ *  - `aggregate*`：Dashboard `/dashboard/v1/api/overview` 聚合驱动
  *
- * 与 ErrorsService 的分工（ADR-0020 §4.1）：`ErrorsService` 只处理 `type='error'` 的
+ * 与 ErrorsService 的分工：`ErrorsService` 只处理 `type='error'` 的
  * ajax / api_code；本服务处理 `type='api'` 的全量明细（含成功）。
  */
 @Injectable()
@@ -522,7 +522,7 @@ function toRow(e: ApiEvent, geo?: GeoResult): NewApiEventRow {
     requestUrl: e.url,
     host: host.slice(0, 128),
     path,
-    pathTemplate: path, // T2.2.4 引入 pathTemplate 提取前 = path
+    pathTemplate: path,
     status: e.status,
     durationMs: e.duration,
     requestSize: e.requestSize,

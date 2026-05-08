@@ -17,7 +17,7 @@ import { Roles } from "../../modules/auth/roles.decorator.js";
 import { DashboardSourcemapService } from "./sourcemap.service.js";
 
 /**
- * Dashboard Sourcemap 管理代理（ADR-0033 §1）
+ * Dashboard Sourcemap 管理代理
  *
  * 前端统一走 JWT 鉴权查看/删除 Release + Artifact。
  * 上传仍走 /sourcemap/v1（X-Api-Key），此处不提供上传端点。

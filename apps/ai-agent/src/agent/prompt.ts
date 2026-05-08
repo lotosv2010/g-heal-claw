@@ -1,5 +1,5 @@
 /**
- * System Prompt 构建（ADR-0036 · DESIGN §8.1）
+ * System Prompt 构建
  *
  * 定义 Agent 角色、行为准则、诊断流程和修复约束。
  * 不硬编码 Tool 名，Agent 根据目标自行选择。

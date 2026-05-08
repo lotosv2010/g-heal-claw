@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 type Source = FunnelOverviewResult["source"];
 
 /**
- * 转化漏斗大盘（ADR-0027 / tracking/funnel）
+ * 转化漏斗大盘
  *
  * URL 驱动：`steps` / `windowHours` / `stepWindowMinutes` 全部从 searchParams 读取，
  * 复制链接即可分享。Server Component 负责：

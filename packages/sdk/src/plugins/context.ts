@@ -11,7 +11,7 @@ export interface ContextPluginOptions {
 }
 
 /**
- * 上下文增强插件（T1.2.4）
+ * 上下文增强插件
  *
  * 在 BaseEvent 已有的 device/page 骨架之上，补全：
  *  - UTM 参数解析（source/medium/campaign/term/content）

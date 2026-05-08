@@ -8,7 +8,7 @@ import { PerformanceService, type PerfOrLongTaskEvent } from "./performance.serv
 import { MetricMinuteService } from "./metric-minute.service.js";
 
 /**
- * events-performance 队列 Job 载荷（T2.1.4 / ADR-0037）
+ * events-performance 队列 Job 载荷
  */
 export interface PerfJobPayload {
   readonly events: readonly PerfOrLongTaskEvent[];
@@ -17,7 +17,7 @@ export interface PerfJobPayload {
 }
 
 /**
- * PerformanceProcessor（T2.1.4.3 / ADR-0037）
+ * PerformanceProcessor
  *
  * 链路：BullMQ job → saveBatch(raw) → 分钟聚合 → UPSERT metric_minute
  */

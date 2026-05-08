@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 type Source = VisitsOverviewResult["source"];
 
 /**
- * 页面访问监控页面（ADR-0020 Tier 2.A）
+ * 页面访问监控页面
  *
  * 自上而下：
  *  1. 4 张汇总卡：PV / UV / SPA 切换占比 / 刷新占比 + 环比
@@ -25,7 +25,7 @@ type Source = VisitsOverviewResult["source"];
  *  3. 访问页面 TOP（按 path 聚合 PV 倒序）
  *  4. 引荐来源 TOP（按 referrer_host 聚合 PV 倒序）
  *
- * 数据源：`page_view_raw` 由 pageViewPlugin 上报；鉴权与多项目隔离留给 T1.1.7。
+ * 数据源：`page_view_raw` 由 pageViewPlugin 上报。
  */
 export default async function VisitsPage({
   searchParams,

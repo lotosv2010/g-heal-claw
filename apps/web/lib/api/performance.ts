@@ -1,5 +1,5 @@
 /**
- * 页面性能概览数据契约（对齐 ADR-0015 响应 DTO）
+ * 页面性能概览数据契约
  *
  * UI 层类型独立于后端 DTO，避免 web 包直接依赖 server 事件 Schema；
  * 后端契约稳定后可抽入 packages/shared，当前保留两侧演进自由度。
@@ -84,7 +84,7 @@ export interface TrendBucket {
   readonly tbtP75: number;
   // FSP / 首屏时间
   readonly fmpP75: number;
-  // Lighthouse 实验室近似 Speed Index（ADR-0018）
+  // Lighthouse 实验室近似 Speed Index
   readonly siP75: number;
   // Navigation 子字段
   readonly dnsP75: number;
@@ -129,7 +129,7 @@ export interface DimensionRow {
   readonly fmpAvgMs: number;
 }
 
-/** 维度数据键 —— 其他维度（机型 / 版本 / 地域 / 语言 / 网络）Phase 2 启用 */
+/** 维度数据键 */
 export type DimensionKey = "device" | "browser" | "os" | "version" | "region" | "language" | "network" | "timezone";
 
 export interface Dimensions {
@@ -143,7 +143,7 @@ export interface Dimensions {
   readonly timezone: readonly DimensionRow[];
 }
 
-/** 长任务 3 级分布（ADR-0018；阈值：50ms~2s / 2s~5s / ≥5s） */
+/** 长任务 3 级分布（阈值：50ms~2s / 2s~5s / ≥5s） */
 export interface LongTaskTiers {
   readonly longTask: number;
   readonly jank: number;
@@ -186,7 +186,7 @@ export interface PerformanceOverviewParams {
 /**
  * 获取页面性能概览
  *
- * 依据 ADR-0015：
+ * 获取逻辑：
  * - 成功 → `source: "live"`（`vitals` 至少一项 sampleCount>0 时即视为 live；否则 empty）
  * - 5xx / fetch 抛错 / JSON 解析失败 → `source: "error"`，降级为 emptyOverview
  * - 目标端点：`${NEXT_PUBLIC_API_BASE_URL}/dashboard/v1/performance/overview?projectId=...`

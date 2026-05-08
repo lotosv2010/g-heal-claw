@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import type { HealthDto, HealthTone } from "@/lib/api/overview";
 
 /**
- * HealthHeroCard：全站健康度主卡（ADR-0029 §4）
+ * HealthHeroCard：全站健康度主卡
  *
  * - score=null → "数据不足" 引导
  * - tone 映射 Badge variant

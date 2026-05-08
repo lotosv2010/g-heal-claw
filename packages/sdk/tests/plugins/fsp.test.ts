@@ -5,7 +5,7 @@ import type { Hub, Scope } from "../../src/hub.js";
 import type { Transport } from "../../src/transport/types.js";
 
 /**
- * FspPlugin 单元测试（ADR-0018 P1.1）
+ * FspPlugin 单元测试
  *
  * 覆盖：
  *  - 无 MutationObserver → no-op

@@ -4,7 +4,7 @@ import type { Hub } from "../hub.js";
 import type { Plugin } from "../plugin.js";
 
 /**
- * LongTaskPlugin（ADR-0014 补充 / SPEC §3.3.2）
+ * LongTaskPlugin
  *
  * 采集 `PerformanceObserver({ type: 'longtask' })` 产出的长任务（≥50ms 主线程阻塞）
  * 并映射为 `LongTaskEventSchema`（type = 'long_task'）事件批量上报，配合 Dashboard

@@ -1,5 +1,5 @@
 /**
- * 通知渠道管理 API 客户端（T4.2.6）
+ * 通知渠道管理 API 客户端
  *
  * 端点前缀: /api/v1/projects/:projectId/channels
  * 鉴权: JWT Bearer

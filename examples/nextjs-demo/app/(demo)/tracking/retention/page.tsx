@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 /**
- * 用户留存触发场景（ADR-0028 / tracking/retention）
+ * 用户留存触发场景
  *
  * 留存大盘消费 `page_view_raw`：每次页面进入都会由 pageViewPlugin 自动上报。
  * 本场景提供 3 类触发器，验证 `session` 身份维度下 cohort 矩阵的构建：

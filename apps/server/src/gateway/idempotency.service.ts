@@ -12,7 +12,7 @@ export interface DedupResult<T> {
 }
 
 /**
- * Gateway 幂等去重（T1.3.5 / ADR-0016 §2）
+ * Gateway 幂等去重
  *
  * 策略：Redis SET key NX PX ttl → 返回 "OK" 为首次，null 为重复。
  *  - key 前缀：`gw:dedup:<projectId>:<eventId>`

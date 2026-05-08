@@ -1,5 +1,5 @@
 /**
- * 实时监控 SSE 客户端封装（ADR-0030 / TM.2.C.5）
+ * 实时监控 SSE 客户端封装
  *
  * - 直连 apps/server `/api/v1/stream/realtime`
  * - 断连自动重连，指数退避 1s→30s，最多 5 次

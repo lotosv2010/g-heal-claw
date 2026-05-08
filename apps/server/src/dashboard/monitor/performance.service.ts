@@ -30,7 +30,7 @@ import type {
 } from "../dto/overview.dto.js";
 
 /**
- * Dashboard 性能大盘装配层（ADR-0015）
+ * Dashboard 性能大盘装配层
  *
  * 职责：
  * - 两次时间窗（当前 / 前一周期）调 `PerformanceService` 聚合查询
@@ -116,7 +116,7 @@ export class DashboardPerformanceService {
 
     const vitals = buildVitals(vitalsCurrent, vitalsPrevious);
     const trend = buildTrendBuckets(trendRows, navTrendRows);
-    // firstScreen 优先取 FSP p75（ADR-0018 P0.3）；无 FSP 样本时回落到 FCP p75
+    // firstScreen 优先取 FSP p75；无 FSP 样本时回落到 FCP p75
     // FSP 不在 VitalKey 枚举（仅 trend/瀑布使用），直接按 metric 字符串查
     const fspP75 = vitalsCurrent.find((r) => r.metric === "FSP")?.p75;
     const fcpP75 = vitalFromAggregate(vitalsCurrent, "FCP");
@@ -161,7 +161,7 @@ function buildLongTasks(row: LongTaskSummaryRow): LongTaskSummaryDto {
 // ------- Vitals -------
 
 // 面板顺序（按业务要求）：LCP → INP → CLS → TTFB → FCP → TTI → TBT → FID → SI
-// SI（Speed Index）由 SDK speedIndexPlugin 用 FP/FCP/LCP 梯形法 AUC 近似（ADR-0018，精度 ±20%）
+// SI（Speed Index）由 SDK speedIndexPlugin 用 FP/FCP/LCP 梯形法 AUC 近似（精度 ±20%）
 const VITAL_ORDER: readonly VitalKey[] = [
   "LCP",
   "INP",
@@ -174,7 +174,7 @@ const VITAL_ORDER: readonly VitalKey[] = [
   "SI",
 ];
 
-/** web-vitals 官方阈值（ADR-0014 / ADR-0015 §4；FID/TTI 已废弃；TBT/SI 为 Lighthouse 阈值） */
+/** web-vitals 官方阈值（FID/TTI 已废弃；TBT/SI 为 Lighthouse 阈值） */
 const THRESHOLDS: Record<VitalKey, readonly [good: number, ni: number]> = {
   LCP: [2500, 4000],
   FCP: [1800, 3000],

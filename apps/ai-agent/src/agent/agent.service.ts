@@ -27,7 +27,7 @@ export interface AgentResult {
 }
 
 /**
- * 创建自愈诊断 Agent（ADR-0036）
+ * 创建自愈诊断 Agent
  *
  * 组装 LLM + Tools + Prompt → DeepAgent。
  * System Prompt 包含角色定义 + Issue 上下文 + 仓库约束。

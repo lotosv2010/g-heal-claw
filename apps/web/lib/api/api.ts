@@ -1,5 +1,5 @@
 /**
- * API 大盘数据契约（对齐 ADR-0020 §4.2 / TM.1.A.4）
+ * API 大盘数据契约
  *
  * Web 层消费 server `/dashboard/v1/api/overview`：
  *  - 失败 / 5xx → source: "error"

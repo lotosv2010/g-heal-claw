@@ -4,7 +4,7 @@ import { BaseEventSchema } from "./base.js";
 /**
  * 长任务 / 卡顿 / 无响应（SPEC §3.3.2）
  *
- * 三级分类（ADR-0018）：
+ * 三级分类：
  *  - `long_task`   50 ms ≤ duration < 2000 ms —— 浏览器原生 long task
  *  - `jank`        2000 ms ≤ duration < 5000 ms —— 卡顿（用户可感知）
  *  - `unresponsive` duration ≥ 5000 ms —— 无响应（页面假死）

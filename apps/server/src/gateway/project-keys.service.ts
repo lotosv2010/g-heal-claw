@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { DatabaseService } from "../shared/database/database.service.js";
 
 /**
- * DSN 鉴权解析结果（T1.3.2）
+ * DSN 鉴权解析结果
  *
  * 仅透出 Gateway 需要的字段；避免把完整行传入上游造成耦合。
  */

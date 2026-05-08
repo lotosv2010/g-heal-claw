@@ -11,10 +11,7 @@ import { projects } from "./projects.js";
 import { users } from "./users.js";
 
 /**
- * 异常聚合表（ADR-0017 §3.7）
- *
- * 本期状态：**仅建表不写入**。ErrorsService 仍走 error_events_raw.message_head
- * 字面分组（ADR-0016）；T1.4.2 指纹落地后 ErrorProcessor 开始 UPSERT。
+ * 异常聚合表
  *
  * fingerprint = sha1(subType + normalize(message) + topFrame)
  * (project_id, fingerprint) 唯一保证每个 Issue 仅一行；ON CONFLICT UPSERT。

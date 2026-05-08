@@ -25,7 +25,7 @@ import {
 } from "../dto/issues.dto.js";
 
 /**
- * Dashboard Issues API（T1.6.2 ~ T1.6.6）
+ * Dashboard Issues API
  *
  * 提供 Issues 列表、详情、状态变更端点。
  */

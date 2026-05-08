@@ -7,7 +7,7 @@ import { ChannelController } from "./channel.controller.js";
 import { NotificationWorker } from "./notification.worker.js";
 
 /**
- * NotificationModule（ADR-0035 T4.2.1）
+ * NotificationModule
  *
  * 通知渠道管理 + 通知分发 Worker：
  * - ChannelService：渠道 CRUD

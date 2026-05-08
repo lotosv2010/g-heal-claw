@@ -2,7 +2,7 @@ import { z } from "zod";
 import { DimensionFilterSchema } from "@g-heal-claw/shared";
 
 /**
- * Dashboard API 大盘契约（ADR-0020 §4.2 / TM.1.A.4）
+ * Dashboard API 大盘契约
  *
  * 数据源：`api_events_raw`（apiPlugin 上报）；仅只读聚合视图。
  *

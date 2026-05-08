@@ -1,5 +1,5 @@
 /**
- * 页面访问大盘数据契约（对齐 ADR-0020 Tier 2.A / TM.2.A.5）
+ * 页面访问大盘数据契约
  *
  * Web 层消费 server `/dashboard/v1/visits/overview`：
  *  - 失败 / 5xx → source: "error"

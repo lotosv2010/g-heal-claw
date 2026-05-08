@@ -7,7 +7,7 @@ import { perfEventsRaw } from "../../shared/database/schema.js";
 import { MetricMinuteService } from "./metric-minute.service.js";
 
 /**
- * ApdexService（T2.1.5 / ADR-0037）
+ * ApdexService
  *
  * 每分钟从 perf_events_raw 取上一分钟窗口内指定 metric 的样本，
  * 按项目计算 Apdex 评分并 UPSERT 到 metric_minute(metric='apdex')。

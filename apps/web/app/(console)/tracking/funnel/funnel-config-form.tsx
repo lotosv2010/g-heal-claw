@@ -22,7 +22,7 @@ import {
 } from "@/lib/api/funnel";
 
 /**
- * 漏斗配置表单（URL 驱动 · ADR-0027）
+ * 漏斗配置表单（URL 驱动）
  *
  * 所有状态通过 URL searchParams 持久化，天然可分享；Client Component 仅负责：
  *  1. 维护待提交的本地输入草稿

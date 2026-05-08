@@ -3,7 +3,7 @@ import type { SdkEvent } from "@g-heal-claw/shared";
 /**
  * Transport 抽象：负责把一个或多个事件投递到 Gateway
  *
- * 骨架阶段只有单事件发送；批量 / 降级 / IDB 兜底留给 T1.2.5 / T1.2.6。
+ * 骨架阶段只有单事件发送；批量 / 降级 / IDB 兜底由生产级 Transport 实现。
  */
 export interface Transport {
   readonly name: string;

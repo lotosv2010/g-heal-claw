@@ -28,7 +28,7 @@ import type {
 } from "../dto/custom-overview.dto.js";
 
 /**
- * Dashboard Custom 大盘装配层（ADR-0023 §4 / TM.1.C.4）
+ * Dashboard Custom 大盘装配层
  *
  * 并行聚合 eventsSummary / metricsSummary（双窗口环比）+ topN + trend + topPages，
  * 透传两个领域 Service；单位换算与四舍五入统一在本层完成。

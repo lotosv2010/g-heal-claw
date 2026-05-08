@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 type Source = ExposureOverviewResult["source"];
 
 /**
- * 曝光分析大盘（ADR-0024 / tracking/exposure）
+ * 曝光分析大盘
  *
  * 自上而下：
  *  1. 4 张汇总卡：总曝光 / 去重元素 / 去重页面 / 每用户曝光

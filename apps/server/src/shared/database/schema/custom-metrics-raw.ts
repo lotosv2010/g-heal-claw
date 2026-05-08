@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 自定义业务测速原始表（ADR-0023 §3）
+ * 自定义业务测速原始表
  *
  * 目的：承载 customPlugin `time(name, durationMs, properties)` 上报的 `type='custom_metric'`
  * 业务自定义耗时样本，供 Dashboard `/dashboard/v1/custom/overview` metrics 侧聚合

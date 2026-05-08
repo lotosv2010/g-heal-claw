@@ -1,5 +1,5 @@
 /**
- * 转化漏斗大盘数据契约（ADR-0027 / tracking/funnel）
+ * 转化漏斗大盘数据契约
  *
  * Web 层消费 server `/dashboard/v1/tracking/funnel`：
  *  - 参数校验失败 / 5xx → source: "error"

@@ -10,7 +10,7 @@ import {
 import { alertRules } from "./alert-rules.js";
 
 /**
- * 告警历史表（ADR-0035 §2）
+ * 告警历史表
  */
 export const alertHistory = pgTable(
   "alert_history",

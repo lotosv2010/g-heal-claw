@@ -16,9 +16,7 @@ import {
 } from "../dto/errors-overview.dto.js";
 
 /**
- * Dashboard 异常大盘 API（ADR-0016 §3）
- *
- * 本期仅面向 Web 前端；鉴权 / 项目隔离交给 T1.1.7。
+ * Dashboard 异常大盘 API
  */
 @ApiTags("dashboard")
 @UseGuards(JwtAuthGuard, ProjectGuard)

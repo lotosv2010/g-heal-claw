@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import type { DeltaDirection, ExposureSummary } from "@/lib/api/exposure";
 
 /**
- * 曝光大盘顶部 4 张汇总卡（ADR-0024）：
+ * 曝光大盘顶部 4 张汇总卡：
  *  - 总曝光量（含环比 vs 上一等长窗口）
  *  - 去重元素（selector ∪ event_name）
  *  - 去重页面（page_path）

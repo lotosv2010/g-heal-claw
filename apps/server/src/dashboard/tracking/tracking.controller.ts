@@ -16,9 +16,7 @@ import {
 } from "../dto/tracking-overview.dto.js";
 
 /**
- * Dashboard 埋点大盘 API（P0-3 §2）
- *
- * 本期仅面向 Web 前端；鉴权 / 项目隔离交给 T1.1.7。
+ * Dashboard 埋点大盘 API
  */
 @ApiTags("dashboard")
 @UseGuards(JwtAuthGuard, ProjectGuard)

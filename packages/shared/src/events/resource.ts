@@ -2,7 +2,7 @@ import { z } from "zod";
 import { BaseEventSchema } from "./base.js";
 
 /**
- * 静态资源加载事件（SPEC §3.3.4 / §4.2 / ADR-0022）
+ * 静态资源加载事件
  *
  * 6 类分类与 apiPlugin（fetch/XHR）形成 XOR 覆盖：
  *  - script / stylesheet / image / font / media / other
@@ -21,7 +21,7 @@ export type ResourceCategory = z.infer<typeof ResourceCategorySchema>;
 export const ResourceEventSchema = BaseEventSchema.extend({
   type: z.literal("resource"),
   initiatorType: z.string(),
-  /** 统一分类（ADR-0022，向后兼容 optional） */
+  /** 统一分类（向后兼容 optional） */
   category: ResourceCategorySchema.optional(),
   /** 从 url 派生的 host（便于 CDN 聚合，向后兼容 optional） */
   host: z.string().optional(),

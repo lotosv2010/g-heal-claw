@@ -35,7 +35,7 @@ export interface UpdateChannelInput {
 }
 
 /**
- * ChannelService（ADR-0035 T4.2.1）
+ * ChannelService
  *
  * 通知渠道 CRUD + 批量查询（供 Worker 分发时使用）
  */

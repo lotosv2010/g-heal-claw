@@ -28,7 +28,7 @@ import type {
 } from "../dto/api-overview.dto.js";
 
 /**
- * Dashboard API 大盘装配层（ADR-0020 §4.2 / TM.1.A.4）
+ * Dashboard API 大盘装配层
  *
  * 策略与 DashboardErrorsService 对齐：
  *  - 两次窗口聚合 → summary 环比

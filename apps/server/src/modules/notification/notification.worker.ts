@@ -21,7 +21,7 @@ interface NotificationJobData {
 const DEFAULT_TEMPLATE = `【{{severity}}】{{ruleName}}\n\n项目: {{projectId}}\n规则: {{ruleName}}\n触发时间: {{triggeredAt}}\n\n{{detail}}`;
 
 /**
- * NotificationWorker（ADR-0035 T4.2.1 + T4.2.2）
+ * NotificationWorker
  *
  * 消费通知队列，按渠道 ID 查询配置后通过对应 Provider 实际分发。
  */

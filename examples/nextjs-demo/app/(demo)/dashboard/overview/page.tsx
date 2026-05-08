@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 /**
- * 数据总览驱动场景（ADR-0029）
+ * 数据总览驱动场景
  *
  * 目的：一页触发 5 域（errors / performance / api / resources / visits）样本，
  * 让后台 `/dashboard/overview` 的健康度、5 张域卡从 `empty` 切到 `live`。
@@ -12,7 +12,7 @@ import { useState } from "react";
  *  - DevTools → Network → /ingest/v1/events 依次出现多种 type
  *  - 后台「数据总览」HealthHeroCard 的 score / tone 实时刷新；刷新页面查看环比
  *
- * 与 ADR-0020 Tier 3 联动；apps/docs 使用说明：/guide/dashboard/overview
+ * apps/docs 使用说明：/guide/dashboard/overview
  */
 export default function DashboardOverviewDemo() {
   const [log, setLog] = useState<readonly string[]>([]);

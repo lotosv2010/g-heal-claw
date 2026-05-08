@@ -36,7 +36,7 @@ import type {
 } from "./dto/overview-summary.dto.js";
 
 /**
- * 数据总览装配层（ADR-0029）
+ * 数据总览装配层
  *
  * 职责：
  *  - `Promise.allSettled` 并发聚合 5 个已 live 域（errors / performance / api / resources / visits）

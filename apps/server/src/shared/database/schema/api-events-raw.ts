@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * API 请求明细原始表（ADR-0020 §4.2）
+ * API 请求明细原始表
  *
  * 目的：承载 apiPlugin（type='api'）采集的所有 fetch/XHR 请求的全量明细，
  * 供 Dashboard `/dashboard/v1/api/overview` 聚合吞吐 / 慢请求 Top / 错误率 / 状态码分布。
@@ -46,7 +46,7 @@ export const apiEventsRaw = pgTable(
     host: varchar("host", { length: 128 }).notNull(),
     /** 原始 pathname（未归一化模板） */
     path: text("path").notNull(),
-    /** pathTemplate 占位：T2.2.4 引入模板化后写入（/api/users/:id），本期等于 path */
+    /** pathTemplate（/api/users/:id 模板化路径） */
     pathTemplate: text("path_template").notNull(),
     /** HTTP 响应状态码，0 表示网络层失败 */
     status: integer("status").notNull(),
@@ -60,7 +60,7 @@ export const apiEventsRaw = pgTable(
     failed: boolean("failed").notNull().default(false),
     errorMessage: text("error_message"),
     traceId: varchar("trace_id", { length: 64 }),
-    // T2.2.2：请求/响应体截断（≤4KB）
+    // 请求/响应体截断（≤4KB）
     requestBody: text("request_body"),
     responseBody: text("response_body"),
     breadcrumbs: jsonb("breadcrumbs"),

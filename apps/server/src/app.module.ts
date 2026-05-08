@@ -31,7 +31,7 @@ export class AppModule {
         ConfigModule.forRoot(env),
         LoggerModule.forRoot(buildLoggerConfig()),
         SharedModule,
-        // TM.E.5：全局注册 @nestjs/schedule，供 PartitionMaintenance 等模块使用
+        // 全局注册 @nestjs/schedule，供 PartitionMaintenance 等模块使用
         ScheduleModule.forRoot(),
         HealthModule,
         AuthModule,

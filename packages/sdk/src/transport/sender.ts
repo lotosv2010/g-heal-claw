@@ -2,7 +2,7 @@ import type { SdkEvent } from "@g-heal-claw/shared";
 import type { Logger } from "../logger.js";
 
 /**
- * 多通道批量发送器（ADR-0034 T1.2.5.2）
+ * 多通道批量发送器
  *
  * 降级链：beacon → fetch(keepalive) → image（单条 ≤ 2KB）
  * Beacon 单次 ≤ 64KB：超限自动拆批。

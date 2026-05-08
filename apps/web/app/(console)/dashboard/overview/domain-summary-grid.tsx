@@ -8,7 +8,7 @@ import type {
 } from "@/lib/api/overview";
 
 /**
- * 5 域等宽 Summary 卡片网格（ADR-0029 §4）
+ * 5 域等宽 Summary 卡片网格
  *
  * 每卡 2~3 个核心 KPI + 跳转链接到对应子页。
  * 单域 source=error → 小红角标；source=empty → 灰色占位。

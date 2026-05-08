@@ -37,7 +37,7 @@ interface ProjectSubscriberSet {
 }
 
 /**
- * RealtimeService（ADR-0030 §2 / §4）
+ * RealtimeService
  *
  * - 维护按 projectId 分组的内存订阅池（controller 注册 / 取消注册回调）
  * - 单条共享 Redis SUBSCRIBE 连接，首个订阅者触发 psubscribe，最后一个取消触发 punsubscribe
@@ -98,7 +98,7 @@ export class RealtimeService implements OnModuleDestroy {
       );
       await client.publish(channelKey(projectId, payload.topic), serialized);
     } catch (err) {
-      // publish 失败不回滚入库（ADR-0030 §3 采样控制）
+      // publish 失败不回滚入库
       this.logger.warn(
         `realtime publish 失败 project=${projectId} topic=${payload.topic}: ${(err as Error).message}`,
       );

@@ -1,7 +1,7 @@
 import type { StackFrame } from "@g-heal-claw/shared";
 
 /**
- * 堆栈解析器（T1.2.2.1 / ADR-0016 §1）
+ * 堆栈解析器
  *
  * 纯函数：将 `Error.stack` 文本解析为结构化 `StackFrame[]`。
  *

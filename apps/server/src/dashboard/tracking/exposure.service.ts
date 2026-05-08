@@ -19,7 +19,7 @@ import type {
 } from "../dto/exposure-overview.dto.js";
 
 /**
- * Dashboard 曝光大盘装配层（ADR-0024）
+ * Dashboard 曝光大盘装配层
  *
  * 与 DashboardTrackingService 同构：
  *  - 两次窗口聚合 → summary 环比

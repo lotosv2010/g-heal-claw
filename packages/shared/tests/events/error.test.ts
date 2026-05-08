@@ -5,7 +5,7 @@ import {
 } from "../../src/events/error.js";
 
 /**
- * ErrorEventSchema 判别测试（ADR-0019）
+ * ErrorEventSchema 判别测试
  *
  * 9 分类由 subType(7) + resource.kind(4) 共同判别：
  *  subType: js / promise / resource / framework / white_screen / ajax / api_code

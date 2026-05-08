@@ -10,7 +10,7 @@ import type {
 } from "../dto/tracking-retention.dto.js";
 
 /**
- * Dashboard 用户留存装配层（ADR-0028）
+ * Dashboard 用户留存装配层
  *
  * 职责：
  *  - 窗口归一：since/until 解析为毫秒；省略时以 now 为终点反推

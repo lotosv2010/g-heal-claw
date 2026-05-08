@@ -21,7 +21,7 @@ import type {
 } from "../dto/logs-overview.dto.js";
 
 /**
- * Dashboard Logs 大盘装配层（ADR-0023 §4 / TM.1.C.4）
+ * Dashboard Logs 大盘装配层
  *
  * 两次窗口聚合 summary → 错误率环比（绝对差 pp）；
  * levelBuckets 透传（LogsService 已保证 3 级别固定占位）；trend / topMessages 透传。

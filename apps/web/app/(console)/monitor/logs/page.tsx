@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 type Source = LogsOverviewResult["source"];
 
 /**
- * 自定义日志大盘（TM.1.C.5 / ADR-0023 §4）
+ * 自定义日志大盘
  *
  * 自上而下：
  *  1. 4 张汇总卡：日志总数 / Info / Warn / Error（含错误率环比 pp）

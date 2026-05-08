@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Dashboard 用户留存契约（ADR-0028 / tracking/retention 切片）
+ * Dashboard 用户留存契约
  *
  * 数据源：`page_view_raw` 单 CTE 两步聚合（VisitsService.aggregateRetention）
  * URL 驱动：`cohortDays` / `returnDays` / `identity` / `since` / `until` 透传；

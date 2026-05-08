@@ -16,7 +16,7 @@ export interface StreamHeaderProps {
 
 const ALL_TOPICS: readonly RealtimeTopic[] = ["error", "api", "perf"];
 
-/** SSE 连接状态 + QPS + topic 筛选 + pause / clear 控件（ADR-0030 §5） */
+/** SSE 连接状态 + QPS + topic 筛选 + pause / clear 控件 */
 export function StreamHeader({
   state,
   qps,

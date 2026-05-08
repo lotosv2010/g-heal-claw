@@ -5,7 +5,7 @@ import type { Job } from "bullmq";
 import { HealService } from "./heal.service.js";
 
 /**
- * HealResultWorker（ADR-0036 · T5.2.2.3）
+ * HealResultWorker
  *
  * 消费 ai-heal-fix 队列，将 Agent 结果回写到 heal_jobs 表。
  */

@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 自定义分级日志原始表（ADR-0023 §3）
+ * 自定义分级日志原始表
  *
  * 目的：承载 customPlugin `log(level, message, data)` 与 `captureMessage(...)`
  * 上报的 `type='custom_log'` 事件，供 Dashboard `/dashboard/v1/logs/overview`

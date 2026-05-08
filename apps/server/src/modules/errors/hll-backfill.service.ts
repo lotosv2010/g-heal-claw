@@ -11,7 +11,7 @@ import { DatabaseService } from "../../shared/database/database.service.js";
 import { IssueUserHllService } from "./hll.service.js";
 
 /**
- * Issue HLL 回写 cron（T1.4.3 / ADR-0016 §3.4）
+ * Issue HLL 回写 cron
  *
  * 目的：写入路径仅能累加"本批 session 集合大小"作为 lower-bound；
  * 本服务定期把 Redis HLL 的精确估算值写回 `issues.impacted_sessions`。

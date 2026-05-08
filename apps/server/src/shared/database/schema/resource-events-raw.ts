@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 静态资源明细原始表（ADR-0022 §2）
+ * 静态资源明细原始表
  *
  * 目的：承载 resourcePlugin（type='resource'）通过 `PerformanceObserver('resource')`
  * 采集的全量静态资源加载明细，供 Dashboard `/dashboard/v1/resources/overview` 聚合

@@ -12,7 +12,7 @@ import { TokensService } from "./tokens.service.js";
 import { TokensController } from "./tokens.controller.js";
 
 /**
- * AuthModule（ADR-0032）
+ * AuthModule
  *
  * 认证与项目管理 MVP 完整模块：
  * - AuthService / ProjectsService / MembersService / TokensService

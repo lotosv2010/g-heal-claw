@@ -29,7 +29,7 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   GATEWAY_RATE_LIMIT_BURST: z.coerce.number().int().positive().default(200),
   SERVER_DEFAULT_SAMPLE_RATE: sampleRate.default(1),
 
-  // -------- Issue HLL 回写 cron（T1.4.3）--------
+  // -------- Issue HLL 回写 cron --------
   // 0 表示禁用（测试 / 无 Redis 环境）；默认 60s 扫描一次，仅更新 last_seen 最近 30min 的活跃 Issue
   ISSUE_HLL_BACKFILL_INTERVAL_MS: z.coerce.number().int().nonnegative().default(60_000),
   ISSUE_HLL_BACKFILL_BATCH: z.coerce.number().int().positive().default(500),
@@ -54,8 +54,8 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   // -------- IP 地域库 --------
   GEOIP_DB_PATH: z.string().min(1),
 
-  // -------- Error Processor（TM.E / ADR-0026）--------
-  // sync   : Gateway 沿用同步落库（T1.4.1 切片形态，提供 30s 回滚路径）
+  // -------- Error Processor --------
+  // sync   : Gateway 沿用同步落库（提供 30s 回滚路径）
   // queue  : Gateway 仅 enqueue events-error，ErrorProcessor 异步消费
   // dual   : 双写（enqueue + 同步落库），灰度或指纹重算校验时启用
   ERROR_PROCESSOR_MODE: z.enum(["sync", "queue", "dual"]).default("queue"),
@@ -64,11 +64,11 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   ERROR_PROCESSOR_ATTEMPTS: z.coerce.number().int().positive().default(3),
   ERROR_PROCESSOR_BACKOFF_MS: z.coerce.number().int().positive().default(2000),
 
-  // -------- 分区维护 cron（TM.E.5）--------
+  // -------- 分区维护 cron --------
   // 标准 cron 表达式；默认每周一 03:00 预创建未来分区
   PARTITION_MAINTENANCE_CRON: z.string().min(1).default("0 3 * * 1"),
 
-  // -------- Realtime SSE 大盘（TM.2.C / ADR-0030）--------
+  // -------- Realtime SSE 大盘 --------
   // 采样率：Gateway 入库后按此概率 publish 到 Redis；0 关闭 realtime，1 全量
   REALTIME_SAMPLE_RATE: sampleRate.default(1),
   // Redis Streams 最大长度（每 project × topic）；MAXLEN 约束内存
@@ -76,7 +76,7 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   // 每 projectId 最大并发 SSE 连接（超过直接 429）
   REALTIME_MAX_CONN_PER_PROJECT: z.coerce.number().int().positive().default(10),
 
-  // -------- Performance Processor（T2.1.4 / ADR-0037）--------
+  // -------- Performance Processor --------
   // sync   : Gateway 沿用同步落库（当前形态）
   // queue  : Gateway 仅 enqueue events-performance，PerfProcessor 异步消费
   // dual   : 双写（enqueue + 同步落库），灰度校验时启用
@@ -85,7 +85,7 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   PERF_PROCESSOR_ATTEMPTS: z.coerce.number().int().positive().default(3),
   PERF_PROCESSOR_BACKOFF_MS: z.coerce.number().int().positive().default(2000),
 
-  // -------- Apdex（T2.1.5 / ADR-0037）--------
+  // -------- Apdex --------
   // 默认阈值 T（毫秒），Satisfied ≤ T，Tolerating ≤ 4T，Frustrated > 4T
   APDEX_THRESHOLD_MS: z.coerce.number().int().positive().default(2500),
   // 评估指标（默认 LCP）
@@ -93,7 +93,7 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   // cron 表达式；空串禁用
   APDEX_CRON: z.string().default("*/1 * * * *"),
 
-  // -------- Sourcemap LRU 缓存（T1.5.3 / ADR-0031）--------
+  // -------- Sourcemap LRU 缓存 --------
   // SourceMapConsumer 在内存缓存容量（条数），dispose 时调 .destroy() 释放 WASM
   SOURCEMAP_LRU_CAPACITY: z.coerce.number().int().positive().default(100),
 

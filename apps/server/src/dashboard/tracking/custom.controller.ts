@@ -16,9 +16,7 @@ import {
 } from "../dto/custom-overview.dto.js";
 
 /**
- * Dashboard Custom 大盘 API（ADR-0023 §4 / TM.1.C.4）
- *
- * 本期仅面向 Web 前端；鉴权 / 项目隔离交给 T1.1.7。
+ * Dashboard Custom 大盘 API
  */
 @ApiTags("dashboard")
 @UseGuards(JwtAuthGuard, ProjectGuard)

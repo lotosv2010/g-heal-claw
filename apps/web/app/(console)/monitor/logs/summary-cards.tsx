@@ -7,7 +7,7 @@ import type {
 } from "@/lib/api/logs";
 
 /**
- * 日志大盘顶部 4 张汇总卡（TM.1.C.5）：
+ * 日志大盘顶部 4 张汇总卡：
  *  - 日志总数（含环比 %）
  *  - Info 数
  *  - Warn 数

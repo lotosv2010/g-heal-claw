@@ -17,7 +17,7 @@ import {
 
 export type PerfOrLongTaskEvent = PerformanceEvent | LongTaskEvent;
 
-/** Dashboard 聚合：单指标 p75 + 样本数（ADR-0015） */
+/** Dashboard 聚合：单指标 p75 + 样本数 */
 export interface VitalAggregateRow {
   readonly metric: string;
   readonly p75: number;
@@ -95,7 +95,7 @@ export interface LongTaskSummaryRow {
   readonly totalMs: number;
   /** duration 的 p75（ms） */
   readonly p75Ms: number;
-  /** 三级分布（ADR-0018，SPEC §3.3.2；仅按 duration 回填） */
+  /** 三级分布（仅按 duration 回填） */
   readonly tiers: {
     /** 50 ms ≤ duration < 2000 ms */
     readonly longTask: number;
@@ -107,7 +107,7 @@ export interface LongTaskSummaryRow {
 }
 
 /**
- * 性能事件落库服务（ADR-0013）
+ * 性能事件落库服务
  *
  * - performance / long_task 统一写入 `perf_events_raw`
  * - 幂等：event_id UNIQUE + ON CONFLICT DO NOTHING
@@ -149,7 +149,7 @@ export class PerformanceService {
   }
 
   /**
-   * 简单总数查询（调试用）；T2.1.6 已提供带筛选的 Dashboard 聚合 API
+   * 简单总数查询（调试用）
    */
   public async countForProject(projectId: string): Promise<number> {
     const db = this.database.db;
@@ -162,7 +162,7 @@ export class PerformanceService {
   }
 
   /**
-   * 聚合：10 个性能指标的 p75 + 样本数（ADR-0015 + ADR-0018）
+   * 聚合：10 个性能指标的 p75 + 样本数
    *
    * 覆盖：LCP / FCP / CLS / INP / TTFB（Core Web Vitals）
    *     + FSP（自定义首屏）
@@ -207,7 +207,7 @@ export class PerformanceService {
   /**
    * 聚合：长任务（type='long_task'） 窗口内 count / totalMs / p75(duration) + 3 级分布
    *
-   * 来源 `perf_events_raw.lt_duration_ms`。三级分布（ADR-0018）：
+   * 来源 `perf_events_raw.lt_duration_ms`。三级分布：
    *   - `longTask`      50 ms ≤ duration < 2000 ms
    *   - `jank`         2000 ms ≤ duration < 5000 ms
    *   - `unresponsive` duration ≥ 5000 ms
@@ -269,7 +269,7 @@ export class PerformanceService {
    * 聚合：按小时 × metric 的 p75 桶（10 指标全覆盖）
    *
    * 返回原始长表行；上层按 hour 合并成宽表 TrendBucketDto。
-   * ADR-0018：白名单补齐 SI（Lighthouse 近似），避免趋势图漏算 Speed Index 系列。
+   * 白名单补齐 SI（Lighthouse 近似），避免趋势图漏算 Speed Index 系列。
    */
   public async aggregateTrend(params: WindowParams): Promise<TrendAggregateRow[]> {
     const db = this.database.db;
@@ -373,7 +373,7 @@ export class PerformanceService {
   }
 
   /**
-   * 聚合：瀑布图阶段（ADR-0015）
+   * 聚合：瀑布图阶段
    *
    * 取该窗口内最多 N 行有 navigation 的 TTFB 事件 → 字段取中位数；
    * 少量采样即可稳定（瀑布图用于展示"一般情况"而非 p75 压线）。
@@ -555,9 +555,6 @@ export class PerformanceService {
 
   /**
    * 聚合：按维度（浏览器 / 操作系统 / 设备类型）的样本数 + FMP 均值
-   *
-   * 当前 perf_events_raw 仅包含 browser / os / device_type 三个维度列；
-   * 机型 / 浏览器版本 / OS 版本 / 地域 / 运营商 / 网络均尚未持久化（Phase 2 扩展）。
    *
    * 为避免 SQL 注入，field 走白名单映射到固定的 Drizzle 列，而非字符串拼接。
    */

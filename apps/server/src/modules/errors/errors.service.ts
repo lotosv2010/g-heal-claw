@@ -82,7 +82,7 @@ export type SupportedDimensionColumn = "browser" | "browser_version" | "os" | "o
 const MESSAGE_HEAD_MAX = 128;
 
 /**
- * 异常事件落库 + 聚合服务（ADR-0016 §2 / §3）
+ * 异常事件落库 + 聚合服务
  *
  * 写入路径：
  * - event_id UNIQUE + ON CONFLICT DO NOTHING 幂等
@@ -102,7 +102,7 @@ export class ErrorsService {
   ) {}
 
   /**
-   * 批量写入错误事件 + Issue 聚合 UPSERT（T1.4.1）
+   * 批量写入错误事件 + Issue 聚合 UPSERT
    *
    * 顺序：先写 error_events_raw（幂等，UNIQUE event_id），再按指纹 UPSERT issues。
    * raw 写失败时不触发 issues UPSERT，保持一致性；issues UPSERT 失败降级为告警日志，
@@ -121,9 +121,9 @@ export class ErrorsService {
         .values(rows)
         .onConflictDoNothing({ target: errorEventsRaw.eventId })
         .returning({ id: errorEventsRaw.id });
-      // 仅对实际入库的事件做聚合，避免重复 UPSERT（ADR-0016 §3 幂等原则）
+      // 仅对实际入库的事件做聚合，避免重复 UPSERT
       if (inserted.length > 0) {
-        // T1.4.3：sessionId → HLL；失败不抛，回写 cron 下轮补偿
+        // sessionId → HLL；失败不抛，回写 cron 下轮补偿
         await this.hll.pfAdd(events);
         try {
           const result = await this.issues.upsertBatch(events);
@@ -134,7 +134,7 @@ export class ErrorsService {
           this.logger.warn(
             `issues upsert 失败但 raw 已入库：${(err as Error).message}`,
           );
-          // T1.4.4：聚合失败 → 进 DLQ，便于后续补偿重跑（raw 已入库不影响数据完整性）
+          // 聚合失败 → 进 DLQ，便于后续补偿重跑（raw 已入库不影响数据完整性）
           await this.dlq.enqueueEvents(
             events,
             "issues-upsert",
@@ -148,7 +148,7 @@ export class ErrorsService {
         `错误事件写入失败：${(err as Error).message}`,
         (err as Error).stack,
       );
-      // T1.4.4：raw 写入失败 → 全批入 DLQ；不影响 HTTP 返回语义
+      // raw 写入失败 → 全批入 DLQ；不影响 HTTP 返回语义
       await this.dlq.enqueueEvents(
         events,
         "error-raw-insert",

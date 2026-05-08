@@ -11,11 +11,10 @@ import {
 } from "./dto/overview-summary.dto.js";
 
 /**
- * 数据总览大盘 API（ADR-0029）
+ * 数据总览大盘 API
  *
  * - 5 域并发聚合（Promise.allSettled，单域失败不影响整体）
  * - 全站健康度由服务端权威计算，前端不做业务计算
- * - 无 RBAC（T1.1.7 未交付），沿用 `NEXT_PUBLIC_DEFAULT_PROJECT_ID`
  */
 @ApiTags("dashboard")
 @UseGuards(JwtAuthGuard, ProjectGuard)

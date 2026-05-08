@@ -13,13 +13,10 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 异常事件原始表（ADR-0016 §2）
+ * 异常事件原始表
  *
- * MVP：所有 error 事件单表承载，event_id 幂等；不做指纹聚合。
+ * 所有 error 事件单表承载，event_id 幂等。
  * `message_head` 为 `message.slice(0, 128)`，UI 分组键之一（配合 sub_type）。
- *
- * 迁移备注：project_id 暂不加 FK；T1.4.1 完整 Processor 落地时迁入 events_raw
- * 分区 + issues UPSERT，本表降级为查询副本或废弃（届时新写 ADR）。
  */
 export const errorEventsRaw = pgTable(
   "error_events_raw",

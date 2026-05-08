@@ -1,5 +1,5 @@
 /**
- * ResourcePlugin（ADR-0022 / TM.1.B）
+ * ResourcePlugin
  *
  * 职责：基于 `PerformanceObserver('resource')` 采集所有静态资源加载性能全量样本
  * 并映射为 `ResourceEventSchema`（type='resource'）事件上报。
@@ -185,7 +185,7 @@ function isIgnored(
 }
 
 /**
- * 6 类分类矩阵（ADR-0022 §1）
+ * 6 类分类矩阵
  */
 export function classifyResource(
   initiatorType: string,

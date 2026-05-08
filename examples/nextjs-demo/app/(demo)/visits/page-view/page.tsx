@@ -16,7 +16,7 @@ import { useState } from "react";
  *  - DevTools → Network → /ingest/v1/events 载荷 type=page_view
  *  - 后台「监控 → 页面访问」PV / UV / SPA占比 / 刷新占比 / TopPages / TopReferrers
  *
- * 参考 ADR-0020 Tier 2.A
+ * 对应后台「监控 → 页面访问」大盘
  */
 export default function VisitsPageViewDemo() {
   const router = useRouter();

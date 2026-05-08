@@ -1,5 +1,5 @@
 /**
- * API 采集插件（ADR-0020 §4.1）
+ * API 采集插件
  *
  * 职责：采集所有 fetch / XHR 请求的明细（含成功），映射到 `ApiEventSchema`
  * （`type: 'api'`），独立于 `httpPlugin`（type='error'）的异常链路。
@@ -32,7 +32,7 @@ import {
   truncateBody,
 } from "./http-capture.js";
 
-/** 默认慢请求阈值：1000ms（ADR-0020 §4.1） */
+/** 默认慢请求阈值：1000ms */
 const DEFAULT_SLOW_THRESHOLD_MS = 1000;
 
 export interface ApiPluginOptions {
@@ -109,7 +109,7 @@ function patchFetch(hub: Hub, opts: ResolvedOptions): void {
       return original.call(this, input, init);
     }
 
-    // T2.2.3：TraceID 注入
+    // TraceID 注入
     let traceId: string | undefined;
     let patchedInit = init;
     if (opts.traceIdHeaderName) {
@@ -120,13 +120,13 @@ function patchFetch(hub: Hub, opts: ResolvedOptions): void {
     }
 
     const requestSize = estimateBodySize(patchedInit?.body);
-    // T2.2.2：请求体截断
+    // 请求体截断
     const requestBody = opts.captureBody ? truncateBody(patchedInit?.body) : undefined;
 
     try {
       const response = await original.call(this, input, patchedInit);
       const duration = safeNow() - start;
-      // T2.2.2：响应体截断（异步读取不阻塞返回）
+      // 响应体截断（异步读取不阻塞返回）
       const responseBody = opts.captureBody ? await safeReadResponseText(response) : undefined;
       dispatch(hub, {
         method,
@@ -211,7 +211,7 @@ function patchXhr(hub: Hub, opts: ResolvedOptions): void {
       return originalSend.call(this, body);
     }
 
-    // T2.2.3：TraceID 注入
+    // TraceID 注入
     let traceId: string | undefined;
     if (opts.traceIdHeaderName) {
       traceId = generateTraceId();
@@ -227,7 +227,7 @@ function patchXhr(hub: Hub, opts: ResolvedOptions): void {
     const onDone = (failed: boolean, errorMessage?: string): void => {
       const duration = safeNow() - meta.start;
       const status = this.status;
-      // T2.2.2：XHR 响应体截断
+      // XHR 响应体截断
       const responseBody = opts.captureBody ? truncateBody(this.responseText) : undefined;
       dispatch(hub, {
         method: meta.method,

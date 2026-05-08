@@ -1,5 +1,5 @@
 /**
- * 告警规则管理 API 客户端（T4.2.5）
+ * 告警规则管理 API 客户端
  *
  * 端点前缀: /api/v1/projects/:projectId/alert-rules
  * 鉴权: JWT Bearer

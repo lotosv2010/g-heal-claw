@@ -5,7 +5,7 @@ import type { Hub, Scope } from "../../src/hub.js";
 import type { Transport } from "../../src/transport/types.js";
 
 /**
- * ApiPlugin 单元测试（ADR-0020 §4.1）
+ * ApiPlugin 单元测试
  *
  * 覆盖：
  *  - fetch 成功 200 → type='api' / failed=false / slow 基于阈值

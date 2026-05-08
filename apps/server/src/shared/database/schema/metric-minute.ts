@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 分钟级指标预聚合表（ADR-0037）
+ * 分钟级指标预聚合表
  *
  * PerformanceProcessor 按 (project_id, metric, minute) 窗口写入百分位统计，
  * ApdexService 写入 metric='apdex' 行。保留 365 天，替代实时 raw 表聚合。

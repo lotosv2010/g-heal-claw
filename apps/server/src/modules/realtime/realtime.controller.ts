@@ -45,7 +45,7 @@ function parseTopics(raw: string | undefined): readonly RealtimeTopic[] {
 }
 
 /**
- * SSE 实时大盘端点（ADR-0030 §4 / TM.2.C.4）
+ * SSE 实时大盘端点
  *
  * - Fastify `reply.raw` 手写 SSE 帧（NestJS 内置 SSE 仅支持 Express）
  * - `Last-Event-ID` 优先于 query.lastEventId；带 id 时先回放 Stream（MAXLEN 1000 窗口）再接实时流

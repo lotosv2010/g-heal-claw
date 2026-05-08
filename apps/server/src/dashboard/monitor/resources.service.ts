@@ -24,7 +24,7 @@ import type {
 } from "../dto/resources-overview.dto.js";
 
 /**
- * Dashboard Resources 大盘装配层（ADR-0022 §4 / TM.1.B.4）
+ * Dashboard Resources 大盘装配层
  *
  * 策略：
  *  - 两次窗口聚合 summary → 环比（总样本 % + 失败率差绝对值）

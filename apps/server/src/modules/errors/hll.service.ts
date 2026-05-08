@@ -4,7 +4,7 @@ import { RedisService } from "../../shared/redis/redis.service.js";
 import { computeFingerprint } from "./fingerprint.js";
 
 /**
- * Issue 用户数 HLL 估算服务（T1.4.3 / ADR-0016 §3.4）
+ * Issue 用户数 HLL 估算服务
  *
  * 目标：用 Redis HyperLogLog 对每个 (projectId, fingerprint) 的 distinct sessionId
  * 做 O(1) 空间估算（每 key ≤ 12KB，误差 ~0.81%），解决多批次合并时

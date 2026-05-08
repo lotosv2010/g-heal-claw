@@ -1,7 +1,7 @@
 import type { SdkEvent } from "@g-heal-claw/shared";
 
 /**
- * 事件队列：内存 buffer + flush 触发（ADR-0034 T1.2.5.1）
+ * 事件队列：内存 buffer + flush 触发
  *
  * flush 时机：
  *  - buffer.length >= maxBatchSize

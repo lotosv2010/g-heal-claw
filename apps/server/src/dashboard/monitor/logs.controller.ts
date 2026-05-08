@@ -16,9 +16,7 @@ import {
 } from "../dto/logs-overview.dto.js";
 
 /**
- * Dashboard Logs 大盘 API（ADR-0023 §4 / TM.1.C.4）
- *
- * 本期仅面向 Web 前端；鉴权 / 项目隔离交给 T1.1.7。
+ * Dashboard Logs 大盘 API
  */
 @ApiTags("dashboard")
 @UseGuards(JwtAuthGuard, ProjectGuard)

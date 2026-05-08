@@ -1,5 +1,5 @@
 /**
- * HTTP 捕获共享纯函数（ADR-0020 §4.1）
+ * HTTP 捕获共享纯函数
  *
  * 设计目的：`httpPlugin`（type='error'）与 `apiPlugin`（type='api'）共用同一套
  * URL 判定 / 时间戳 / JSON 解析 / Breadcrumb 快照工具，避免双份实现漂移。

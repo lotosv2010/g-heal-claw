@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * 多维下钻筛选参数（T6.1.3）
+ * 多维下钻筛选参数
  *
  * 所有 Dashboard 大盘 API 的通用可选筛选条件。
  * 前端通过 URL searchParams 传递，后端拼接 WHERE 子句。

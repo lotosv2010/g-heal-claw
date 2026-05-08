@@ -1,5 +1,5 @@
 /**
- * Sourcemap 管理 API 客户端（对齐 ADR-0033 Dashboard 代理端点）
+ * Sourcemap 管理 API 客户端
  *
  * 端点前缀: /dashboard/v1/settings/sourcemaps
  * 鉴权: JWT Bearer（代理层统一走 JWT，不暴露 X-Api-Key）

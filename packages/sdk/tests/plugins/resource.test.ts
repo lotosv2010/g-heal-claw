@@ -9,7 +9,7 @@ import type { Hub, Scope } from "../../src/hub.js";
 import type { Transport } from "../../src/transport/types.js";
 
 /**
- * ResourcePlugin 单元测试（ADR-0022 / TM.1.B）
+ * ResourcePlugin 单元测试
  *
  * 覆盖：
  *  - 6 类分类矩阵（classifyResource 纯函数）

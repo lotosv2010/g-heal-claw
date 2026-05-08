@@ -16,7 +16,7 @@ import {
 } from "../dto/tracking-funnel.dto.js";
 
 /**
- * Dashboard 漏斗大盘 API（ADR-0027 / tracking/funnel 切片）
+ * Dashboard 漏斗大盘 API
  *
  * 只读视图层：`track_events_raw` → TrackingService.aggregateFunnel → 装配层计算比例。
  * 零新表 / 零 SDK / 零 RBAC 依赖；漏斗定义由 URL steps CSV 传入，天然可分享。

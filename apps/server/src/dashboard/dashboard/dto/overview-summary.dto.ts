@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * 数据总览 DTO（ADR-0029）
+ * 数据总览 DTO
  *
  * 契约特点：
  *  - 5 域（errors / performance / api / resources / visits），每域独立 `source` 便于局部降级

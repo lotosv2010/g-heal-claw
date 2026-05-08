@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * 平均留存曲线（ADR-0028）
+ * 平均留存曲线
  *
  * 使用 @ant-design/plots 的 Line 展示 day 0 ~ day N 的加权平均留存率；
  * 空数据渲染占位，避免图形空白。

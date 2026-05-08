@@ -30,7 +30,7 @@ import type {
 } from "../dto/errors-overview.dto.js";
 
 /**
- * Dashboard 异常大盘装配层（ADR-0016 §3 + SPEC 9 分类 / 8 维度扩展）
+ * Dashboard 异常大盘装配层
  *
  * 策略：
  *  - 两次窗口聚合 → summary 环比

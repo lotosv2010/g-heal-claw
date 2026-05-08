@@ -41,7 +41,7 @@ export interface CustomEventTopPageRow {
 }
 
 /**
- * 自定义业务事件（type='custom_event'）落库 + 聚合服务（ADR-0023 §4）
+ * 自定义业务事件（type='custom_event'）落库 + 聚合服务
  *
  * 与 TrackingService（trackPlugin 被动 DOM 采集）完全独立；两者在 type 维度不重叠。
  */

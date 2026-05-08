@@ -4,7 +4,7 @@ import type { SdkEvent } from "@g-heal-claw/shared";
  * SDK 初始化选项（SPEC §3.1）
  *
  * 骨架仅消费 dsn / release / environment / debug 等核心字段；
- * 采样率 / beforeSend / ignoreErrors 等留给 T1.2.7。
+ * 采样率 / beforeSend / ignoreErrors 等由 Transport 过滤链实现。
  */
 export interface GHealClawOptions {
   readonly dsn: string;

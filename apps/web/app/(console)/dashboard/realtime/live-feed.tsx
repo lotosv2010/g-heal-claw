@@ -7,7 +7,7 @@ export interface LiveFeedProps {
 }
 
 /**
- * 最近 500 条实时事件列表（ADR-0030 §5 · TM.2.C.5）
+ * 最近 500 条实时事件列表
  *
  * - 采用简单溢出滚动容器（非虚拟列表，500 条 × 单行 DOM 在桌面端性能可接受）
  * - 按 topic 着色：error 红 / api 蓝 / perf 绿

@@ -26,7 +26,7 @@ type Source = ApiOverviewResult["source"];
  *  4. Tabs 多视图：慢请求 TOP · 请求 TOP · 访问页面 TOP · 异常状态码 TOP
  *  5. 维度分布：浏览器 / 操作系统 / 设备类型（已接入）+ 语言 / 时区等占位维度
  *
- * 数据源：`api_events_raw` 由 apiPlugin 上报；鉴权与多项目隔离留给 T1.1.7。
+ * 数据源：`api_events_raw` 由 apiPlugin 上报。
  */
 export default async function ApiPage({
   searchParams,

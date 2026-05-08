@@ -1,5 +1,5 @@
 /**
- * Realtime topic 常量（ADR-0030 §3）
+ * Realtime topic 常量
  *
  * Topic key 模板：`rt:<projectId>:<topic>`
  * Stream key 模板：`rt:<projectId>:stream`（所有 topic 共享一条 stream，通过 payload.topic 区分）

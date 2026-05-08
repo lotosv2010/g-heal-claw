@@ -26,7 +26,7 @@ import {
 import { Inject } from "@nestjs/common";
 
 /**
- * Sourcemap Release + Artifact CRUD（ADR-0031 §3）
+ * Sourcemap Release + Artifact CRUD
  *
  * 鉴权：X-Api-Key → project_keys.secret_key
  */

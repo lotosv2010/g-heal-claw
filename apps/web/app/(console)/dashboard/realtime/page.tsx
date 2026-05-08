@@ -17,7 +17,7 @@ const MAX_EVENTS = 500;
 const QPS_WINDOW_MS = 10_000;
 
 /**
- * 实时监控大盘（ADR-0030 / TM.2.C.5）
+ * 实时监控大盘
  *
  * - EventSource 订阅 `/api/v1/stream/realtime`
  * - 客户端保留最近 500 条，QPS 按 10s 滚动窗口本地计算

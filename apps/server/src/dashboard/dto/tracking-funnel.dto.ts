@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Dashboard 转化漏斗契约（ADR-0027 / tracking/funnel 切片）
+ * Dashboard 转化漏斗契约
  *
  * 数据源：`track_events_raw` 动态 N 步 CTE 聚合（TrackingService.aggregateFunnel）
  * URL 驱动：`steps` CSV 透传；零持久化、零 RBAC 依赖。

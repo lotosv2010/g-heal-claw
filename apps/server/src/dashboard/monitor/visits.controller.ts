@@ -16,9 +16,7 @@ import {
 } from "../dto/visits-overview.dto.js";
 
 /**
- * Dashboard Visits 大盘 API（ADR-0020 Tier 2.A）
- *
- * 本期仅面向 Web 前端；鉴权 / 项目隔离交给 T1.1.7。
+ * Dashboard Visits 大盘 API
  */
 @ApiTags("dashboard")
 @UseGuards(JwtAuthGuard, ProjectGuard)

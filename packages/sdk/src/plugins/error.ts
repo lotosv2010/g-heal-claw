@@ -10,7 +10,7 @@ import type { Plugin } from "../plugin.js";
 import { parseStack } from "./stack-parser.js";
 
 /**
- * ErrorPlugin 配置（ADR-0016 §1）
+ * ErrorPlugin 配置
  */
 export interface ErrorPluginOptions {
   /** 是否捕获资源错误（img/script/link/audio/video 等），默认 true */
@@ -35,7 +35,7 @@ const RESOURCE_TAGS = new Set([
 ]);
 
 /**
- * SDK ErrorPlugin 工厂（ADR-0016）
+ * SDK ErrorPlugin 工厂
  *
  * 订阅三路原生事件并映射到 `ErrorEventSchema`：
  *  - `window.addEventListener("error", h, false)` → JS 异常（冒泡阶段）

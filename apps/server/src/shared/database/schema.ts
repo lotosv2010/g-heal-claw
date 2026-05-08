@@ -1,4 +1,4 @@
-// Schema 桶式入口（ADR-0017 §4）
+// Schema 桶式入口
 //
 // 对外保持 `import * as schema from "./schema.js"` 兼容；业务代码按需从
 // 本文件 re-export 获取所有表 + 类型。分业务域拆分见 ./schema/ 子目录。

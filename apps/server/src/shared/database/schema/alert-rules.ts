@@ -11,7 +11,7 @@ import {
 import { projects } from "./projects.js";
 
 /**
- * 告警规则表（ADR-0035 §2）
+ * 告警规则表
  */
 export const alertRules = pgTable(
   "alert_rules",

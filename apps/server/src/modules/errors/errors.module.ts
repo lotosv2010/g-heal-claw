@@ -10,7 +10,7 @@ import { IssueUserHllService } from "./hll.service.js";
 import { IssuesService } from "./issues.service.js";
 
 /**
- * ErrorsModule（ADR-0016 §2 / §3 / §5；T1.4.1 / T1.4.3 / T1.4.4 / TM.E / ADR-0026）
+ * ErrorsModule
  *
  * 职责：error 事件落库 + 指纹聚合 UPSERT + Dashboard 聚合查询的 DB 层。
  * 不持有 HTTP Controller —— Dashboard 层通过注入 ErrorsService 消费。
@@ -19,7 +19,7 @@ import { IssuesService } from "./issues.service.js";
  * - SourcemapModule：ErrorProcessor 消费前的堆栈还原（stub）
  * - IssueUserHllService：HLL pfadd 写入路径的精确会话估算
  * - IssueHllBackfillService：cron 回写 issues.impacted_sessions
- * - ErrorProcessor：events-error 队列消费者（TM.E.1 骨架 / TM.E.4 落地）
+ * - ErrorProcessor：events-error 队列消费者
  */
 @Module({
   imports: [

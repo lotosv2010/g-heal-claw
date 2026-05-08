@@ -13,7 +13,7 @@ import { FmpPagesTable } from "./fmp-pages-table";
 import { DimensionTabs } from "./dimension-tabs";
 
 /**
- * 页面性能（ADR-0015，layout 优化 v2）
+ * 页面性能
  *
  * 从上至下：
  *  1. 常用指标卡：FMP / TTFB / DOM Ready / 页面完全加载 / 采样数量

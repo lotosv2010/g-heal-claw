@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { FunnelStep } from "@/lib/api/funnel";
 
 /**
- * 漏斗柱状图（ADR-0027）
+ * 漏斗柱状图
  *
  * 使用 @ant-design/plots 的 Funnel 图形展示各步用户数 + 转化率；
  * 末步 0 保留柱子（不短路）；totalEntered=0 时渲染占位。

@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 /**
- * 实时监控驱动场景（ADR-0030）
+ * 实时监控驱动场景
  *
  * 目的：在后台「Dashboard → 实时监控」侧边观察 SSE 推送；
  * 本页 3 个按钮分别触发 error / api / perf 三个 topic 的样本事件。
@@ -13,7 +13,7 @@ import { useState } from "react";
  *  - 点击按钮后，实时大盘 LiveFeed 应在 1s 内出现新行
  *  - DevTools → Network → EventStream 可查看底层 SSE 帧
  *
- * 与 ADR-0030 联动；apps/docs 使用说明：/guide/dashboard/realtime
+ * apps/docs 使用说明：/guide/dashboard/realtime
  */
 export default function DashboardRealtimeDemo() {
   const [log, setLog] = useState<readonly string[]>([]);

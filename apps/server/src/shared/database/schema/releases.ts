@@ -9,10 +9,10 @@ import {
 import { projects } from "./projects.js";
 
 /**
- * Release 发布版本（ADR-0017 §3.6）
+ * Release 发布版本
  *
  * version：用户可见版本号（1.0.0 / 2026.04.27）
- * commit_sha：可选，用于 Sourcemap 关联（T1.5）
+ * commit_sha：可选，用于 Sourcemap 关联
  * (project_id, version) 唯一保证不重复发布
  */
 export const releases = pgTable(

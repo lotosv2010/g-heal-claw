@@ -1,5 +1,5 @@
 /**
- * API Token 管理客户端（对齐 ADR-0032 TokensController）
+ * API Token 管理客户端
  *
  * 端点前缀: /api/v1/projects/:projectId/tokens
  * 鉴权: JWT Bearer

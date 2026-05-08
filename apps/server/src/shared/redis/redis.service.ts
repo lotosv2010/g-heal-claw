@@ -9,7 +9,7 @@ import { Redis, type Redis as RedisClient } from "ioredis";
 import { SERVER_ENV, type ServerEnv } from "../../config/env.js";
 
 /**
- * Redis 连接封装（T1.3.5 / T1.3.3 / T1.4.4）
+ * Redis 连接封装
  *
  * - NODE_ENV=test 下跳过真实连接，避免 e2e 强依赖 Redis
  * - lazyConnect=false：启动即建连，避免首次请求延迟

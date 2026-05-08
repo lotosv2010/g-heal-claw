@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 自定义业务事件原始表（ADR-0023 §3）
+ * 自定义业务事件原始表
  *
  * 目的：承载 customPlugin `track(name, properties)` 上报的 `type='custom_event'`
  * 全量业务埋点，供 Dashboard `/dashboard/v1/custom/overview` 聚合

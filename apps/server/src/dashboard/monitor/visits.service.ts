@@ -20,7 +20,7 @@ import type {
 } from "../dto/visits-overview.dto.js";
 
 /**
- * Dashboard Visits 大盘装配层（ADR-0020 Tier 2.A）
+ * Dashboard Visits 大盘装配层
  *
  * 策略与 DashboardApiService 对齐：
  *  - 两次窗口聚合 → summary 环比（按 PV）

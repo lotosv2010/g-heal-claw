@@ -1,5 +1,5 @@
 /**
- * 通知 Provider 接口定义（T4.2.2）
+ * 通知 Provider 接口定义
  */
 
 export interface NotificationPayload {

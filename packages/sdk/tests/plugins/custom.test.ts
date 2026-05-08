@@ -11,7 +11,7 @@ import type { Hub, Scope } from "../../src/hub.js";
 import type { Transport } from "../../src/transport/types.js";
 
 /**
- * CustomPlugin 单元测试（ADR-0023 / TM.1.C.1）
+ * CustomPlugin 单元测试
  *
  * 覆盖：
  *  - track / time / log 在 setup 后正常产出对应 type 事件

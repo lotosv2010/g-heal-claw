@@ -7,7 +7,7 @@ interface PrTemplateVars {
 }
 
 /**
- * PR Body Markdown 模板（ADR-0036 · DESIGN §8.3）
+ * PR Body Markdown 模板
  */
 export function renderPrBody(vars: PrTemplateVars): string {
   return `## 🤖 AI 自动修复

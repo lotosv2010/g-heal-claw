@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 type Source = CustomOverviewResult["source"];
 
 /**
- * 自定义上报大盘（TM.1.C.5 / ADR-0023 §4）
+ * 自定义上报大盘
  *
  * 自上而下：
  *  1. 5 张汇总卡：事件数 / 事件名基数 / 指标样本数 / p75-p95 / 平均每会话事件数

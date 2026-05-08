@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { RetentionOverview } from "@/lib/api/retention";
 
 /**
- * 留存大盘顶部 4 张汇总卡（ADR-0028）：
+ * 留存大盘顶部 4 张汇总卡：
  *  - 新用户总数（Σ cohortSize）
  *  - 平均 day 1 留存（跨 cohort 加权）
  *  - 平均 day 7 留存（若 returnDays < 7，则展示最大 day）

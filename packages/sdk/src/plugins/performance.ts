@@ -10,7 +10,7 @@ import type { Plugin } from "../plugin.js";
 import { mapNavigationTiming } from "./navigation-timing.js";
 
 /**
- * PerformancePlugin 配置（T2.1.1 / ADR-0014）
+ * PerformancePlugin 配置
  */
 export interface PerformancePluginOptions {
   /**
@@ -38,7 +38,7 @@ export interface PerformancePluginOptions {
    * 是否在 performancePlugin 内合成 FSP（First Screen Paint，首屏时间），**默认 false**
    *
    * 历史默认值为 true，基于 `domContentLoadedEventEnd - startTime` 近似；
-   * ADR-0018 P0.3 起引入独立的 `fspPlugin`（MutationObserver + rAF 静默窗口），
+   * 独立的 `fspPlugin`（MutationObserver + rAF 静默窗口）已实现，
    * 精度更高并与 SPA hydration 兼容。为避免双通道重复上报，此开关默认关闭。
    *
    * 仅当：
@@ -81,7 +81,7 @@ const TBT_WINDOW_MS = 5000;
 const FSP_RATING_THRESHOLDS = [1800, 3000] as const;
 
 /**
- * SDK PerformancePlugin 工厂（ADR-0014）
+ * SDK PerformancePlugin 工厂
  *
  * 订阅 `web-vitals` 的 LCP/FCP/CLS/INP/TTFB 回调，并在页面加载完成后
  * 通过 `PerformanceNavigationTiming` 采集瀑布阶段。所有事件统一映射到
@@ -102,7 +102,7 @@ export function performancePlugin(
   const reportNavigation = opts.reportNavigation ?? true;
   const reportDeprecated = opts.reportDeprecated ?? true;
   const reportTBT = opts.reportTBT ?? true;
-  // ADR-0018 P0.3：默认改为 false，避免与新 fspPlugin 双通道上报；显式传 true 可回退
+  // 默认改为 false，避免与新 fspPlugin 双通道上报；显式传 true 可回退
   const reportFSP = opts.reportFSP ?? false;
 
   return {
@@ -199,7 +199,7 @@ function readNavigationTiming(): NavigationTiming | null {
  *
  * 与官方 FMP 语义一致但实现更简：取 `domContentLoadedEventEnd - startTime`，
  * 代表"DOM 结构完成 + 关键资源解析完毕"的时刻，作为"用户看到页面内容"的代理值。
- * 对于 SPA 首屏渲染由框架 hydration 主导的场景可能低估，后续 T2.1.4 可切换为
+ * 对于 SPA 首屏渲染由框架 hydration 主导的场景可能低估，后续可切换为
  * paint entries（`first-contentful-paint`）+ 框架 hook 组合判定。
  */
 function readFspMs(): number | null {

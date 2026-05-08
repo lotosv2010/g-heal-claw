@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import type { ApiSummary, DeltaDirection } from "@/lib/api/api";
 
 /**
- * API 大盘顶部 4 张汇总卡（TM.1.A.5）：
+ * API 大盘顶部 4 张汇总卡：
  *  - 请求数（含环比 vs 上一等长窗口）
  *  - 慢请求（count + 占比）
  *  - 失败数（count + 占比）

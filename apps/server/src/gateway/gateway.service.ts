@@ -42,12 +42,12 @@ import type { IngestRequest } from "./ingest.dto.js";
  * Gateway Service
  *
  * 职责：接收已通过 Zod 校验 + DSN 鉴权 的批量事件 → 按 type 分流
- *  - performance / long_task：调 PerformanceService 落库（ADR-0013）
- *  - error：按 ERROR_PROCESSOR_MODE 决定同步落库 / 异步入队 / 双写（TM.E.2 / ADR-0026）
- *  - 其他类型：仍同步落库（后续 TM.E+1 按同样模式迁移）
+ *  - performance / long_task：调 PerformanceService 落库
+ *  - error：按 ERROR_PROCESSOR_MODE 决定同步落库 / 异步入队 / 双写
+ *  - 其他类型：仍同步落库
  *
  * auth：来自 DsnAuthGuard 注入的 `req.auth`，承载可信 projectId / publicKey；
- * 本期仅日志携带便于排查，不强制覆写事件载荷的 projectId。
+ * 日志携带便于排查，不强制覆写事件载荷的 projectId。
  */
 @Injectable()
 export class GatewayService {
@@ -88,7 +88,7 @@ export class GatewayService {
     const total = payload.events.length;
     // GeoIP 解析一次复用（全局注入所有 Service）
     const geo = this.geoip.lookup(clientIp);
-    // T1.3.5：按 eventId Redis SETNX 去重；Redis 不可用时放行（raw UNIQUE 兜底）
+    // 按 eventId Redis SETNX 去重；Redis 不可用时放行（raw UNIQUE 兜底）
     const { first, duplicates } = await this.idempotency.dedup(payload.events);
 
     const perfEvents = first.filter(isPerfOrLongTask);
@@ -101,7 +101,7 @@ export class GatewayService {
     const customLogs = first.filter(isCustomLog);
     const pageViewEvents = first.filter(isPageView);
 
-    // TM.E.2：根据 ERROR_PROCESSOR_MODE 决定错误事件去向
+    // 根据 ERROR_PROCESSOR_MODE 决定错误事件去向
     const errorMode = this.resolveErrorMode();
     const errorSyncPromise =
       errorEvents.length && errorMode !== "queue"
@@ -112,7 +112,7 @@ export class GatewayService {
         ? this.enqueueErrorBatch(errorEvents, geo)
         : Promise.resolve(0);
 
-    // T2.1.4.2 / ADR-0037：根据 PERF_PROCESSOR_MODE 决定性能事件去向
+    // 根据 PERF_PROCESSOR_MODE 决定性能事件去向
     const perfMode = this.resolvePerfMode();
     const perfSyncPromise =
       perfEvents.length && perfMode !== "queue"
@@ -162,7 +162,7 @@ export class GatewayService {
       pageViewPersisted;
     const enqueued = errorEnqueued + perfEnqueued;
 
-    // ADR-0030 / TM.2.C：入库后 fire-and-forget 推送到实时大盘
+    // 入库后 fire-and-forget 推送到实时大盘
     // publish 失败不影响入库 ack（RealtimeService 内已吞异常并日志降级）
     this.publishRealtime(errorEvents, apiEvents, perfEvents);
 
@@ -187,7 +187,7 @@ export class GatewayService {
   }
 
   /**
-   * 将本批次 error / api / perf 事件推送到实时大盘（ADR-0030 §3）
+   * 将本批次 error / api / perf 事件推送到实时大盘
    *
    * - 按 projectId 分桶；实际 publish 交由 RealtimeService 按 REALTIME_SAMPLE_RATE 采样
    * - 不 await，publish 失败在 RealtimeService 内吞异常并日志降级
@@ -294,14 +294,14 @@ export class GatewayService {
     }
   }
 
-  /** T2.1.4.2 / ADR-0037：解析 perf 处理模式 */
+  /** 解析 perf 处理模式 */
   private resolvePerfMode(): "sync" | "queue" | "dual" {
     const configured = this.env.PERF_PROCESSOR_MODE;
     if (configured === "queue" && this.perfQueueDegraded) return "sync";
     return configured;
   }
 
-  /** T2.1.4.2 / ADR-0037：将性能事件批次投递到 events-performance 队列 */
+  /** 将性能事件批次投递到 events-performance 队列 */
   private async enqueuePerfBatch(
     events: readonly PerfOrLongTaskEvent[],
     geo?: GeoResult,

@@ -112,7 +112,7 @@ const CLIENT_FACTORY: Record<ApiProtocol, (config: ModelConfig) => BaseLanguageM
 };
 
 /**
- * 根据 LLM_PROVIDER 环境变量创建 LLM 实例（ADR-0036）
+ * 根据 LLM_PROVIDER 环境变量创建 LLM 实例
  *
  * @param env 已校验的 AiAgentEnv
  * @returns LangChain 兼容的 Chat Model

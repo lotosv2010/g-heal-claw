@@ -1,7 +1,7 @@
 import type { SdkEvent } from "@g-heal-claw/shared";
 
 /**
- * IndexedDB 离线持久化（ADR-0034 T1.2.6.1）
+ * IndexedDB 离线持久化
  *
  * DB: ghc-offline-queue
  * Store: pending-events

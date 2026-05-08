@@ -5,7 +5,7 @@ import type { Hub, Scope } from "../../src/hub.js";
 import type { Transport } from "../../src/transport/types.js";
 
 /**
- * HttpPlugin 单元测试（ADR-0019）
+ * HttpPlugin 单元测试
  *
  * 覆盖：
  *  - fetch：成功 2xx JSON 业务码成功/失败、非 2xx、异常抛错

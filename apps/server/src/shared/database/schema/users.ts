@@ -7,10 +7,9 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 用户主表（ADR-0017 §3.1）
+ * 用户主表
  *
  * 认证主体，系统级 role 区分 admin / user；项目级权限在 project_members。
- * 密码哈希选型在 T1.1.7 认证落地时决定（argon2id 或 bcrypt）。
  */
 export const users = pgTable(
   "users",

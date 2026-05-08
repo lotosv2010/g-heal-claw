@@ -5,9 +5,9 @@ import { S3StorageService, STORAGE_SERVICE } from "./storage.service.js";
 import { ApiKeyGuard } from "./api-key.guard.js";
 
 /**
- * SourcemapModule（ADR-0031）
+ * SourcemapModule
  *
- * - SourcemapService：resolveFrames（当前 stub，T1.5.3 实装）
+ * - SourcemapService：resolveFrames
  * - SourcemapController：Release CRUD + Artifact multipart 上传
  * - S3StorageService：MinIO/S3 对象存储
  * - ApiKeyGuard：X-Api-Key 鉴权

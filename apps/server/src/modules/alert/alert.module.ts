@@ -7,7 +7,7 @@ import { AlertController } from "./alert.controller.js";
 import { AlertEvaluatorService } from "./alert-evaluator.service.js";
 
 /**
- * AlertModule（ADR-0035 T4.1.2 / T4.1.3）
+ * AlertModule
  *
  * 告警规则 CRUD + 告警历史查询 + 定时评估引擎
  * - AlertService：规则管理与历史查询

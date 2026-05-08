@@ -8,14 +8,14 @@ import type {
 /**
  * 常用指标卡片（列于页面顶部）
  *
- * 数据来源（ADR-0015 概览接口）：
+ * 数据来源：
  *  - 首屏时间（FMP）   ← stages.firstScreen.ms
  *  - 首字节（TTFB）    ← vitals.TTFB.value
  *  - DOM Ready         ← stages.domParse.endMs
  *  - 页面完全加载      ← 所有 stages 中最大的 endMs
  *  - 总阻塞时间（TBT） ← vitals.TBT.value
  *  - 长任务           ← longTasks.count / totalMs
- *  - 采样数量          ← vitals 中 sampleCount 的最大值（ADR-0015 中同源）
+ *  - 采样数量          ← vitals 中 sampleCount 的最大值
  *
  * 所有字段缺失时显式展示 "N/A"，不编造数据。
  */
@@ -118,7 +118,7 @@ export function CommonMetricsCards({
   );
 }
 
-/** 长任务三级分布条（ADR-0018 P0.2） */
+/** 长任务三级分布条 */
 function LongTaskTierBar({ tiers }: { readonly tiers: LongTaskSummary["tiers"] }) {
   const total = tiers.longTask + tiers.jank + tiers.unresponsive;
   if (total === 0) return null;

@@ -50,7 +50,7 @@ export interface TopReferrerRow {
   readonly sharePercent: number;
 }
 
-/** 留存矩阵 cohort 粒度（ADR-0028 / TM.2.E.1） */
+/** 留存矩阵 cohort 粒度 */
 export type RetentionIdentity = "session" | "user";
 
 /** 留存参数 */
@@ -76,7 +76,7 @@ export const RETENTION_MAX_DAYS = 30;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * 页面访问事件落库 + 聚合服务（ADR-0020 Tier 2.A）
+ * 页面访问事件落库 + 聚合服务
  *
  * 职责：
  *  - `saveBatch`：pageViewPlugin 批量明细 → `page_view_raw`，`event_id UNIQUE` 幂等
@@ -98,7 +98,7 @@ export class VisitsService {
     if (!db) return 0;
     const rows = events.map((e) => toRow(e, geo));
     try {
-      // T3.3.3：相同 eventId 重复上报时仅更新 duration_ms（页面离开时回写停留时长）
+      // 相同 eventId 重复上报时仅更新 duration_ms（页面离开时回写停留时长）
       const inserted = await db
         .insert(pageViewRaw)
         .values(rows)
@@ -290,7 +290,7 @@ export class VisitsService {
   }
 
   /**
-   * 留存矩阵聚合（ADR-0028 / TM.2.E.1）
+   * 留存矩阵聚合
    *
    * 单次往返 + CTE 两步计算：
    *  - scoped：按 identity 收敛 uid + 日粒度化（UTC）

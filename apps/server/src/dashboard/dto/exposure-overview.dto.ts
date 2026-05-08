@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Dashboard 曝光大盘契约（ADR-0024 / tracking/exposure 切片）
+ * Dashboard 曝光大盘契约
  *
  * 数据源：`track_events_raw` 中 `track_type='expose'` 子集，由 `trackPlugin`
  * 在 IntersectionObserver 命中且停留 ≥ `exposeDwellMs` 后写入。本端点不引入新

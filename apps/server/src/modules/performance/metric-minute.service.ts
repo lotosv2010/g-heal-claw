@@ -6,7 +6,7 @@ import { metricMinute } from "../../shared/database/schema.js";
 import type { PerfOrLongTaskEvent } from "./performance.service.js";
 
 /**
- * MetricMinuteService（T2.1.4.3 / ADR-0037）
+ * MetricMinuteService
  *
  * 按 (projectId, metric, minuteBucket) 聚合性能事件百分位，UPSERT 到 metric_minute 表。
  * 百分位使用排序法精确计算（每分钟样本量通常 < 1000，可接受）。

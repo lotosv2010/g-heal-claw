@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 type Source = RetentionOverviewResult["source"];
 
 /**
- * 用户留存大盘（ADR-0028 / tracking/retention）
+ * 用户留存大盘
  *
  * URL 驱动：`cohortDays` / `returnDays` / `identity` / `since` / `until`
  * 全部从 searchParams 读取，复制链接即可分享当前视图。

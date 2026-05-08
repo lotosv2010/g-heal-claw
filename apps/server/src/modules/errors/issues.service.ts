@@ -30,14 +30,12 @@ export interface UpsertResult {
 }
 
 /**
- * 异常聚合 Service（ADR-0016 §3 / ADR-0017 §3.7；T1.4.1）
+ * 异常聚合 Service
  *
  * 职责：按指纹把同一批 ErrorEvent[] 聚合为 issues 行的 UPSERT
  *  - 新建：INSERT 新行（status='open', first_seen=now, event_count=N）
  *  - 命中：UPDATE last_seen=now, event_count += N, impacted_sessions += batch_sessions
  *  - 状态机 regression：命中行 status='resolved' + 新事件 → 自动回归 'open' 并清 resolved_at
- *
- * 本期范围：在 ErrorsService.saveBatch 内联同步调用（无队列；BullMQ 改造延后至 T1.4.4 DLQ 之后）
  */
 @Injectable()
 export class IssuesService {
@@ -157,7 +155,7 @@ export class IssuesService {
   /**
    * 手工状态迁移：open → resolved；写 resolved_at
    *
-   * 状态机简化版：本期仅实现 resolve / reopen 两个方向；ignored 留到 T1.6.x Dashboard 联动。
+   * 状态机：resolve / reopen 两个方向。
    */
   public async resolve(issueId: string): Promise<boolean> {
     const db = this.database.db;

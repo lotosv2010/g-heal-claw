@@ -76,13 +76,13 @@ const FIXED_CATEGORIES: readonly string[] = [
 ];
 
 /**
- * 静态资源事件落库 + 聚合服务（ADR-0022 §3）
+ * 静态资源事件落库 + 聚合服务
  *
  * 职责：
  *  - `saveBatch`：resourcePlugin 批量明细 → `resource_events_raw`，`event_id UNIQUE` 幂等
  *  - `aggregate*`：Dashboard `/dashboard/v1/resources/overview` 聚合驱动
  *
- * 与 ApiService 的分工（ADR-0022 §1 / ADR-0025 命名统一）：
+ * 与 ApiService 的分工：
  *  - ApiService：fetch / XHR 业务请求全量
  *  - ResourcesService：script / stylesheet / image / font / media / other 全量 RT 样本
  */

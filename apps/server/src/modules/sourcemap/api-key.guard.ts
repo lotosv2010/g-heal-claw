@@ -19,7 +19,7 @@ export type ApiKeyAuthedRequest = FastifyRequest & {
 };
 
 /**
- * X-Api-Key 鉴权（ADR-0031 §7）
+ * X-Api-Key 鉴权
  *
  * 用于 Sourcemap CRUD 等 CLI/CI 场景，读 secret_key 而非 public_key。
  */

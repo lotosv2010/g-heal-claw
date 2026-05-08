@@ -4,7 +4,7 @@ import type { DeviceContext, PageContext } from "@g-heal-claw/shared";
  * 骨架阶段的设备上下文采集
  *
  * - 浏览器 / 设备类型使用**轻量 UA 嗅探**（零外部依赖，保持 SDK < 10KB gzip 预算）；
- *   完整 ua-parser-js / Client Hints 精细化升级留给 T1.2.4
+ *   完整 ua-parser-js / Client Hints 精细化升级留给后续迭代
  * - SSR / jsdom 环境下 navigator 字段可能缺失，这里做了防御降级
  */
 export function collectDevice(): DeviceContext {
@@ -143,7 +143,7 @@ function collectNetwork(nav: Navigator | undefined): DeviceContext["network"] {
 /**
  * 骨架阶段的页面上下文采集
  *
- * 仅填 url / path / referrer / title；UTM / searchEngine 留给 T1.2.3/T2.3.1。
+ * 仅填 url / path / referrer / title；UTM / searchEngine 由 contextPlugin 补全。
  */
 export function collectPage(): PageContext {
   if (typeof window === "undefined" || typeof document === "undefined") {

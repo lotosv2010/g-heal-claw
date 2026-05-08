@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 type Source = ResourcesOverviewResult["source"];
 
 /**
- * 静态资源监控页面（TM.1.B.5 / ADR-0022 §4）
+ * 静态资源监控页面
  *
  * 自上而下：
  *  1. 5 张汇总卡：请求数 / 失败数 / 慢资源 / p75 / 传输字节

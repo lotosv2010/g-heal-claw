@@ -1,5 +1,5 @@
 /**
- * 数据总览契约（对齐 ADR-0029）
+ * 数据总览契约
  *
  * 消费 server `/dashboard/v1/overview/summary`：
  *  - 任一域失败 → 该域 source="error"，装配层已隔离

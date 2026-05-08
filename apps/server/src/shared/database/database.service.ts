@@ -16,7 +16,7 @@ import * as schema from "./schema.js";
 export type Database = PostgresJsDatabase<typeof schema>;
 
 /**
- * PostgreSQL 连接 + Drizzle 实例（ADR-0013）
+ * PostgreSQL 连接 + Drizzle 实例
  *
  * - NODE_ENV=test 下跳过真实连接，避免 e2e 依赖本地 DB
  * - onModuleInit：建连接 → 执行幂等 DDL；失败抛出以阻止 server 启动带错误状态运行

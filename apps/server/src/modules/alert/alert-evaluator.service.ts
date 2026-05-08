@@ -48,7 +48,7 @@ interface NotificationPayload {
 }
 
 /**
- * AlertEvaluatorService（ADR-0035 T4.1.3）
+ * AlertEvaluatorService
  *
  * 每分钟 cron 触发，遍历所有启用的告警规则，根据条件判断是否触发告警。
  * 触发后写入 alert_history 并通过 BullMQ 通知队列分发通知。

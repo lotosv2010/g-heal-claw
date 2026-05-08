@@ -65,7 +65,7 @@ export interface RateLimitResult {
 }
 
 /**
- * 项目级限流（T1.3.3 / ADR-0016 §4）
+ * 项目级限流
  *
  * 策略：Redis 令牌桶（原子 Lua）
  *  - Key：`gw:rl:<projectId>`

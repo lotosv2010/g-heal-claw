@@ -11,7 +11,7 @@ export interface GeoResult {
 const EMPTY_GEO: GeoResult = { country: null, region: null, city: null };
 
 /**
- * GeoIP 服务（T2.3.3）
+ * GeoIP 服务
  *
  * 加载 MaxMind GeoLite2-City.mmdb，按 IP 查询地域信息。
  * 文件不存在 / 加载失败时优雅降级为返回空结果。

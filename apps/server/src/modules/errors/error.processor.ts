@@ -8,7 +8,7 @@ import { SourcemapService } from "../sourcemap/sourcemap.service.js";
 import { ErrorsService } from "./errors.service.js";
 
 /**
- * events-error 队列 Job 载荷（TM.E / ADR-0026）
+ * events-error 队列 Job 载荷
  *
  * Gateway 仅投递最小批次（一次 ingest 的同类型事件数组），Processor 内部再做
  * Sourcemap 还原 + 指纹计算 + Issue UPSERT 全链路。
@@ -24,7 +24,7 @@ export interface ErrorJobPayload {
 }
 
 /**
- * ErrorProcessor（TM.E.1 骨架 / TM.E.4 完整落地）
+ * ErrorProcessor
  *
  * 链路：BullMQ job → SourcemapService.resolveFrames(stub) → ErrorsService.saveBatch
  * 失败策略：attempts / backoff 由 Producer 在 add() 指定；耗尽后走 onFailed → DLQ
@@ -46,7 +46,7 @@ export class ErrorProcessor extends WorkerHost {
     const { events, geo } = job.data;
     if (events.length === 0) return { persisted: 0 };
 
-    // 1. Sourcemap 还原（TM.E.3 stub：原样返回；T1.5.3 实装后替换）
+    // 1. Sourcemap 还原
     const restored = await this.sourcemap.resolveFrames(events);
 
     // 2. 落库 + 指纹计算 + Issue UPSERT（ErrorsService.saveBatch 内部闭环）

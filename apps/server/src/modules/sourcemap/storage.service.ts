@@ -17,7 +17,7 @@ import type { Readable } from "node:stream";
 import { SERVER_ENV, type ServerEnv } from "../../config/env.js";
 
 /**
- * 对象存储抽象（DESIGN §9.4 · ADR-0031）
+ * 对象存储抽象
  *
  * 首版仅实现 S3/MinIO 兼容后端。后续切阿里 OSS / Cloudflare R2
  * 只需新增实现类并在 Module providers 替换。

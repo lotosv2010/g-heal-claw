@@ -4,7 +4,7 @@ import type { Hub } from "../hub.js";
 import type { Plugin } from "../plugin.js";
 
 /**
- * SpeedIndexPlugin（ADR-0014 补充 / SPEC §3.3.1）
+ * SpeedIndexPlugin
  *
  * Speed Index 是 Lighthouse 实验室指标，原始定义为：
  *   SI = ∫₀ᵀ (1 − visualCompleteness(t)) dt

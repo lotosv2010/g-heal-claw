@@ -13,7 +13,7 @@ import {
 import type { ProjectAuthedRequest } from "./project.guard.js";
 
 /**
- * RolesGuard（ADR-0032 §3.3）
+ * RolesGuard
  *
  * 前置依赖：ProjectGuard 已注入 req.projectMember
  * 流程：

@@ -1,5 +1,5 @@
 /**
- * 用户留存大盘数据契约（ADR-0028 / tracking/retention）
+ * 用户留存大盘数据契约
  *
  * Web 层消费 server `/dashboard/v1/tracking/retention`：
  *  - 参数校验失败 / 5xx → source: "error"

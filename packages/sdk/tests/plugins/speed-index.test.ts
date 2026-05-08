@@ -5,7 +5,7 @@ import type { Hub, Scope } from "../../src/hub.js";
 import type { Transport } from "../../src/transport/types.js";
 
 /**
- * SpeedIndexPlugin 单元测试（ADR-0018 P1.1）
+ * SpeedIndexPlugin 单元测试
  *
  * 覆盖：
  *  - PerformanceObserver / paint 不支持的降级

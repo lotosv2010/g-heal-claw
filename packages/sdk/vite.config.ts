@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 import { resolve } from "node:path";
 
-// SDK 构建：Vite Library Mode（ADR-0010）
+// SDK 构建：Vite Library Mode
 // - ESM 供 bundler；UMD 供 CDN <script>（挂 window.GHealClaw）
 // - 类型声明由 vite-plugin-dts 产出到 dist/index.d.ts
 // - 浏览器目标：零 Node.js API；bundle shared 进产物避免消费方再装 zod

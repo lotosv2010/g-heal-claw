@@ -4,7 +4,7 @@ import type { Hub } from "../hub.js";
 import type { Plugin } from "../plugin.js";
 
 /**
- * FSP（First Screen Paint，首屏时间）采集插件（ADR-0018 P0.3 / SPEC §3.3.2）
+ * FSP（First Screen Paint，首屏时间）采集插件
  *
  * 设计动机：
  *   - performancePlugin 中的 `domContentLoadedEventEnd - startTime` 近似仅反映 DOM 解析完成，
