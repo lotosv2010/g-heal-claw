@@ -79,7 +79,7 @@ export function DimensionTabs({
       <CardHeader>
         <CardTitle>维度分布</CardTitle>
         <div className="text-muted-foreground text-xs">
-          按异常事件数占比展示 · 机型 / 浏览器 / 操作系统 已接入；其余维度保留占位
+          按异常事件数占比展示 · 8 维度全量接入
         </div>
       </CardHeader>
       <CardContent>

@@ -39,7 +39,7 @@ export function DimensionTabs({ dimensions }: { dimensions: VisitsDimensions }) 
       <CardHeader>
         <CardTitle>维度分布</CardTitle>
         <div className="text-muted-foreground text-xs">
-          按 PV 占比展示 · 浏览器 / 操作系统 / 设备类型 已接入；其余维度保留占位
+          按 PV 占比展示 · 8 维度全量接入
         </div>
       </CardHeader>
       <CardContent>

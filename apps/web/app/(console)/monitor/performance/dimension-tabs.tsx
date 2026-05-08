@@ -28,16 +28,7 @@ const Pie = dynamic(() => import("@ant-design/plots").then((m) => m.Pie), {
 });
 
 /**
- * 维度分布 Tabs（Phase 1 范围）
- *
- * 已持久化的维度列（perf_events_raw）：
- *  - 浏览器（browser）
- *  - 操作系统（os）
- *  - 设备类型（device_type：desktop / mobile / tablet / unknown）
- *
- * 尚未持久化的维度（Phase 2 扩展，需 UA-parser / GeoIP / DB 迁移）：
- *  - 机型、浏览器版本、操作系统版本、地域、语言、网络、时区
- *  展示为占位 Tab（禁用），维持产品信息完整性。
+ * 维度分布 Tabs（8 维度全量接入，ADR-0038 字段已持久化）
  *
  * 每个 Tab 内：左 1/3 环图 · 右 2/3 表格（#/取值/占比/FMP 均值）
  */
@@ -76,7 +67,7 @@ export function DimensionTabs({ dimensions }: { dimensions: Dimensions }) {
       <CardHeader>
         <CardTitle>维度分布</CardTitle>
         <div className="text-muted-foreground text-xs">
-          按样本数占比展示 · 浏览器 / 操作系统 / 设备类型 已接入；其余维度保留占位
+          按样本数占比展示 · 8 维度全量接入（浏览器 / 操作系统 / 设备类型 / 语言 / 时区 / 地域 / 网络 / 版本）
         </div>
       </CardHeader>
       <CardContent>
