@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DimensionFilterSchema } from "@g-heal-claw/shared";
 
 /**
  * Dashboard Resources 大盘契约（ADR-0022 §4 / TM.1.B.4）
@@ -25,7 +26,7 @@ export const ResourcesOverviewQuerySchema = z.object({
   limitHosts: z.coerce.number().int().min(1).max(50).default(10),
   /** 环境过滤（可选，如 'production' / 'staging'） */
   environment: z.string().optional(),
-});
+}).merge(DimensionFilterSchema);
 export type ResourcesOverviewQuery = z.infer<
   typeof ResourcesOverviewQuerySchema
 >;

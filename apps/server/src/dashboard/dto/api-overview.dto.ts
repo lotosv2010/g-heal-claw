@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DimensionFilterSchema } from "@g-heal-claw/shared";
 
 /**
  * Dashboard API 大盘契约（ADR-0020 §4.2 / TM.1.A.4）
@@ -30,7 +31,7 @@ export const ApiOverviewQuerySchema = z.object({
   limitDimension: z.coerce.number().int().min(1).max(50).default(10),
   /** 环境过滤（可选，如 'production' / 'staging'） */
   environment: z.string().optional(),
-});
+}).merge(DimensionFilterSchema);
 export type ApiOverviewQuery = z.infer<typeof ApiOverviewQuerySchema>;
 
 // ------- 响应 DTO -------

@@ -1,6 +1,6 @@
 import { computeGranularity } from "../../shared/granularity.js";
 import { Injectable, Logger } from "@nestjs/common";
-import type { NavigationTiming } from "@g-heal-claw/shared";
+import type { DimensionFilter, NavigationTiming } from "@g-heal-claw/shared";
 import {
   PerformanceService,
   type DimensionAggregateRow,
@@ -50,12 +50,21 @@ export class DashboardPerformanceService {
 
     const granularity = computeGranularity(windowHours);
     const environment = query.environment;
+    const filters: DimensionFilter = {
+      browser: query.browser,
+      os: query.os,
+      deviceType: query.deviceType,
+      language: query.language,
+      timezone: query.timezone,
+      pagePath: query.pagePath,
+    };
     const current: WindowParams = {
       projectId,
       sinceMs: now - windowMs,
       untilMs: now,
       granularity,
       environment,
+      filters,
     };
     const previous: WindowParams = {
       projectId,
@@ -63,6 +72,7 @@ export class DashboardPerformanceService {
       untilMs: now - windowMs,
       granularity,
       environment,
+      filters,
     };
 
     // 并发聚合，DB 端没有竞争

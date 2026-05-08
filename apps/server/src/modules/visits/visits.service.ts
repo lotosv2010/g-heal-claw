@@ -1,7 +1,8 @@
 import { type Granularity, truncSql } from "../../shared/granularity.js";
 import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
-import type { PageViewEvent } from "@g-heal-claw/shared";
+import type { DimensionFilter, PageViewEvent } from "@g-heal-claw/shared";
+import { buildDimensionWhere } from "../../shared/dimension-filter-sql.js";
 import { DatabaseService } from "../../shared/database/database.service.js";
 import type { GeoResult } from "../../shared/geoip.service.js";
 import {
@@ -16,6 +17,7 @@ export interface VisitsWindowParams {
   readonly untilMs: number;
   readonly granularity?: Granularity;
   readonly environment?: string;
+  readonly filters?: DimensionFilter;
 }
 
 /** 聚合：总览 PV / UV / 硬刷新占比 */
@@ -132,7 +134,8 @@ export class VisitsService {
   ): Promise<VisitsSummaryRow> {
     const db = this.database.db;
     if (!db) return { pv: 0, uv: 0, spaNavCount: 0, reloadCount: 0 };
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const rows = await db.execute<{
       pv: string | number;
       uv: string | number;
@@ -148,6 +151,7 @@ export class VisitsService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
     `);
     const first = rows[0];
     if (!first) return { pv: 0, uv: 0, spaNavCount: 0, reloadCount: 0 };
@@ -165,7 +169,8 @@ export class VisitsService {
   ): Promise<VisitsTrendRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
@@ -181,6 +186,7 @@ export class VisitsService {
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
         ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
+        ${dimWhere}
       GROUP BY hour
       ORDER BY hour ASC
     `);
@@ -201,7 +207,8 @@ export class VisitsService {
   ): Promise<TopPageRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const clampedLimit = Math.max(1, Math.min(100, Math.floor(limit)));
     const rows = await db.execute<{
       path: string;
@@ -215,6 +222,7 @@ export class VisitsService {
         WHERE project_id = ${projectId}
           AND ts_ms >= ${sinceMs}
           AND ts_ms <  ${untilMs}
+          ${dimWhere}
       )
       SELECT
         path,
@@ -245,7 +253,8 @@ export class VisitsService {
   ): Promise<TopReferrerRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const clampedLimit = Math.max(1, Math.min(100, Math.floor(limit)));
     const rows = await db.execute<{
       referrer_host: string | null;
@@ -258,6 +267,7 @@ export class VisitsService {
         WHERE project_id = ${projectId}
           AND ts_ms >= ${sinceMs}
           AND ts_ms <  ${untilMs}
+          ${dimWhere}
       )
       SELECT
         referrer_host,
@@ -408,7 +418,8 @@ export class VisitsService {
   ): Promise<VisitsDimensionRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
 
     const column = (() => {
       switch (field) {
@@ -438,6 +449,7 @@ export class VisitsService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms < ${untilMs}
+        ${dimWhere}
       GROUP BY ${column}
       ORDER BY pv DESC
       LIMIT ${limit}

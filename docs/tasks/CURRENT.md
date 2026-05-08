@@ -1382,9 +1382,9 @@
 
 ### M6.1 总览仪表盘
 
-- [ ] **T6.1.1** web/overview（核心指标卡 + Apdex + 错误率 + API 成功率 + 慢页面 Top）— 4d
-- [ ] **T6.1.2** 实时大盘（SSE 订阅 + 秒级刷新）— 3d
-- [ ] **T6.1.3** 多维下钻（页面路径 / 地域 / 设备 / 浏览器 / 网络类型）— 4d
+- [x] **T6.1.1** web/overview（核心指标卡 + Apdex + 错误率 + API 成功率 + 慢页面 Top）— 已于 ADR-0029（TM.3.A）完成
+- [x] **T6.1.2** 实时大盘（SSE 订阅 + 秒级刷新）— 已于 ADR-0030（TM.2.C）完成
+- [x] **T6.1.3** 多维下钻（页面路径 / 地域 / 设备 / 浏览器 / 网络类型）— 2d（2026-05-08 完成：DimensionFilterSchema + 5 DTO merge + 5 Service WHERE + /dimensions/values API + DimensionFilterBar 组件 + URL 同步）
 
 ### M6.2 开放 API
 

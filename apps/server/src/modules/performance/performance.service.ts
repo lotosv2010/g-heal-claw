@@ -2,10 +2,12 @@ import { type Granularity, truncSql } from "../../shared/granularity.js";
 import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
 import type {
+  DimensionFilter,
   LongTaskEvent,
   NavigationTiming,
   PerformanceEvent,
 } from "@g-heal-claw/shared";
+import { buildDimensionWhere } from "../../shared/dimension-filter-sql.js";
 import { DatabaseService } from "../../shared/database/database.service.js";
 import type { GeoResult } from "../../shared/geoip.service.js";
 import {
@@ -82,6 +84,7 @@ export interface WindowParams {
   readonly untilMs: number;
   readonly granularity?: Granularity;
   readonly environment?: string;
+  readonly filters?: DimensionFilter;
 }
 
 /** Dashboard 聚合：长任务摘要（type = 'long_task'） */
@@ -173,7 +176,8 @@ export class PerformanceService {
   public async aggregateVitals(params: WindowParams): Promise<VitalAggregateRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const rows = await db.execute<{
       metric: string;
       p75: string | number | null;
@@ -190,6 +194,7 @@ export class PerformanceService {
         AND value IS NOT NULL
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
       GROUP BY metric
     `);
     return rows.map((r) => ({
@@ -221,7 +226,8 @@ export class PerformanceService {
         tiers: { longTask: 0, jank: 0, unresponsive: 0 },
       };
     }
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const rows = await db.execute<{
       n: string | number;
       total: string | number | null;
@@ -243,6 +249,7 @@ export class PerformanceService {
         AND lt_duration_ms IS NOT NULL
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
     `);
     const r = rows[0];
     return {
@@ -267,7 +274,8 @@ export class PerformanceService {
   public async aggregateTrend(params: WindowParams): Promise<TrendAggregateRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
@@ -286,6 +294,7 @@ export class PerformanceService {
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
         ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
+        ${dimWhere}
       GROUP BY hour, metric
       ORDER BY hour ASC
     `);
@@ -314,7 +323,8 @@ export class PerformanceService {
   ): Promise<NavigationTrendRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
@@ -343,6 +353,7 @@ export class PerformanceService {
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
         ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
+        ${dimWhere}
       GROUP BY hour
       ORDER BY hour ASC
     `);
@@ -373,7 +384,8 @@ export class PerformanceService {
   ): Promise<readonly NavigationTiming[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     // 直接取 JSONB，Drizzle 会反序列化为对象
     const rows = await db.execute<{ navigation: NavigationTiming | null }>(sql`
       SELECT navigation
@@ -384,6 +396,7 @@ export class PerformanceService {
         AND navigation IS NOT NULL
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
       ORDER BY ts_ms DESC
       LIMIT ${limit}
     `);
@@ -405,7 +418,8 @@ export class PerformanceService {
   ): Promise<SlowPageAggregateRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
 
     const lcpRows = await db.execute<{
       path: string;
@@ -423,6 +437,7 @@ export class PerformanceService {
         AND value IS NOT NULL
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
       GROUP BY path
       ORDER BY lcp_p75 DESC NULLS LAST
       LIMIT ${limit}
@@ -446,6 +461,7 @@ export class PerformanceService {
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
         AND path IN (${sql.join(paths.map((p) => sql`${p}`), sql`, `)})
+        ${dimWhere}
       GROUP BY path
     `);
     const ttfbByPath = new Map<string, number>(
@@ -476,7 +492,8 @@ export class PerformanceService {
   ): Promise<FmpPageAggregateRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
 
     const fmpRows = await db.execute<{
       path: string;
@@ -496,6 +513,7 @@ export class PerformanceService {
         AND value IS NOT NULL
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
       GROUP BY path
       ORDER BY fmp_avg DESC NULLS LAST
       LIMIT ${limit}
@@ -519,6 +537,7 @@ export class PerformanceService {
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
         AND path IN (${sql.join(paths.map((p) => sql`${p}`), sql`, `)})
+        ${dimWhere}
       GROUP BY path
     `);
     const lcpByPath = new Map<string, number>(
@@ -549,7 +568,8 @@ export class PerformanceService {
   ): Promise<DimensionAggregateRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
 
     // field → 列标识（白名单，防注入）
     const column = (() => {
@@ -586,6 +606,7 @@ export class PerformanceService {
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
         AND ${column} IS NOT NULL
+        ${dimWhere}
       GROUP BY ${column}
       ORDER BY n DESC
       LIMIT ${limit}

@@ -1,7 +1,8 @@
 import { type Granularity, truncSql } from "../../shared/granularity.js";
 import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
-import type { ErrorEvent } from "@g-heal-claw/shared";
+import type { DimensionFilter, ErrorEvent } from "@g-heal-claw/shared";
+import { buildDimensionWhere } from "../../shared/dimension-filter-sql.js";
 import { DeadLetterService } from "../../dlq/dead-letter.service.js";
 import { DatabaseService } from "../../shared/database/database.service.js";
 import type { GeoResult } from "../../shared/geoip.service.js";
@@ -19,6 +20,7 @@ export interface ErrorWindowParams {
   readonly untilMs: number;
   readonly granularity?: Granularity;
   readonly environment?: string;
+  readonly filters?: DimensionFilter;
 }
 
 /** 聚合：总事件数 + 影响会话数 */
@@ -172,7 +174,8 @@ export class ErrorsService {
   ): Promise<ErrorSummaryRow> {
     const db = this.database.db;
     if (!db) return { totalEvents: 0, impactedSessions: 0 };
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const rows = await db.execute<{
       total: string | number;
       sessions: string | number;
@@ -184,6 +187,7 @@ export class ErrorsService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
     `);
     const first = rows[0];
     return {
@@ -197,7 +201,8 @@ export class ErrorsService {
   ): Promise<SubTypeCountRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const rows = await db.execute<{
       sub_type: string;
       n: string | number;
@@ -209,6 +214,7 @@ export class ErrorsService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
       GROUP BY sub_type
       ORDER BY n DESC
     `);
@@ -221,7 +227,8 @@ export class ErrorsService {
   public async aggregateTrend(params: ErrorWindowParams): Promise<TrendRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
@@ -237,6 +244,7 @@ export class ErrorsService {
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
         ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
+        ${dimWhere}
       GROUP BY hour, sub_type
       ORDER BY hour ASC
     `);
@@ -256,7 +264,8 @@ export class ErrorsService {
   ): Promise<TopGroupRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const rows = await db.execute<{
       sub_type: string;
       resource_kind: string | null;
@@ -280,6 +289,7 @@ export class ErrorsService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
       GROUP BY sub_type, resource_kind, message_head
       ORDER BY n DESC
       LIMIT ${limit}
@@ -302,7 +312,8 @@ export class ErrorsService {
   ): Promise<CategoryCountRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const rows = await db.execute<{
       sub_type: string;
       resource_kind: string | null;
@@ -316,6 +327,7 @@ export class ErrorsService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
       GROUP BY sub_type, resource_kind
       ORDER BY n DESC
     `);
@@ -332,7 +344,8 @@ export class ErrorsService {
   ): Promise<CategoryTrendRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
@@ -350,6 +363,7 @@ export class ErrorsService {
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
         ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
+        ${dimWhere}
       GROUP BY hour, sub_type, resource_kind
       ORDER BY hour ASC
     `);
@@ -377,7 +391,8 @@ export class ErrorsService {
   ): Promise<DimensionRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     // drizzle 的 sql`` 对列名支持通过 sql.identifier
     const col = sql.identifier(column);
     const rows = await db.execute<{
@@ -395,6 +410,7 @@ export class ErrorsService {
         AND ts_ms <  ${untilMs}
         AND ${col} IS NOT NULL
         AND ${col} <> ''
+        ${dimWhere}
       GROUP BY ${col}
       ORDER BY n DESC
       LIMIT ${limit}

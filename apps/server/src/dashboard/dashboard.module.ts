@@ -37,6 +37,8 @@ import { DashboardSourcemapController } from "./settings/sourcemap.controller.js
 import { DashboardSourcemapService } from "./settings/sourcemap.service.js";
 import { DashboardTrackingController } from "./tracking/tracking.controller.js";
 import { DashboardTrackingService } from "./tracking/tracking.service.js";
+import { DimensionsController } from "./dashboard/dimensions.controller.js";
+import { DimensionsService } from "./dashboard/dimensions.service.js";
 import { DebugModule } from "./debug/debug.module.js";
 
 /**
@@ -73,6 +75,7 @@ import { DebugModule } from "./debug/debug.module.js";
     DashboardVisitsController,
     DashboardOverviewController,
     DashboardSourcemapController,
+    DimensionsController,
   ],
   providers: [
     DashboardPerformanceService,
@@ -89,6 +92,7 @@ import { DebugModule } from "./debug/debug.module.js";
     DashboardVisitsService,
     DashboardOverviewService,
     DashboardSourcemapService,
+    DimensionsService,
   ],
 })
 export class DashboardModule {}

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DimensionFilterSchema } from "@g-heal-claw/shared";
 
 /**
  * Dashboard 异常大盘 API 契约（ADR-0016 §3 + SPEC 9 分类扩展）
@@ -22,7 +23,7 @@ export const ErrorsOverviewQuerySchema = z.object({
   limitGroups: z.coerce.number().int().min(1).max(50).default(10),
   /** 环境过滤（可选，如 'production' / 'staging'） */
   environment: z.string().optional(),
-});
+}).merge(DimensionFilterSchema);
 export type ErrorsOverviewQuery = z.infer<typeof ErrorsOverviewQuerySchema>;
 
 // ------- 响应 DTO -------

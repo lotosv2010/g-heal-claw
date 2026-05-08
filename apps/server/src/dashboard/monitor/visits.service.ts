@@ -1,5 +1,6 @@
 import { computeGranularity } from "../../shared/granularity.js";
 import { Injectable } from "@nestjs/common";
+import type { DimensionFilter } from "@g-heal-claw/shared";
 import {
   VisitsService,
   type TopPageRow,
@@ -37,12 +38,21 @@ export class DashboardVisitsService {
     const windowMs = windowHours * 3600_000;
     const granularity = computeGranularity(windowHours);
     const environment = query.environment;
+    const filters: DimensionFilter = {
+      browser: query.browser,
+      os: query.os,
+      deviceType: query.deviceType,
+      language: query.language,
+      timezone: query.timezone,
+      pagePath: query.pagePath,
+    };
     const current: VisitsWindowParams = {
       projectId,
       sinceMs: now - windowMs,
       untilMs: now,
       granularity,
       environment,
+      filters,
     };
     const previous: VisitsWindowParams = {
       projectId,
@@ -50,6 +60,7 @@ export class DashboardVisitsService {
       untilMs: now - windowMs,
       granularity,
       environment,
+      filters,
     };
 
     const [summaryCurrent, summaryPrevious, trendRows, topPageRows, topRefRows, dimBrowser, dimBrowserVersion, dimOs, dimOsVersion, dimPlatform, dimNetwork, dimCountry, dimRegion, dimLanguage, dimTimezone] =

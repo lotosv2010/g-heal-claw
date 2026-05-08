@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DimensionFilterSchema } from "@g-heal-claw/shared";
 
 /**
  * Dashboard 性能大盘 API 契约（ADR-0015）
@@ -16,7 +17,7 @@ export const OverviewQuerySchema = z.object({
   environment: z.string().optional(),
   /** 慢页面返回条数，默认 10，最大 50 */
   limitSlowPages: z.coerce.number().int().min(1).max(50).default(10),
-});
+}).merge(DimensionFilterSchema);
 export type OverviewQuery = z.infer<typeof OverviewQuerySchema>;
 
 // ------- 响应 DTO（与 web 的 PerformanceOverview 对齐） -------

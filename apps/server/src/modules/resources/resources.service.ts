@@ -1,7 +1,8 @@
 import { type Granularity, truncSql } from "../../shared/granularity.js";
 import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
-import type { ResourceEvent } from "@g-heal-claw/shared";
+import type { DimensionFilter, ResourceEvent } from "@g-heal-claw/shared";
+import { buildDimensionWhere } from "../../shared/dimension-filter-sql.js";
 import { DatabaseService } from "../../shared/database/database.service.js";
 import type { GeoResult } from "../../shared/geoip.service.js";
 import {
@@ -16,6 +17,7 @@ export interface ResourceWindowParams {
   readonly untilMs: number;
   readonly granularity?: Granularity;
   readonly environment?: string;
+  readonly filters?: DimensionFilter;
 }
 
 /** 资源总览 */
@@ -136,7 +138,8 @@ export class ResourcesService {
       totalTransferBytes: 0,
     };
     if (!db) return empty;
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const rows = await db.execute<{
       total: string | number;
       failed: string | number;
@@ -154,6 +157,7 @@ export class ResourcesService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
     `);
     const first = rows[0];
     if (!first) return empty;
@@ -179,7 +183,8 @@ export class ResourcesService {
       avgDurationMs: 0,
     }));
     if (!db) return defaults;
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const rows = await db.execute<{
       category: string;
       n: string | number;
@@ -197,6 +202,7 @@ export class ResourcesService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
       GROUP BY category
     `);
     const lookup = new Map<string, CategoryBucketRow>();
@@ -227,7 +233,8 @@ export class ResourcesService {
   ): Promise<ResourceTrendRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
@@ -247,6 +254,7 @@ export class ResourcesService {
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
         ${params.environment ? sql`AND environment = ${params.environment}` : sql``}
+        ${dimWhere}
       GROUP BY hour
       ORDER BY hour ASC
     `);
@@ -269,7 +277,8 @@ export class ResourcesService {
   ): Promise<SlowResourceRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const clampedLimit = Math.max(1, Math.min(100, Math.floor(limit)));
     const rows = await db.execute<{
       category: string;
@@ -290,6 +299,7 @@ export class ResourcesService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
       GROUP BY category, host, url
       ORDER BY p75 DESC NULLS LAST
       LIMIT ${clampedLimit}
@@ -315,7 +325,8 @@ export class ResourcesService {
   ): Promise<FailingHostRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const clampedLimit = Math.max(1, Math.min(100, Math.floor(limit)));
     const rows = await db.execute<{
       host: string;
@@ -331,6 +342,7 @@ export class ResourcesService {
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
         AND host <> ''
+        ${dimWhere}
       GROUP BY host
       HAVING COUNT(*) FILTER (WHERE failed = true) > 0
       ORDER BY (COUNT(*) FILTER (WHERE failed = true))::float / NULLIF(COUNT(*), 0) DESC,
@@ -357,7 +369,8 @@ export class ResourcesService {
   ): Promise<ResourceDimensionRow[]> {
     const db = this.database.db;
     if (!db) return [];
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
 
     const column = (() => {
       switch (field) {
@@ -390,6 +403,7 @@ export class ResourcesService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms < ${untilMs}
+        ${dimWhere}
       GROUP BY ${column}
       ORDER BY n DESC
       LIMIT ${limit}

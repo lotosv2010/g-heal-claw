@@ -1,5 +1,6 @@
 import { computeGranularity } from "../../shared/granularity.js";
 import { Injectable, Logger } from "@nestjs/common";
+import type { DimensionFilter } from "@g-heal-claw/shared";
 import {
   ErrorsService,
   type CategoryCountRow,
@@ -54,12 +55,21 @@ export class DashboardErrorsService {
 
     const granularity = computeGranularity(windowHours);
     const environment = query.environment;
+    const filters: DimensionFilter = {
+      browser: query.browser,
+      os: query.os,
+      deviceType: query.deviceType,
+      language: query.language,
+      timezone: query.timezone,
+      pagePath: query.pagePath,
+    };
     const current: ErrorWindowParams = {
       projectId,
       sinceMs: now - windowMs,
       untilMs: now,
       granularity,
       environment,
+      filters,
     };
     const previous: ErrorWindowParams = {
       projectId,
@@ -67,6 +77,7 @@ export class DashboardErrorsService {
       untilMs: now - windowMs,
       granularity,
       environment,
+      filters,
     };
 
     const [

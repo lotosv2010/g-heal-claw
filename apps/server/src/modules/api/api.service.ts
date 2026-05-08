@@ -1,8 +1,9 @@
 import { type Granularity, truncSql } from "../../shared/granularity.js";
 import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
-import type { ApiEvent } from "@g-heal-claw/shared";
+import type { ApiEvent, DimensionFilter } from "@g-heal-claw/shared";
 import { DatabaseService } from "../../shared/database/database.service.js";
+import { buildDimensionWhere } from "../../shared/dimension-filter-sql.js";
 import type { GeoResult } from "../../shared/geoip.service.js";
 import {
   apiEventsRaw,
@@ -16,6 +17,7 @@ export interface ApiWindowParams {
   readonly untilMs: number;
   readonly granularity?: Granularity;
   readonly environment?: string;
+  readonly filters?: DimensionFilter;
 }
 
 /** 聚合：总览（样本量 / 慢占比 / 错误率 / p75） */
@@ -149,7 +151,8 @@ export class ApiService {
     if (!db) {
       return { totalRequests: 0, slowCount: 0, failedCount: 0, p75DurationMs: 0 };
     }
-    const { projectId, sinceMs, untilMs } = params;
+    const { projectId, sinceMs, untilMs, filters } = params;
+    const dimWhere = buildDimensionWhere(filters);
     const rows = await db.execute<{
       total: string | number;
       slow: string | number;
@@ -165,6 +168,7 @@ export class ApiService {
       WHERE project_id = ${projectId}
         AND ts_ms >= ${sinceMs}
         AND ts_ms <  ${untilMs}
+        ${dimWhere}
     `);
     const first = rows[0];
     if (!first) {

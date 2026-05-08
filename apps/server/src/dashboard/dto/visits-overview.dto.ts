@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DimensionFilterSchema } from "@g-heal-claw/shared";
 
 /**
  * Dashboard Visits 大盘契约（ADR-0020 Tier 2.A）
@@ -23,7 +24,7 @@ export const VisitsOverviewQuerySchema = z.object({
   limitPages: z.coerce.number().int().min(1).max(50).default(10),
   /** topReferrers 返回条数，默认 10，最大 50 */
   limitReferrers: z.coerce.number().int().min(1).max(50).default(10),
-});
+}).merge(DimensionFilterSchema);
 export type VisitsOverviewQuery = z.infer<typeof VisitsOverviewQuerySchema>;
 
 // ------- 响应 DTO -------

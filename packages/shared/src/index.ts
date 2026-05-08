@@ -4,3 +4,4 @@ export * from "./env/index.js";
 export * from "./queues/index.js";
 export * from "./id.js";
 export * from "./validation/index.js";
+export * from "./filters/index.js";
