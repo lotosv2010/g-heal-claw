@@ -126,5 +126,20 @@ CREATE INDEX idx_ai_msg_conv ON ai_messages(conversation_id, created_at);
 
 ## 后续
 
-- 实现后更新 `docs/SPEC.md` §5 路由清单 + `docs/ARCHITECTURE.md` §3.1 模块拓扑
-- Demo 场景 + apps/docs 页面待实现后补齐
+- [x] AiChatModule + AiDrawer + DiagnoseButton 已实现
+- [x] Next.js API Route `/api/ai/chat` 直连 LLM（openai SDK）
+- [x] AI 诊断集成到 Issues 列表/详情 + 性能指标/首屏表格
+- [ ] `/settings/ai` 配置页（仓库 URL / 分支 / Token + heal_jobs 列表）→ T5.6.1
+- [ ] 对话中"触发自动修复"按钮联动项目配置 → T5.6.2
+- [ ] 告警自动触发 AI 诊断（未来迭代）→ T5.6.3
+
+### Sourcemap 自动修复完整链路
+
+```
+Sourcemap 上传 → ErrorProcessor 堆栈还原 → AI 诊断分析
+     → 用户确认 → HealModule 触发 → ai-agent ReAct 循环
+     → readIssue + readFile + grepRepo + writePatch + createPr
+     → GitHub PR 创建 → 人工审核合并
+```
+
+关键前提：用户在 `/settings/ai` 配置了仓库 URL + 分支 + GitHub Token。

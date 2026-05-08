@@ -1383,6 +1383,35 @@
   - 验收：`pnpm typecheck && pnpm test` 全绿；双向可追溯
   - 依赖：T5.5.6
 
+### M5.6 Sourcemap 自动修复完整链路
+
+> 完整流程：Sourcemap 上传 → 错误堆栈还原 → AI 诊断 → 自动修复 PR
+> 前置：Sourcemap 上传 ✅ / ErrorProcessor 还原 ✅ / AI 对话 ✅ / HealModule + ai-agent ✅
+> 当前缺口：`/settings/ai` 配置页（仓库 URL / 分支 / GitHub Token）+ 对话中"触发修复"按钮联动配置
+
+- [ ] **T5.6.1** `/settings/ai` AI 修复配置页面（仓库 URL + 分支 + Token + heal_jobs 列表）— 1.5d
+  - 输入：HealModule API 已就绪（POST trigger / GET list / GET detail）
+  - 输出：
+    - `apps/web/app/(console)/settings/ai/page.tsx`（替换 PlaceholderPage）
+    - `apps/web/components/settings/ai-config-form.tsx`（仓库配置表单：repoUrl + branch + token）
+    - `apps/web/components/settings/heal-jobs-table.tsx`（任务列表：状态 / 创建时间 / PR 链接）
+    - `apps/web/lib/api/heal.ts`（客户端：triggerHeal / listJobs / getJob）
+    - 后端：项目级 AI 配置存储（`projects` 表扩列或新建 `ai_configs` 表）
+  - 验收：配置保存后"触发自动修复"按钮可用；heal_jobs 列表实时展示任务状态
+  - 依赖：无
+
+- [ ] **T5.6.2** 对话中"触发自动修复"按钮读取项目配置并调用 HealModule — 0.5d
+  - 输入：T5.6.1（配置已存储）
+  - 输出：`components/ai/heal-trigger-button.tsx` 读取项目配置的 repoUrl/branch，调用 heal API
+  - 验收：有配置时按钮可用 → 点击后 heal_jobs 有记录；无配置时按钮灰显 + 提示"请先配置仓库"
+  - 依赖：T5.6.1
+
+- [ ] **T5.6.3** 告警规则自动触发 AI 诊断（可选，未来迭代）— 2d
+  - 输入：AlertModule 评估 + AiChatModule
+  - 输出：告警命中时自动创建诊断会话 + 通知用户查看
+  - 验收：规则 firing 后自动出现 AI 诊断会话
+  - 依赖：T5.6.1
+
 ---
 
 ## Phase 6：看板完善 + 开放 API + 自举可观测
