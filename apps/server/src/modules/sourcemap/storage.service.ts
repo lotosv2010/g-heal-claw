@@ -14,6 +14,8 @@ import {
   CreateBucketCommand,
 } from "@aws-sdk/client-s3";
 import type { Readable } from "node:stream";
+import { mkdir, readFile, writeFile, unlink, readdir, rm } from "node:fs/promises";
+import { join, dirname } from "node:path";
 import { SERVER_ENV, type ServerEnv } from "../../config/env.js";
 
 /**
@@ -148,4 +150,85 @@ export class S3StorageService implements StorageService, OnModuleInit {
       );
     }
   }
+}
+
+/**
+ * 本地文件系统存储实现
+ *
+ * 将文件存储到 server 端本地目录（默认 apps/server/uploads/sourcemaps/）。
+ * 适用于单机部署或开发环境，无需 MinIO/S3。
+ */
+@Injectable()
+export class LocalStorageService implements StorageService, OnModuleInit {
+  private readonly logger = new Logger(LocalStorageService.name);
+  private readonly baseDir: string;
+
+  public constructor(
+    @Inject(SERVER_ENV) private readonly env: ServerEnv,
+  ) {
+    this.baseDir = env.SOURCEMAP_LOCAL_DIR ?? join(process.cwd(), "uploads");
+  }
+
+  public async onModuleInit(): Promise<void> {
+    if (this.env.NODE_ENV === "test") return;
+    await mkdir(this.baseDir, { recursive: true });
+    this.logger.log(`本地存储目录: ${this.baseDir}`);
+  }
+
+  public async put(
+    key: string,
+    body: Buffer | Readable,
+    _contentType?: string,
+  ): Promise<void> {
+    const filePath = join(this.baseDir, key);
+    await mkdir(dirname(filePath), { recursive: true });
+    const buffer = Buffer.isBuffer(body) ? body : await streamToBuffer(body);
+    await writeFile(filePath, buffer);
+  }
+
+  public async get(key: string): Promise<Buffer | null> {
+    const filePath = join(this.baseDir, key);
+    try {
+      return await readFile(filePath);
+    } catch {
+      return null;
+    }
+  }
+
+  public async delete(key: string): Promise<void> {
+    const filePath = join(this.baseDir, key);
+    try {
+      await unlink(filePath);
+    } catch {
+      // 文件不存在时静默
+    }
+  }
+
+  public async deletePrefix(prefix: string): Promise<number> {
+    const dirPath = join(this.baseDir, prefix);
+    try {
+      const entries = await readdir(dirPath, { recursive: true });
+      let deleted = 0;
+      for (const entry of entries) {
+        try {
+          await unlink(join(dirPath, entry));
+          deleted++;
+        } catch {
+          // 目录或已删除
+        }
+      }
+      await rm(dirPath, { recursive: true, force: true });
+      return deleted;
+    } catch {
+      return 0;
+    }
+  }
+}
+
+async function streamToBuffer(stream: Readable): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
 }

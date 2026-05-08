@@ -4,6 +4,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   transpilePackages: ["@g-heal-claw/sdk", "@g-heal-claw/shared"],
   reactStrictMode: true,
+  // next build 时生成独立 .map 文件，用于上传到 Sourcemap 服务
+  productionBrowserSourceMaps: true,
 };
 
 export default nextConfig;

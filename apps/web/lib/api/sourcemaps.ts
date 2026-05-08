@@ -6,7 +6,8 @@
  */
 
 import { dashboardFetch } from "./server-fetch";
-import { httpGet, httpDelete } from "./http";
+import { httpGet, httpPost, httpDelete, getApiBaseUrl } from "./http";
+import { getAccessToken } from "../auth";
 
 // ---------------------------------------------------------------------------
 // 类型
@@ -86,4 +87,48 @@ export async function deleteRelease(
   releaseId: string,
 ): Promise<void> {
   await httpDelete(`/dashboard/v1/settings/sourcemaps/releases/${releaseId}?projectId=${projectId}`);
+}
+
+/** 创建 Release（幂等） */
+export async function createRelease(
+  projectId: string,
+  version: string,
+  commitSha?: string,
+): Promise<Release> {
+  const res = await httpPost<{ data: Release }>(
+    `/dashboard/v1/settings/sourcemaps/releases?projectId=${projectId}`,
+    { version, commitSha: commitSha || undefined },
+  );
+  return res.data;
+}
+
+/** 上传 Artifact（multipart） */
+export async function uploadArtifact(
+  projectId: string,
+  releaseId: string,
+  filename: string,
+  file: File,
+): Promise<Artifact> {
+  const formData = new FormData();
+  formData.append("filename", filename);
+  formData.append("file", file);
+
+  const base = getApiBaseUrl();
+  const url = `${base}/dashboard/v1/settings/sourcemaps/releases/${releaseId}/artifacts?projectId=${projectId}`;
+  const token = getAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error((body as { message?: string })?.message ?? `上传失败: ${res.status}`);
+  }
+  const json = await res.json();
+  return (json as { data: Artifact }).data;
 }

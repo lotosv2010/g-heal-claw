@@ -93,7 +93,11 @@ export const ServerEnvSchema = BaseEnvSchema.extend({
   // cron 表达式；空串禁用
   APDEX_CRON: z.string().default("*/1 * * * *"),
 
-  // -------- Sourcemap LRU 缓存 --------
+  // -------- Sourcemap 存储 --------
+  // 存储后端：'local'（本地文件系统）| 's3'（MinIO/S3），默认 local
+  SOURCEMAP_STORAGE: z.enum(["local", "s3"]).default("local"),
+  // 本地存储目录（仅 SOURCEMAP_STORAGE=local 时生效）
+  SOURCEMAP_LOCAL_DIR: z.string().optional(),
   // SourceMapConsumer 在内存缓存容量（条数），dispose 时调 .destroy() 释放 WASM
   SOURCEMAP_LRU_CAPACITY: z.coerce.number().int().positive().default(100),
 

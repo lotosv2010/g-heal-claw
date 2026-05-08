@@ -2,9 +2,19 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -15,8 +25,10 @@ import {
 } from "@/components/ui/table";
 import { ConfirmDialog } from "./confirm-dialog";
 import {
+  createRelease,
   deleteRelease,
   listArtifacts,
+  uploadArtifact,
   type Artifact,
   type Release,
 } from "@/lib/api/sourcemaps";
@@ -34,7 +46,55 @@ export function SourcemapsClient({ projectId, initialReleases }: SourcemapsClien
   const [deleteTarget, setDeleteTarget] = React.useState<Release | null>(null);
   const [deleting, setDeleting] = React.useState(false);
 
+  // 创建 Release 对话框
+  const [showCreate, setShowCreate] = React.useState(false);
+  const [createVersion, setCreateVersion] = React.useState("");
+  const [createCommitSha, setCreateCommitSha] = React.useState("");
+  const [creating, setCreating] = React.useState(false);
+
+  // 上传 Artifact
+  const [uploadTarget, setUploadTarget] = React.useState<string | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   const refresh = () => router.refresh();
+
+  const handleCreate = async () => {
+    if (!createVersion.trim()) return;
+    setCreating(true);
+    try {
+      await createRelease(projectId, createVersion.trim(), createCommitSha.trim() || undefined);
+      toast.success(`Release「${createVersion}」创建成功`);
+      setShowCreate(false);
+      setCreateVersion("");
+      setCreateCommitSha("");
+      refresh();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadTarget) return;
+    setUploading(true);
+    try {
+      const filename = file.name;
+      await uploadArtifact(projectId, uploadTarget, filename, file);
+      toast.success(`「${filename}」上传成功`);
+      // 刷新 artifact 列表
+      const result = await listArtifacts(projectId, uploadTarget);
+      setArtifacts(result.data);
+      refresh();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const toggleExpand = async (releaseId: string) => {
     if (expanded === releaseId) {
@@ -59,14 +119,15 @@ export function SourcemapsClient({ projectId, initialReleases }: SourcemapsClien
     setDeleting(true);
     try {
       await deleteRelease(projectId, deleteTarget.id);
-      setDeleteTarget(null);
       if (expanded === deleteTarget.id) {
         setExpanded(null);
         setArtifacts([]);
       }
+      toast.success(`Release「${deleteTarget.version}」已删除`);
+      setDeleteTarget(null);
       refresh();
-    } catch {
-      // 静默
+    } catch (err) {
+      toast.error((err as Error).message || "删除失败");
     } finally {
       setDeleting(false);
     }
@@ -80,16 +141,22 @@ export function SourcemapsClient({ projectId, initialReleases }: SourcemapsClien
 
   return (
     <>
-      <div className="mb-4">
-        <h1 className="text-lg font-semibold">Source Map</h1>
-        <p className="text-muted-foreground text-sm">
-          通过 CLI 或 CI 上传 Sourcemap 后，异常堆栈将自动还原为源码位置。
-        </p>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">Source Map</h1>
+          <p className="text-muted-foreground text-sm">
+            上传 Sourcemap 后，异常堆栈将自动还原为源码位置。
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setShowCreate(true)}>
+          <Plus className="mr-1 size-4" />
+          创建 Release
+        </Button>
       </div>
 
       {initialReleases.length === 0 ? (
         <p className="text-muted-foreground py-20 text-center text-sm">
-          暂无 Release，请通过 API 或 CLI 上传
+          暂无 Release，点击上方按钮创建
         </p>
       ) : (
         <div className="flex flex-col gap-2">
@@ -132,10 +199,24 @@ export function SourcemapsClient({ projectId, initialReleases }: SourcemapsClien
 
               {expanded === r.id && (
                 <div className="border-t px-3 pb-3 pt-2">
+                  <div className="mb-2 flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={uploading}
+                      onClick={() => {
+                        setUploadTarget(r.id);
+                        fileInputRef.current?.click();
+                      }}
+                    >
+                      <Upload className="mr-1 size-3" />
+                      {uploading ? "上传中..." : "上传 .map 文件"}
+                    </Button>
+                  </div>
                   {loadingArtifacts ? (
                     <p className="text-muted-foreground text-xs">加载中...</p>
                   ) : artifacts.length === 0 ? (
-                    <p className="text-muted-foreground text-xs">无 Artifact 文件</p>
+                    <p className="text-muted-foreground text-xs">无 Artifact 文件，点击上方按钮上传</p>
                   ) : (
                     <Table>
                       <TableHeader>
@@ -176,6 +257,52 @@ export function SourcemapsClient({ projectId, initialReleases }: SourcemapsClien
         destructive
         loading={deleting}
         onConfirm={handleDelete}
+      />
+
+      {/* 创建 Release 对话框 */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>创建 Release</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="version">版本号</Label>
+              <Input
+                id="version"
+                placeholder="如 1.0.0 或 commit hash"
+                value={createVersion}
+                onChange={(e) => setCreateVersion(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="commitSha">Commit SHA（可选）</Label>
+              <Input
+                id="commitSha"
+                placeholder="如 a1b2c3d"
+                value={createCommitSha}
+                onChange={(e) => setCreateCommitSha(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>
+              取消
+            </Button>
+            <Button onClick={handleCreate} disabled={creating || !createVersion.trim()}>
+              {creating ? "创建中..." : "创建"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 隐藏的文件选择器 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".map,.js.map"
+        className="hidden"
+        onChange={handleUpload}
       />
     </>
   );

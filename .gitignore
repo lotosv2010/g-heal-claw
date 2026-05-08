@@ -11,3 +11,6 @@ dist/
 
 .DS_Store
 Thumbs.db
+
+# Sourcemap 本地存储目录
+uploads/

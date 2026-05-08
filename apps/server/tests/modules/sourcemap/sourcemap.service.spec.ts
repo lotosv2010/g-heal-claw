@@ -8,6 +8,7 @@ import { buildErrorEvent } from "../../fixtures.js";
 function makeEnv(overrides: Partial<ServerEnv> = {}): ServerEnv {
   return {
     NODE_ENV: "test",
+    SOURCEMAP_STORAGE: "local",
     SOURCEMAP_LRU_CAPACITY: 100,
     ...overrides,
   } as ServerEnv;

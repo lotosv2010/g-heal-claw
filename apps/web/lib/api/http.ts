@@ -47,6 +47,8 @@ async function handleResponse<T>(res: Response): Promise<T> {
       (body as { message?: string })?.message ?? res.statusText,
     );
   }
+  // 204 No Content 无 body
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 

@@ -768,6 +768,15 @@
       - `apps/web/app/(console)/settings/sourcemaps/page.tsx`
     - 验收：`typecheck && build` 全绿；展开 Release 可查看 Artifacts；删除 Release 级联确认
     - 依赖：TM.2.B.1, TM.2.B.2
+  - [x] **TM.2.B.8** `/settings/sourcemaps` Web UI 上传功能补齐 — 1d（2026-05-08 完成）
+    - 输入：TM.2.B.2 + TM.2.B.6（查看/删除已就绪）
+    - 输出：
+      - `DashboardSourcemapController` 新增 POST createRelease + POST uploadArtifact（JWT + admin）
+      - `DashboardSourcemapService` 新增 createRelease + uploadArtifact 方法
+      - `apps/web/lib/api/sourcemaps.ts` 新增 createRelease + uploadArtifact 客户端函数
+      - `apps/web/components/settings/sourcemaps-client.tsx` 增加"创建 Release"对话框 + "上传 .map 文件"按钮
+    - 验收：`typecheck` 全绿；前端可创建 Release + 上传 .map 文件 + 查看 Artifact 列表
+    - 依赖：TM.2.B.6
   - [x] **TM.2.B.7** nav.ts 清空 + 收尾验证 + 文档传导 — 0.3d（2026-05-06 完成）
     - 输入：TM.2.B.3 ~ TM.2.B.6 全部完成
     - 输出：

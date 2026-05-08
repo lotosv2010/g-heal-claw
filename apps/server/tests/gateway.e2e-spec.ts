@@ -61,7 +61,8 @@ const fixtureEnv: ServerEnv = {
   REALTIME_SAMPLE_RATE: 1,
   REALTIME_STREAM_MAXLEN: 1000,
   REALTIME_MAX_CONN_PER_PROJECT: 10,
-  // ADR-0031 / T1.5.3：Sourcemap LRU 缓存
+  // ADR-0031 / T1.5.3：Sourcemap 存储
+  SOURCEMAP_STORAGE: "local" as const,
   SOURCEMAP_LRU_CAPACITY: 100,
   // ADR-0037 / T2.1.4：Performance Processor
   PERF_PROCESSOR_MODE: "queue" as const,

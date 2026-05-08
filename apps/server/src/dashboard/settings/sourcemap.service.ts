@@ -1,14 +1,15 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
+import { generateReleaseId, generateArtifactId } from "@g-heal-claw/shared";
 import { DatabaseService } from "../../shared/database/database.service.js";
 import { STORAGE_SERVICE, type StorageService } from "../../modules/sourcemap/storage.service.js";
-import { Inject } from "@nestjs/common";
 
 /**
  * Dashboard Sourcemap 代理层
  *
- * 薄装配：直查 releases / release_artifacts 表，仅供管理页面使用。
- * 上传仍走 SourcemapController（X-Api-Key），此处只提供查看和删除。
+ * 薄装配：直查 releases / release_artifacts 表，供管理页面使用。
+ * 同时提供 JWT 鉴权的上传通道（createRelease + uploadArtifact），
+ * 使前端无需持有 secretKey 即可完成 Sourcemap 上传。
  */
 @Injectable()
 export class DashboardSourcemapService {
@@ -111,5 +112,82 @@ export class DashboardSourcemapService {
       `Release deleted via dashboard: id=${releaseId} project=${projectId} storageObjects=${deletedCount}`,
     );
     return true;
+  }
+
+  /** 创建 Release（幂等：version 已存在时返回现有记录） */
+  public async createRelease(
+    projectId: string,
+    version: string,
+    commitSha?: string,
+  ): Promise<{ id: string; version: string; commitSha: string | null; createdAt: string }> {
+    const db = this.database.db;
+    if (!db) {
+      return { id: "rel_test", version, commitSha: commitSha ?? null, createdAt: new Date().toISOString() };
+    }
+
+    const existing = await db.execute<{
+      id: string; version: string; commit_sha: string | null; created_at: string;
+    }>(sql`
+      SELECT id, version, commit_sha, created_at
+      FROM releases
+      WHERE project_id = ${projectId} AND version = ${version}
+      LIMIT 1
+    `);
+
+    if (existing.length > 0) {
+      const row = existing[0]!;
+      return { id: row.id, version: row.version, commitSha: row.commit_sha, createdAt: new Date(row.created_at).toISOString() };
+    }
+
+    const id = generateReleaseId();
+    await db.execute(sql`
+      INSERT INTO releases (id, project_id, version, commit_sha, notes, created_at)
+      VALUES (${id}, ${projectId}, ${version}, ${commitSha ?? null}, ${null}, NOW())
+    `);
+
+    this.logger.log(`Release created via dashboard: id=${id} project=${projectId} version=${version}`);
+    return { id, version, commitSha: commitSha ?? null, createdAt: new Date().toISOString() };
+  }
+
+  /** 上传 Artifact（UPSERT：同 filename 覆盖） */
+  public async uploadArtifact(
+    projectId: string,
+    releaseId: string,
+    filename: string,
+    fileBuffer: Buffer,
+  ): Promise<{ id: string; filename: string; mapFilename: string; fileSize: number; createdAt: string } | null> {
+    const db = this.database.db;
+
+    // 验证 release 存在且属于当前项目
+    if (db) {
+      const check = await db.execute<{ id: string }>(sql`
+        SELECT id FROM releases WHERE id = ${releaseId} AND project_id = ${projectId} LIMIT 1
+      `);
+      if (check.length === 0) return null;
+    }
+
+    const mapFilename = filename.endsWith(".map") ? filename : `${filename}.map`;
+    const storageKey = `sourcemaps/${projectId}/${releaseId}/${mapFilename}`;
+
+    await this.storage.put(storageKey, fileBuffer, "application/json");
+
+    if (!db) {
+      return { id: "art_test", filename, mapFilename, fileSize: fileBuffer.length, createdAt: new Date().toISOString() };
+    }
+
+    const artId = generateArtifactId();
+    await db.execute(sql`
+      INSERT INTO release_artifacts (id, release_id, project_id, filename, map_filename, storage_key, file_size, created_at)
+      VALUES (${artId}, ${releaseId}, ${projectId}, ${filename}, ${mapFilename}, ${storageKey}, ${fileBuffer.length}, NOW())
+      ON CONFLICT (release_id, filename)
+      DO UPDATE SET
+        map_filename = EXCLUDED.map_filename,
+        storage_key  = EXCLUDED.storage_key,
+        file_size    = EXCLUDED.file_size,
+        created_at   = NOW()
+    `);
+
+    this.logger.log(`Artifact uploaded via dashboard: release=${releaseId} file=${mapFilename} size=${fileBuffer.length}`);
+    return { id: artId, filename, mapFilename, fileSize: fileBuffer.length, createdAt: new Date().toISOString() };
   }
 }
