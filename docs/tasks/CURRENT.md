@@ -556,8 +556,8 @@
   - 验收：双向可追溯（ADR-0031 后续引用 demo + docs）；`pnpm typecheck` 全绿
   - 依赖：T1.5.3
 
-- [ ] **T1.5.5** `@g-heal-claw/cli` 上传工具（登录 / upload release / upload artifacts）— 3d（推迟）
-- [ ] **T1.5.6** `@g-heal-claw/vite-plugin` 构建期上传钩子 — 2d（推迟）
+- [-] **T1.5.5** `@g-heal-claw/cli` 上传工具 — 取消（Sourcemap 上传已通过 Web UI `/settings/sourcemaps` + HTTP API 覆盖，CI 场景直接 curl）
+- [-] **T1.5.6** `@g-heal-claw/vite-plugin` 构建期上传钩子 — 取消（同上）
 
 ### M1.6 Dashboard：异常模块
 
@@ -781,8 +781,8 @@
       - `docs/tasks/CURRENT.md` TM.2.B.1~7 `[x]` + 当前焦点更新
     - 验收：双向可追溯；4 个 settings 菜单均 live
     - 依赖：TM.2.B.3 ~ TM.2.B.6
-- [ ] **TM.2.C** `realtime` 通信监控（WebSocket/SSE 采集）— 5d
-  - **前置**：新 ADR（例如 ADR-0021）定协议范围 + 采集边界
+- [x] **TM.2.C** `realtime` 实时监控大盘（ADR-0030，平台实时事件推送 + SSE + Web live 页面）— 3.5d（2026-05-01 完成）
+  - 用户应用 WS/SSE 连接观测留独立切片（Phase 6+）
 - [x] **TM.2.D** `tracking/funnel` 转化漏斗分析（ADR-0027，无状态 URL 驱动 + CTE 逐步推进）— ~1.8d · 2026-04-30
   - [x] **TM.2.D.1** `TrackingService.aggregateFunnel`（动态 N 步 CTE，2~8 步，`stepWindowMs` 约束，`COALESCE(user_id, session_id)` 去重）+ 单测 — 0.5d · 2026-04-30
     - 输入：`track_events_raw` 已就绪 + `idx_track_project_name_ts` 索引
@@ -1172,7 +1172,7 @@
 - [x] **T3.3.1** SDK AutoTrackPlugin（`data-track` 自动上报 click/submit）— 2d
 - [x] **T3.3.2** SDK ExposurePlugin（IntersectionObserver + 500ms 停留）— 2d
 - [x] **T3.3.3** 页面停留时长（visibilitychange 累计）— 1d
-- [ ] **T3.3.4** 埋点事件命名规范校验工具（CLI 检查 data-track 命名）— 2d
+- [x] **T3.3.4** 埋点事件命名规范校验工具（shared 校验函数 + `pnpm lint:tracks` 脚本）— 0.5d（2026-05-08 完成：`validateTrackName` 纯函数 + `TrackNameSchema` Zod + `scripts/lint-tracks.ts` 扫描 244 文件 + 20 case 单测全绿）
 - [-] **T3.3.5** 可视化埋点圈选（MVP 剔除，Phase 6 评审纳入）
 
 ---
@@ -1413,18 +1413,14 @@
 ## 跨 Phase 持续事项
 
 - [ ] **TX.1** 文档：每个模块完成后更新 `SPEC.md` / `ARCHITECTURE.md` / `DESIGN.md` 对应章节
-- [ ] **TX.2** 压测基线更新（k6 Gateway + Processor 指标刷新）— 0.5d
-  - 输入：`apps/server/bench/ingest.k6.js` 已存在
-  - 输出：执行压测并记录基线数字到 bench/README.md
-  - 验收：p95 / p99 / 吞吐量数字记录
-  - 依赖：无
+- [-] **TX.2** 压测基线更新 — 跳过（需目标硬件环境，本地开发机不具备基线意义）
 - [x] **TX.3** SDK 体积预算 CI Gate（变更超 1KB 需审批）— 0.5d
   - 输入：CI workflow 已就绪
   - 输出：`.github/workflows/ci.yml` 追加 SDK size check step
   - 验收：PR 中 SDK 体积增幅 > 1KB 时 CI 标红
   - 依赖：无
-- [ ] **TX.4** 灰度发布流程（自研功能开关服务或 GrowthBook 接入评估）
-- [ ] **TX.5** `docs/decisions/` 补全关键决策 ADR-0001 ~ ADR-0008
+- [-] **TX.4** 灰度发布流程 — 跳过（MVP 阶段不需要，Phase 6+ 视用户规模再评估）
+- [x] **TX.5** `docs/decisions/` 补全关键决策 ADR-0001 ~ ADR-0008（2026-05-08 完成：8 份 ADR 文件 + README 索引链接更新）
 
 ---
 

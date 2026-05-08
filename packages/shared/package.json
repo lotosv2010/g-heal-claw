@@ -49,6 +49,10 @@
     "./id": {
       "types": "./dist/id.d.ts",
       "import": "./dist/id.js"
+    },
+    "./validation": {
+      "types": "./dist/validation/index.d.ts",
+      "import": "./dist/validation/index.js"
     }
   },
   "files": [
