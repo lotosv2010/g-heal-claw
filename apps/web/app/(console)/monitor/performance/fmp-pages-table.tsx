@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { FmpPage, ThresholdTone } from "@/lib/api/performance";
+import { FmpAiAction } from "./fmp-ai-action";
 
 /**
  * 首屏时间（FMP）页面表
@@ -53,6 +54,7 @@ export function FmpPagesTable({ rows }: { rows: readonly FmpPage[] }) {
               <TableHead className="text-right">页面完全加载</TableHead>
               <TableHead className="text-right">3s 内打开率</TableHead>
               <TableHead className="text-right">采样数量</TableHead>
+              <TableHead className="text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -81,6 +83,9 @@ export function FmpPagesTable({ rows }: { rows: readonly FmpPage[] }) {
                 </TableCell>
                 <TableCell className="text-muted-foreground text-right tabular-nums">
                   {r.sampleCount.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right">
+                  <FmpAiAction row={r} />
                 </TableCell>
               </TableRow>
             ))}

@@ -10,7 +10,8 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { DeltaDirection, VitalKey, VitalMetric } from "@/lib/api/performance";
-import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { ArrowDown, ArrowUp, Bot, Minus } from "lucide-react";
+import { useAiDiagnose } from "@/lib/hooks/use-ai-diagnose";
 
 // 指针 / 分界线统一视觉色（AntD neutral-8）
 const POINTER_COLOR = "#434343";
@@ -237,11 +238,15 @@ function VitalItem({
           </Tooltip>
           {config.deprecated ? <DeprecatedBadge /> : null}
         </div>
-        <span
-          className={cn("text-lg font-semibold tabular-nums", valueColorClass)}
-        >
-          {hasValue ? formatValue(value, config.unit) : "N/A"}
-        </span>
+        <VitalValue
+          value={value}
+          hasValue={hasValue}
+          unit={config.unit}
+          colorClass={valueColorClass}
+          tone={metric?.tone ?? "good"}
+          vitalKey={config.key}
+          fullName={config.full}
+        />
       </div>
 
       {/* 环比变化指示（仅在"环比"模式下展示） */}
@@ -446,8 +451,47 @@ function clamp(n: number): number {
 }
 
 function formatValue(v: number, unit: "ms" | ""): string {
-  // CLS 等无量纲保留 3 位小数（阈值 0.1 / 0.25 精细区分；2 位会把 0.003 显示为 0.00）
   if (unit === "") return v.toFixed(3);
   if (v >= 1000) return `${(v / 1000).toFixed(2)}s`;
   return `${Math.round(v)}ms`;
+}
+
+function VitalValue({
+  value, hasValue, unit, colorClass, tone, vitalKey, fullName,
+}: {
+  value: number | undefined; hasValue: boolean; unit: "ms" | ""; colorClass: string;
+  tone: string; vitalKey: string; fullName: string;
+}) {
+  const { diagnose } = useAiDiagnose();
+  const canDiagnose = hasValue && tone !== "good";
+  const displayValue = hasValue && value != null ? formatValue(value, unit) : "N/A";
+
+  const handleClick = () => {
+    if (!canDiagnose) return;
+    const message = `我的网站 ${vitalKey}（${fullName}）指标为 ${displayValue}，处于${tone === "warn" ? "需改进" : "较差"}状态。请分析可能的原因并给出具体的优化方案。`;
+    diagnose(message, `${vitalKey} 优化: ${displayValue}`);
+  };
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={cn(
+            "text-lg font-semibold tabular-nums",
+            colorClass,
+            canDiagnose && "cursor-pointer hover:underline decoration-dashed underline-offset-4",
+          )}
+          onClick={handleClick}
+        >
+          {displayValue}
+          {canDiagnose && <Bot className="ml-1 inline size-3.5 opacity-60" />}
+        </span>
+      </TooltipTrigger>
+      {canDiagnose && (
+        <TooltipContent side="top">
+          <p className="text-xs">点击可调起 AI 分析优化建议</p>
+        </TooltipContent>
+      )}
+    </Tooltip>
+  );
 }

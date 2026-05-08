@@ -58,6 +58,7 @@ export function AiDrawer({ projectId, open, onOpenChange }: AiDrawerProps) {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<(() => void) | null>(null);
+  const skipLoadRef = useRef(false);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -69,6 +70,51 @@ export function AiDrawer({ projectId, open, onOpenChange }: AiDrawerProps) {
     if (!open || !projectId) return;
     loadConversations();
   }, [open, projectId]);
+
+  // 监听外部触发的 AI 诊断事件
+  const sendDirectMessage = useCallback(async (convId: string, content: string) => {
+    const userMsg: Message = { id: `temp-${Date.now()}`, role: "user", content, createdAt: new Date().toISOString() };
+    setMessages([userMsg]);
+    setStreaming(true);
+    setStreamContent("");
+
+    const { reader, abort } = streamMessage(convId, content, projectId, undefined, []);
+    abortRef.current = abort;
+
+    let accumulated = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        accumulated += value;
+        setStreamContent(accumulated);
+      }
+    } catch { /* 中止或网络错误 */ } finally {
+      if (accumulated) {
+        const assistantMsg: Message = { id: `temp-${Date.now()}-ai`, role: "assistant", content: accumulated, createdAt: new Date().toISOString() };
+        setMessages((prev) => [...prev, assistantMsg]);
+        saveMessages(convId, content, accumulated);
+      }
+      setStreamContent("");
+      setStreaming(false);
+      abortRef.current = null;
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { conversationId, message, title } = (e as CustomEvent).detail as {
+        conversationId: string; message: string; title: string;
+      };
+      const newConv: Conversation = { id: conversationId, title, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+      setConversations((prev) => [newConv, ...prev]);
+      skipLoadRef.current = true;
+      setActiveId(conversationId);
+      sendDirectMessage(conversationId, message);
+    };
+    window.addEventListener("ai-start-conversation", handler);
+    return () => window.removeEventListener("ai-start-conversation", handler);
+  }, [sendDirectMessage]);
 
   const loadConversations = useCallback(async () => {
     setLoadingConvs(true);
@@ -85,6 +131,7 @@ export function AiDrawer({ projectId, open, onOpenChange }: AiDrawerProps) {
 
   useEffect(() => {
     if (!activeId) { setMessages([]); return; }
+    if (skipLoadRef.current) { skipLoadRef.current = false; return; }
     loadMessages(activeId);
   }, [activeId]);
 
@@ -326,7 +373,7 @@ export function AiDrawer({ projectId, open, onOpenChange }: AiDrawerProps) {
 
             {/* 输入区 */}
             <div className="shrink-0 border-t bg-muted/20 px-4 pt-3 pb-2">
-              <form onSubmit={handleSend} className="flex items-end gap-2">
+              <form data-ai-form onSubmit={handleSend} className="flex items-end gap-2">
                 <div className="flex shrink-0 flex-col gap-1">
                   <Button
                     type="button"

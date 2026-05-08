@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { listIssues, type IssueListItem } from "@/lib/api/issues";
+import { IssueActions } from "./issue-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,7 @@ export default async function IssuesPage({
                 <th className="px-4 py-3 text-right font-medium">事件数</th>
                 <th className="px-4 py-3 text-right font-medium">影响会话</th>
                 <th className="px-4 py-3 text-left font-medium">最近出现</th>
+                <th className="px-4 py-3 text-right font-medium">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -154,6 +156,9 @@ function IssueRow({ issue }: { issue: IssueListItem }) {
       </td>
       <td className="px-4 py-3 text-muted-foreground text-xs">
         {formatRelative(issue.lastSeen)}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <IssueActions issue={issue} />
       </td>
     </tr>
   );

@@ -1,7 +1,6 @@
 "use client";
 
-import { DiagnoseButton } from "@/components/ai/diagnose-button";
-import { useActiveProject } from "@/lib/hooks/use-active-project";
+import { AiDiagnoseTrigger } from "@/components/ai/ai-diagnose-trigger";
 
 interface Props {
   readonly issueId: string;
@@ -9,19 +8,14 @@ interface Props {
   readonly stack?: string;
 }
 
-/** 异常详情页的 AI 方案按钮（客户端组件，读取当前项目 ID） */
 export function IssueDiagnoseButton({ issueId, title, stack }: Props) {
-  const projectId = useActiveProject();
+  const message = `请分析以下异常的根因并提供修复方案：\n\n标题：${title}\nIssue ID：${issueId}${stack ? `\n\n堆栈信息：\n${stack.slice(0, 2000)}` : ""}`;
 
   return (
-    <DiagnoseButton
-      projectId={projectId}
-      context={{
-        type: "issue",
-        issueId,
-        data: { title, stack: stack?.slice(0, 2000) },
-        question: `请分析这个异常的根因并提供修复方案：${title}`,
-      }}
+    <AiDiagnoseTrigger
+      message={message}
+      title={`诊断: ${title.slice(0, 20)}`}
+      label="AI 诊断"
     />
   );
 }
