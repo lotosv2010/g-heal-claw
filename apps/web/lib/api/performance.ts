@@ -167,6 +167,8 @@ export interface PerformanceOverview {
   readonly fmpPages: readonly FmpPage[];
   readonly dimensions: Dimensions;
   readonly longTasks: LongTaskSummary;
+  /** 窗口内所有页面路径（供下拉选择，不受 pagePath 过滤） */
+  readonly paths: readonly string[];
 }
 
 /** 页面渲染三态（供 page.tsx 判定 Badge 文案与空态组件） */
@@ -181,6 +183,8 @@ export interface PerformanceOverviewResult {
 export interface PerformanceOverviewParams {
   /** 聚合窗口（小时），1~168；省略则使用后端默认 24 */
   readonly windowHours?: number;
+  /** 按页面路径过滤（瀑布图聚焦到特定页面） */
+  readonly pagePath?: string;
 }
 
 /**
@@ -205,6 +209,9 @@ export async function getPerformanceOverview(
   qs.set("environment", environment);
   if (params.windowHours != null && Number.isFinite(params.windowHours)) {
     qs.set("windowHours", String(params.windowHours));
+  }
+  if (params.pagePath) {
+    qs.set("pagePath", params.pagePath);
   }
   const url = `${baseUrl}/dashboard/v1/performance/overview?${qs.toString()}`;
 
@@ -266,5 +273,6 @@ export function emptyOverview(): PerformanceOverview {
       p75Ms: 0,
       tiers: { longTask: 0, jank: 0, unresponsive: 0 },
     },
+    paths: [],
   };
 }

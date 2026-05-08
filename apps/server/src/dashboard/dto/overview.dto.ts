@@ -180,4 +180,6 @@ export interface PerformanceOverviewDto {
   readonly fmpPages: readonly FmpPageDto[];
   readonly dimensions: DimensionsDto;
   readonly longTasks: LongTaskSummaryDto;
+  /** 窗口内所有有性能事件的页面路径（不受 pagePath 过滤，供前端下拉选择） */
+  readonly paths: readonly string[];
 }

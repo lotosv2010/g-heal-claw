@@ -79,6 +79,9 @@ export interface DimensionRow {
 /** 支持聚合的 DB 维度列白名单（与 error_events_raw schema 对齐） */
 export type SupportedDimensionColumn = "browser" | "browser_version" | "os" | "os_version" | "device_type" | "network_type" | "country" | "region" | "language" | "timezone";
 
+/** error_events_raw 中路径列名是 path 而非 page_path */
+const ERR_COL_OVERRIDES = { page_path: "path" } as const;
+
 const MESSAGE_HEAD_MAX = 128;
 
 /**
@@ -175,7 +178,7 @@ export class ErrorsService {
     const db = this.database.db;
     if (!db) return { totalEvents: 0, impactedSessions: 0 };
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, ERR_COL_OVERRIDES);
     const rows = await db.execute<{
       total: string | number;
       sessions: string | number;
@@ -202,7 +205,7 @@ export class ErrorsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, ERR_COL_OVERRIDES);
     const rows = await db.execute<{
       sub_type: string;
       n: string | number;
@@ -228,7 +231,7 @@ export class ErrorsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, ERR_COL_OVERRIDES);
     const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
@@ -265,7 +268,7 @@ export class ErrorsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, ERR_COL_OVERRIDES);
     const rows = await db.execute<{
       sub_type: string;
       resource_kind: string | null;
@@ -313,7 +316,7 @@ export class ErrorsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, ERR_COL_OVERRIDES);
     const rows = await db.execute<{
       sub_type: string;
       resource_kind: string | null;
@@ -345,7 +348,7 @@ export class ErrorsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, ERR_COL_OVERRIDES);
     const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
@@ -392,7 +395,7 @@ export class ErrorsService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, ERR_COL_OVERRIDES);
     // drizzle 的 sql`` 对列名支持通过 sql.identifier
     const col = sql.identifier(column);
     const rows = await db.execute<{

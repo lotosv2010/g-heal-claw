@@ -6,6 +6,7 @@ import { resolveWindowHours } from "@/lib/time-range";
 // 强制动态渲染：每次请求都从 apps/server 拉最新聚合结果，避免被 SSG 冻结
 export const dynamic = "force-dynamic";
 import { CommonMetricsCards } from "./common-metrics-cards";
+import { PagePathFilter } from "./page-path-filter";
 import { PageWaterfall } from "./page-waterfall";
 import { TrendChart } from "./trend-chart";
 import { CoreVitalsPanel } from "./core-vitals-panel";
@@ -33,14 +34,21 @@ export default async function PerformancePage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const windowHours = await resolveWindowHours(searchParams);
-  const { source, data } = await getPerformanceOverview({ windowHours });
+  const sp = await searchParams;
+  const pagePath = typeof sp?.pagePath === "string" ? sp.pagePath : undefined;
+  const { source, data } = await getPerformanceOverview({ windowHours, pagePath });
 
   return (
     <div>
       <PageHeader
         title="页面性能"
         description="Core Web Vitals、加载阶段、慢页面 Top 10"
-        actions={<SourceBadge source={source} />}
+        actions={
+          <div className="flex items-center gap-3">
+            <PagePathFilter paths={data.paths} currentPath={pagePath} />
+            <SourceBadge source={source} />
+          </div>
+        }
       />
 
       {/* 1. 常用指标 */}
@@ -67,7 +75,7 @@ export default async function PerformancePage({
       {/* 3. 页面加载瀑布图 */}
       <section className="mb-6">
         {data.stages.length > 0 ? (
-          <PageWaterfall stages={data.stages} slowPages={data.slowPages} />
+          <PageWaterfall stages={data.stages} />
         ) : (
           <EmptyPanel
             title="页面加载瀑布图"

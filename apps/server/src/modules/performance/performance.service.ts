@@ -15,6 +15,9 @@ import {
   type NewPerfEventRow,
 } from "../../shared/database/schema.js";
 
+/** perf_events_raw 中路径列名是 path 而非 page_path */
+const PERF_COL_OVERRIDES = { page_path: "path" } as const;
+
 export type PerfOrLongTaskEvent = PerformanceEvent | LongTaskEvent;
 
 /** Dashboard 聚合：单指标 p75 + 样本数 */
@@ -177,7 +180,7 @@ export class PerformanceService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, PERF_COL_OVERRIDES);
     const rows = await db.execute<{
       metric: string;
       p75: string | number | null;
@@ -227,7 +230,7 @@ export class PerformanceService {
       };
     }
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, PERF_COL_OVERRIDES);
     const rows = await db.execute<{
       n: string | number;
       total: string | number | null;
@@ -275,7 +278,7 @@ export class PerformanceService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, PERF_COL_OVERRIDES);
     const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
@@ -324,7 +327,7 @@ export class PerformanceService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, PERF_COL_OVERRIDES);
     const trunc = truncSql(params.granularity);
     const rows = await db.execute<{
       hour: Date | string;
@@ -385,7 +388,7 @@ export class PerformanceService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, PERF_COL_OVERRIDES);
     // 直接取 JSONB，Drizzle 会反序列化为对象
     const rows = await db.execute<{ navigation: NavigationTiming | null }>(sql`
       SELECT navigation
@@ -405,6 +408,30 @@ export class PerformanceService {
       .filter((n): n is NavigationTiming => n !== null);
   }
 
+  /** 窗口内所有有性能事件的页面路径（按样本量倒序，limit 50） */
+  public async aggregateDistinctPaths(
+    params: WindowParams,
+    limit = 50,
+  ): Promise<readonly string[]> {
+    const db = this.database.db;
+    if (!db) return [];
+    const { projectId, sinceMs, untilMs } = params;
+    const rows = await db.execute<{ path: string; n: string | number }>(sql`
+      SELECT path, COUNT(*) AS n
+      FROM perf_events_raw
+      WHERE project_id = ${projectId}
+        AND type = 'performance'
+        AND ts_ms >= ${sinceMs}
+        AND ts_ms <  ${untilMs}
+        AND path IS NOT NULL
+        AND path <> ''
+      GROUP BY path
+      ORDER BY n DESC
+      LIMIT ${limit}
+    `);
+    return rows.map((r) => String(r.path));
+  }
+
   /**
    * 聚合：按 path 的 LCP p75 倒序，并对同组取 TTFB p75
    *
@@ -419,7 +446,7 @@ export class PerformanceService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, PERF_COL_OVERRIDES);
 
     const lcpRows = await db.execute<{
       path: string;
@@ -493,7 +520,7 @@ export class PerformanceService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, PERF_COL_OVERRIDES);
 
     const fmpRows = await db.execute<{
       path: string;
@@ -566,7 +593,7 @@ export class PerformanceService {
     const db = this.database.db;
     if (!db) return [];
     const { projectId, sinceMs, untilMs, filters } = params;
-    const dimWhere = buildDimensionWhere(filters);
+    const dimWhere = buildDimensionWhere(filters, PERF_COL_OVERRIDES);
 
     // field → 列标识（白名单，防注入）
     const column = (() => {

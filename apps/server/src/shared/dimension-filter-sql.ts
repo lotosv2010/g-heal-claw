@@ -9,15 +9,21 @@ import {
  *
  * 返回空 SQL 片段时表示无筛选条件，可以安全拼接到现有 WHERE 后。
  * 用法：sql`... WHERE project_id = ${pid} ${buildDimensionWhere(filters)}`
+ *
+ * @param columnOverrides 列名覆写（如 perf/error 表中 pagePath 对应 "path" 而非 "page_path"）
  */
-export function buildDimensionWhere(filters?: DimensionFilter): SQL {
+export function buildDimensionWhere(
+  filters?: DimensionFilter,
+  columnOverrides?: Readonly<Record<string, string>>,
+): SQL {
   if (!filters) return sql``;
 
   const active = getActiveFilters(filters);
   if (active.length === 0) return sql``;
 
   const parts: SQL[] = [];
-  for (const { column, values } of active) {
+  for (const { column: rawColumn, values } of active) {
+    const column = columnOverrides?.[rawColumn] ?? rawColumn;
     if (values.length === 1) {
       // 单值走 = 更高效
       parts.push(sql.raw(`AND ${quoteIdent(column)} = `) as SQL);

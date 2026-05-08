@@ -76,6 +76,9 @@ export class DashboardPerformanceService {
     };
 
     // 并发聚合，DB 端没有竞争
+    // 不受 pagePath 过滤的基线参数（用于 distinctPaths 下拉列表）
+    const baseParams: WindowParams = { ...current, filters: undefined };
+
     const [
       vitalsCurrent,
       vitalsPrevious,
@@ -94,6 +97,7 @@ export class DashboardPerformanceService {
       languageRows,
       timezoneRows,
       longTasksCurrent,
+      distinctPaths,
     ] = await Promise.all([
       this.perf.aggregateVitals(current),
       this.perf.aggregateVitals(previous),
@@ -112,6 +116,7 @@ export class DashboardPerformanceService {
       this.perf.aggregateDimension(current, "language"),
       this.perf.aggregateDimension(current, "timezone"),
       this.perf.aggregateLongTasks(current),
+      this.perf.aggregateDistinctPaths(baseParams),
     ]);
 
     const vitals = buildVitals(vitalsCurrent, vitalsPrevious);
@@ -141,7 +146,7 @@ export class DashboardPerformanceService {
 
     const longTasks = buildLongTasks(longTasksCurrent);
 
-    return { vitals, stages, trend, slowPages, fmpPages, dimensions, longTasks };
+    return { vitals, stages, trend, slowPages, fmpPages, dimensions, longTasks, paths: distinctPaths };
   }
 }
 
