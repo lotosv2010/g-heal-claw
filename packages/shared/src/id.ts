@@ -27,6 +27,8 @@ export const ALERT_RULE_ID_PREFIX = "alr" as const;
 export const ALERT_HISTORY_ID_PREFIX = "alh" as const;
 export const CHANNEL_ID_PREFIX = "ch" as const;
 export const HEAL_JOB_ID_PREFIX = "heal" as const;
+export const CONVERSATION_ID_PREFIX = "conv" as const;
+export const MESSAGE_ID_PREFIX = "msg" as const;
 
 export const ID_PREFIXES = [
   PROJECT_ID_PREFIX,
@@ -41,6 +43,8 @@ export const ID_PREFIXES = [
   ALERT_HISTORY_ID_PREFIX,
   CHANNEL_ID_PREFIX,
   HEAL_JOB_ID_PREFIX,
+  CONVERSATION_ID_PREFIX,
+  MESSAGE_ID_PREFIX,
 ] as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[number];
@@ -80,3 +84,5 @@ export const generateArtifactId = (): string => generateId(ARTIFACT_ID_PREFIX);
 export const generateAlertRuleId = (): string => generateId(ALERT_RULE_ID_PREFIX);
 export const generateAlertHistoryId = (): string => generateId(ALERT_HISTORY_ID_PREFIX);
 export const generateChannelId = (): string => generateId(CHANNEL_ID_PREFIX);
+export const generateConversationId = (): string => generateId(CONVERSATION_ID_PREFIX);
+export const generateMessageId = (): string => generateId(MESSAGE_ID_PREFIX);

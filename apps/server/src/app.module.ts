@@ -21,6 +21,7 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { AlertModule } from "./modules/alert/alert.module.js";
 import { NotificationModule } from "./modules/notification/notification.module.js";
 import { HealModule } from "./modules/heal/heal.module.js";
+import { AiChatModule } from "./modules/ai-chat/ai-chat.module.js";
 
 @Module({})
 export class AppModule {
@@ -38,6 +39,7 @@ export class AppModule {
         AlertModule,
         NotificationModule,
         HealModule,
+        AiChatModule,
         GatewayModule,
         ErrorsModule,
         ApiModule,

@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@plugin "@tailwindcss/typography";
+
 /**
  * 视觉风格：Apple HIG / macOS + apple.com
  *  - 字体：SF Pro（-apple-system 回退），中文 PingFang SC

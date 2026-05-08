@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+import { AiDrawerProvider } from "@/components/ai/ai-provider";
 
 /**
  * Dashboard 路由组外壳
@@ -28,25 +29,28 @@ export default async function DashboardLayout({
   if (accessToken) {
     globalThis._serverAccessToken = accessToken;
   }
+  const projectId = cookieStore.get("ghc-project")?.value ?? process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID ?? "demo";
 
   return (
-    <div className="bg-background min-h-screen">
-      <Suspense fallback={<div className="fixed inset-y-0 left-0 z-30 hidden w-60 md:block" />}>
-        <Sidebar />
-      </Suspense>
-      <div className="flex h-screen flex-col md:pl-60">
-        <Suspense
-          fallback={
-            <div
-              className="bg-background/80 sticky top-0 z-20 h-14 shrink-0 border-b border-black/[0.04] backdrop-blur-xl dark:border-white/[0.06]"
-              aria-hidden
-            />
-          }
-        >
-          <Topbar />
+    <AiDrawerProvider projectId={projectId}>
+      <div className="bg-background min-h-screen">
+        <Suspense fallback={<div className="fixed inset-y-0 left-0 z-30 hidden w-60 md:block" />}>
+          <Sidebar />
         </Suspense>
-        <main className="flex-1 overflow-y-auto px-8 py-6">{children}</main>
+        <div className="flex h-screen flex-col md:pl-60">
+          <Suspense
+            fallback={
+              <div
+                className="bg-background/80 sticky top-0 z-20 h-14 shrink-0 border-b border-black/[0.04] backdrop-blur-xl dark:border-white/[0.06]"
+                aria-hidden
+              />
+            }
+          >
+            <Topbar />
+          </Suspense>
+          <main className="flex-1 overflow-y-auto px-8 py-6">{children}</main>
+        </div>
       </div>
-    </div>
+    </AiDrawerProvider>
   );
 }

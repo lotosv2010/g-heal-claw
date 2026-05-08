@@ -44,9 +44,9 @@ async function bootstrap(): Promise<void> {
   // Sourcemap .map 文件上传（单文件 ≤ 50MB）
   await app.register(multipart as never, { limits: { fileSize: 50 * 1024 * 1024 } });
 
-  // CORS：允许 web 前台与 examples/nextjs-demo（3100）
+  // CORS：允许 web 前台（3000）与 examples/nextjs-demo（3100）
   app.enableCors({
-    origin: [env.PUBLIC_WEB_BASE_URL, "http://localhost:3100"],
+    origin: [env.PUBLIC_WEB_BASE_URL, "http://localhost:3000", "http://localhost:3100"],
     credentials: true,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   });

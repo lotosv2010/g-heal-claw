@@ -27,3 +27,5 @@ export * from "./schema/alert-history.js";
 export * from "./schema/channels.js";
 export * from "./schema/heal-jobs.js";
 export * from "./schema/metric-minute.js";
+export * from "./schema/ai-conversations.js";
+export * from "./schema/ai-messages.js";

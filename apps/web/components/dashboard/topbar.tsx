@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { DateRange } from "react-day-picker";
-import { ChevronDown, Clock, LogOut, RefreshCw, User } from "lucide-react";
+import { Bot, ChevronDown, Clock, LogOut, RefreshCw, User } from "lucide-react";
 import { GithubIcon } from "@/components/dashboard/github-icon";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -20,6 +20,7 @@ import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { findNavByPathname } from "@/lib/nav";
 import { apiLogout, getAccessToken } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { useAiDrawer } from "@/components/ai/ai-provider";
 import { ProjectSwitcher } from "./project-switcher";
 import { EnvironmentSwitcher } from "./environment-switcher";
 import {
@@ -133,6 +134,9 @@ export function Topbar() {
       return null;
     }
   }, []);
+
+  // AI 抽屉控制
+  const aiDrawer = useAiDrawer();
 
   const handleLogout = useCallback(async () => {
     await apiLogout();
@@ -254,6 +258,15 @@ export function Topbar() {
           </PopoverContent>
         </Popover>
 
+        <Button
+          variant={aiDrawer.open ? "secondary" : "outline"}
+          size="icon"
+          aria-label="AI 助手"
+          title="AI 助手"
+          onClick={aiDrawer.toggle}
+        >
+          <Bot className="size-4" aria-hidden />
+        </Button>
         <Button variant="outline" size="icon" aria-label="刷新">
           <RefreshCw className="size-4" aria-hidden />
         </Button>

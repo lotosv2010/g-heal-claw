@@ -1337,6 +1337,52 @@
 - [-] **T5.4.2** Heal 回归数据集 — 推迟
 - [-] **T5.4.3** 安全审计 — 推迟
 
+### M5.5 AI 对话交互（ADR-0039）
+
+> 将 AI 能力从后台自愈扩展为面向用户的交互式诊断。全局对话抽屉 + 一键 AI 方案 + Sourcemap 自动修复。
+
+- [x] **T5.5.1** DB Schema + Drizzle 迁移（ai_conversations + ai_messages 2 表）— 0.5d
+  - 输入：ADR-0039 §数据模型
+  - 输出：`apps/server/src/shared/database/schema/ai-conversations.ts` + `ai-messages.ts` + `drizzle/0013_ai_chat.sql` + shared ID 前缀 `conv_` / `msg_`
+  - 验收：`pnpm typecheck` 全绿；DDL 幂等执行
+  - 依赖：无
+
+- [x] **T5.5.2** LlmProviderService（轻量流式封装）— 1d
+  - 输入：`packages/shared/src/env/ai-agent.ts` 已有 LLM_PROVIDER / DEEPSEEK_* 等配置
+  - 输出：`apps/server/src/modules/ai-chat/llm-provider.service.ts`（streamChat 方法，返回 AsyncIterable<string>，支持 DeepSeek / OpenAI / Ollama）
+  - 验收：单测 mock HTTP 验证流式输出；`typecheck` 全绿
+  - 依赖：无
+
+- [x] **T5.5.3** AiChatModule 会话 CRUD + 消息持久化 — 1d
+  - 输入：T5.5.1 + T5.5.2
+  - 输出：`apps/server/src/modules/ai-chat/ai-chat.module.ts` + `ai-chat.service.ts` + `ai-chat.controller.ts` + `dto/`（6 端点：会话 CRUD + 消息发送 SSE + 消息历史 + 一键诊断）
+  - 验收：Swagger 可见 6 端点；消息发送端点返回 SSE 流；`typecheck` 全绿
+  - 依赖：T5.5.1, T5.5.2
+
+- [x] **T5.5.4** 前端 AiDrawer 全局抽屉组件 — 1.5d
+  - 输入：T5.5.3 后端就绪
+  - 输出：`apps/web/components/ai/ai-drawer.tsx`（右侧抽屉：会话列表 + 消息面板 + 输入框 + SSE 流式渲染）+ `apps/web/components/ai/ai-message.tsx`（Markdown 渲染）+ `lib/api/ai-chat.ts`（客户端）+ Topbar AI 图标入口
+  - 验收：`typecheck && build` 全绿；可创建会话 / 发送消息 / 流式接收 / 查看历史 / 删除会话
+  - 依赖：T5.5.3
+
+- [x] **T5.5.5** DiagnoseButton 一键 AI 方案 + 各页面集成 — 1d
+  - 输入：T5.5.4
+  - 输出：`apps/web/components/ai/diagnose-button.tsx`（通用按钮，接收上下文 props）+ 集成到 Issues 详情页 + 性能慢页面 + API 错误 Top；点击后打开 AiDrawer 并发送诊断请求
+  - 验收：Issues 详情页操作栏有"AI 方案"按钮；点击后抽屉打开并展示诊断结果
+  - 依赖：T5.5.4
+
+- [x] **T5.5.6** 自动修复联动（HealModule 触发）— 0.5d
+  - 输入：T5.5.5 + 现有 HealModule
+  - 输出：AI 诊断结果中识别可修复 issue 时，显示"触发自动修复"按钮；点击调用 `POST /api/v1/projects/:id/issues/:id/heal`
+  - 验收：对话中出现修复建议时有操作按钮；点击后 heal_jobs 表有记录
+  - 依赖：T5.5.5
+
+- [x] **T5.5.7** 单测 + 文档传导 — 0.5d
+  - 输入：T5.5.1 ~ T5.5.6
+  - 输出：Service 层单测 + SPEC §5 路由补齐 + ARCHITECTURE §3.1 模块追加 + ADR-0039 状态采纳 + CURRENT.md 更新
+  - 验收：`pnpm typecheck && pnpm test` 全绿；双向可追溯
+  - 依赖：T5.5.6
+
 ---
 
 ## Phase 6：看板完善 + 开放 API + 自举可观测

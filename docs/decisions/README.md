@@ -74,5 +74,6 @@
 | [ADR-0036](./0036-ai-heal-agent-mvp.md) | AI 自愈 Agent MVP（Phase 5）：`apps/ai-agent` 纯 Node.js + LangChain ReAct + BullMQ 双向队列 + 5 Tools（readIssue/readFile/grepRepo/writePatch/createPr）+ `heal_jobs` 状态机 + HealModule API；Docker 沙箱/GitLab/Web UI 推迟 | 采纳 |
 | [ADR-0037](./0037-performance-processor-metric-minute.md) | PerformanceProcessor + metric_minute 预聚合 + Apdex cron：BullMQ 异步消费性能事件 → 分钟级 p50/p75/p90/p95/p99 + Apdex(LCP T=2500ms) → UPSERT metric_minute；Gateway PERF_PROCESSOR_MODE 灰度开关 | 提议 |
 | [ADR-0038](./0038-persist-uncollected-fields.md) | 未入库 SDK 字段全量持久化：分 3 层按需入库（通用 9 列 × 9 表 + UTM 仅 page_view + lt_tier 仅 perf）；排除隐私/冗余/可推导字段 | 采纳 |
+| [ADR-0039](./0039-ai-chat-and-diagnosis.md) | AI 对话交互 + 一键诊断 + Sourcemap 自动修复：server 端 AiChatModule（会话 CRUD + LLM 流式调用 + 上下文注入）+ 前端 AiDrawer 全局抽屉 + DiagnoseButton 一键方案；复杂修复复用 HealModule | 采纳 |
 
 > 当你需要为某条决策补充详细背景或推翻旧决策时，请新增 `0001-xxx.md`（而非修改旧文件），并在此索引更新状态。

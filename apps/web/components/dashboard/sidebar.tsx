@@ -82,7 +82,7 @@ export function Sidebar() {
       <div className="border-sidebar-border flex h-14 shrink-0 items-center gap-2.5 border-b px-5">
         <BrandLogo className="size-7" />
         <span className="text-foreground text-[15px] font-semibold tracking-tight">
-          g-heal-claw
+          智愈监控
         </span>
       </div>
 
@@ -131,18 +131,8 @@ export function Sidebar() {
       </nav>
 
       <div className="border-sidebar-border shrink-0 border-t px-5 py-3">
-        <a
-          href={REPO_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-[11px] transition-colors"
-          title="在 GitHub 上查看源码"
-        >
-          <GithubIcon className="size-3.5" aria-hidden />
-          <span>lotosv2010/g-heal-claw</span>
-        </a>
-        <div className="text-muted-foreground mt-1 text-[11px]">
-          v0.0.1 · 骨架阶段
+        <div className="text-muted-foreground text-[11px]">
+          v1.0.0 · AI 驱动的前端监控平台
         </div>
       </div>
     </aside>
