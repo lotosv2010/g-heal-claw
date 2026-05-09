@@ -221,3 +221,53 @@
     letter-spacing: -0.015em;
   }
 }
+
+/* AI 对话代码块样式 */
+.ai-markdown .code-block-wrapper {
+  position: relative;
+  margin: 0.75rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.ai-markdown .code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  background: #2d2d2d;
+  border-bottom: 1px solid #3d3d3d;
+}
+
+.ai-markdown .code-lang {
+  font-size: 11px;
+  color: #a0a0a0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ai-markdown .copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  color: #a0a0a0;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.ai-markdown .copy-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ai-markdown .code-block-wrapper pre {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  padding: 0.75rem !important;
+}
+
+.ai-markdown .code-block-wrapper code {
+  font-size: 12px;
+  line-height: 1.6;
+}

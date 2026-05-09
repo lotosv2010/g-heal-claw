@@ -92,7 +92,8 @@ async function fetchWithRefresh<T>(
         refreshPromise = null;
       });
     }
-    const ok = await refreshPromise;
+    let ok = false;
+    try { ok = await refreshPromise; } catch { ok = false; }
     if (!ok) {
       clearTokens();
       if (typeof window !== "undefined") {

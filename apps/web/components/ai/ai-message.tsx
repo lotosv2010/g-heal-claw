@@ -1,9 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { marked } from "marked";
+import hljs from "highlight.js/lib/core";
+import javascript from "highlight.js/lib/languages/javascript";
+import typescript from "highlight.js/lib/languages/typescript";
+import css from "highlight.js/lib/languages/css";
+import xml from "highlight.js/lib/languages/xml";
+import json from "highlight.js/lib/languages/json";
+import bash from "highlight.js/lib/languages/bash";
+import sql from "highlight.js/lib/languages/sql";
+import "highlight.js/styles/github-dark.css";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, Brain } from "lucide-react";
+import { ChevronDown, ChevronRight, Brain, Copy, Check } from "lucide-react";
+
+hljs.registerLanguage("javascript", javascript);
+hljs.registerLanguage("js", javascript);
+hljs.registerLanguage("typescript", typescript);
+hljs.registerLanguage("ts", typescript);
+hljs.registerLanguage("css", css);
+hljs.registerLanguage("html", xml);
+hljs.registerLanguage("xml", xml);
+hljs.registerLanguage("json", json);
+hljs.registerLanguage("bash", bash);
+hljs.registerLanguage("sh", bash);
+hljs.registerLanguage("sql", sql);
 
 interface AiMessageProps {
   readonly role: "user" | "assistant" | "system";
@@ -93,21 +114,60 @@ function ThinkingBlock({ content }: { content: string }) {
 
 /** Markdown 渲染 */
 function MarkdownContent({ content }: { content: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const html = useMemo(() => {
     if (!content) return "";
-    marked.setOptions({
-      breaks: true,
-      gfm: true,
-    });
-    return marked.parse(content) as string;
+    marked.setOptions({ breaks: true, gfm: true });
+
+    const renderer = new marked.Renderer();
+    renderer.code = ({ text, lang }) => {
+      const language = lang && hljs.getLanguage(lang) ? lang : "plaintext";
+      const highlighted = language !== "plaintext"
+        ? hljs.highlight(text, { language }).value
+        : escapeHtml(text);
+      return `<div class="code-block-wrapper"><div class="code-block-header"><span class="code-lang">${lang || ""}</span><button class="copy-btn" data-code="${escapeAttr(text)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></div><pre><code class="hljs">${highlighted}</code></pre></div>`;
+    };
+
+    return marked.parse(content, { renderer }) as string;
   }, [content]);
+
+  // 挂载后绑定复制按钮事件
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const btn = (e.target as HTMLElement).closest(".copy-btn") as HTMLElement | null;
+      if (!btn) return;
+      const code = btn.getAttribute("data-code") ?? "";
+      navigator.clipboard.writeText(code).then(() => {
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+        setTimeout(() => {
+          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+        }, 2000);
+      });
+    };
+
+    container.addEventListener("click", handleClick);
+    return () => container.removeEventListener("click", handleClick);
+  }, [html]);
 
   return (
     <div
-      className="ai-markdown prose prose-sm dark:prose-invert max-w-none prose-headings:text-[15px] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-pre:bg-zinc-900 prose-pre:text-zinc-100 prose-pre:border-none prose-pre:rounded-lg prose-pre:text-xs prose-pre:my-3 prose-code:text-xs prose-code:text-sky-500 dark:prose-code:text-sky-400 prose-code:font-medium prose-code:before:content-none prose-code:after:content-none prose-table:my-3 prose-table:w-full prose-table:border-collapse prose-table:text-xs prose-th:border prose-th:border-border prose-th:bg-muted/50 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-medium prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2 prose-hr:my-4 prose-blockquote:my-3 prose-blockquote:border-l-primary/40"
+      ref={containerRef}
+      className="ai-markdown prose prose-sm dark:prose-invert max-w-none prose-headings:text-[15px] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-code:text-xs prose-code:text-sky-500 dark:prose-code:text-sky-400 prose-code:font-medium prose-code:before:content-none prose-code:after:content-none prose-table:my-3 prose-table:w-full prose-table:border-collapse prose-table:text-xs prose-th:border prose-th:border-border prose-th:bg-muted/50 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-medium prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2 prose-hr:my-4 prose-blockquote:my-3 prose-blockquote:border-l-primary/40"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function escapeAttr(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /** 从内容中分离 thinking 标记 */

@@ -14,6 +14,7 @@ import {
   type ErrorRankingRow,
   type IssueStatus,
 } from "@/lib/api/errors";
+import { RankingActions } from "./ranking-actions";
 
 /**
  * 错误排行（SPEC 第 2 区）
@@ -132,15 +133,7 @@ export function RankingTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  {/* 闭环尚未接入：按钮占位禁用；接入后替换为跳转详情 / 状态切换 */}
-                  <button
-                    type="button"
-                    disabled
-                    className="text-muted-foreground cursor-not-allowed text-xs underline-offset-2 hover:underline"
-                    title="详情页开发中"
-                  >
-                    详情
-                  </button>
+                  <RankingActions row={r} />
                 </TableCell>
               </TableRow>
             ))}

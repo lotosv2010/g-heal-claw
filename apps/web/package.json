@@ -58,6 +58,7 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "dotenv": "^17.4.2",
+    "highlight.js": "^11.11.1",
     "lucide-react": "^1.11.0",
     "marked": "^18.0.3",
     "next": "^16.2.4",
