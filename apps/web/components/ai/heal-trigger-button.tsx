@@ -4,30 +4,34 @@ import { useState } from "react";
 import { Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
-import { httpPost } from "@/lib/api/http";
+import { triggerHeal, getAiConfig } from "@/lib/api/heal";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../ui/tooltip";
 
 interface HealTriggerButtonProps {
   readonly projectId: string;
   readonly issueId: string;
 }
 
-/**
- * 自动修复触发按钮
- *
- * 在 AI 诊断建议中出现时，用户可一键触发 HealModule 自动修复流程（生成 PR）。
- */
 export function HealTriggerButton({ projectId, issueId }: HealTriggerButtonProps) {
   const [loading, setLoading] = useState(false);
   const [triggered, setTriggered] = useState(false);
 
+  const config = getAiConfig(projectId);
+  const hasConfig = !!config?.repoUrl;
+
   const handleTrigger = async () => {
+    if (!config?.repoUrl) {
+      toast.error("请先在 设置 → AI 修复配置 中配置仓库地址");
+      return;
+    }
     setLoading(true);
     try {
-      await httpPost(`/api/v1/projects/${projectId}/issues/${issueId}/heal`, {
-        repoUrl: "",
-        branch: "main",
-      });
-      toast.success("自动修复已触发，请在 Heal 任务中心查看进度");
+      await triggerHeal(projectId, issueId, config.repoUrl, config.branch || "main");
+      toast.success("自动修复已触发，请在 设置 → AI 修复配置 查看进度");
       setTriggered(true);
     } catch (err) {
       toast.error((err as Error).message || "触发失败");
@@ -42,6 +46,22 @@ export function HealTriggerButton({ projectId, issueId }: HealTriggerButtonProps
         <Wrench className="mr-1 size-3" />
         已触发修复
       </Button>
+    );
+  }
+
+  if (!hasConfig) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="outline" size="sm" disabled className="mt-2 opacity-50">
+            <Wrench className="mr-1 size-3" />
+            触发自动修复
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs">请先在 设置 → AI 修复配置 中配置仓库地址</p>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
