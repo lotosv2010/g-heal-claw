@@ -591,7 +591,19 @@ interface NavigationTiming {
 | 告警规则 | `/api/v1/projects/:id/alert-rules`、`/alert-rules/:id` | CRUD |
 | 告警历史 | `/api/v1/projects/:id/alert-history` | GET |
 | 通知渠道 | `/api/v1/projects/:id/channels`、`/channels/:id` | CRUD |
-| 自愈 | `/api/v1/issues/:id/heal`、`/heal/:jobId`、`/heal/:jobId/pr` | POST/GET/POST |
+| AI Chat | `/api/v1/ai/conversations` | POST（创建对话）/ GET（对话列表） |
+| AI Chat | `/api/v1/ai/conversations/:id` | DELETE（删除对话） |
+| AI Chat | `/api/v1/ai/conversations/:id/messages` | GET（消息列表） |
+| AI Chat | `/api/v1/ai/conversations/:id/save` | POST（保存消息） |
+| AI Chat | `/api/v1/ai/conversations/:id/title` | POST（更新标题） |
+| Heal | `/api/v1/projects/:pid/issues/:iid/heal` | POST（触发自愈） |
+| Heal | `/api/v1/projects/:pid/heal` | GET（任务列表） |
+| Heal | `/api/v1/projects/:pid/heal/:id` | GET（任务详情） |
+| Heal | `/api/v1/projects/:pid/heal/:id` | DELETE（取消任务） |
+| 自愈（旧路径） | `/api/v1/issues/:id/heal`、`/heal/:jobId`、`/heal/:jobId/pr` | POST/GET/POST |
+| Dashboard Sourcemaps | `/dashboard/v1/settings/sourcemaps/releases` | POST（创建 Release） |
+| Dashboard Sourcemaps | `/dashboard/v1/settings/sourcemaps/releases/:id/artifacts` | POST（上传 Artifact） |
+| Dimensions | `/dashboard/v1/dimensions/values` | GET（维度值枚举） |
 
 **响应格式**：
 
@@ -939,7 +951,7 @@ heal:
 
 ### 9.1 已落地基线（ADR-0017，T1.1.5）
 
-**主表 8 张 + 事件流 3 张；主表用前缀 nanoid（`proj_xxx` / `usr_xxx` 等），事件流用 bigserial**。
+**主表 10 张 + 事件流 3 张；主表用前缀 nanoid（`proj_xxx` / `usr_xxx` 等），事件流用 bigserial**。
 
 | 表 | 关键字段 | ID 类型 | 状态 |
 |---|---|---|---|
@@ -950,6 +962,8 @@ heal:
 | `environments` | project_id, name, description, is_production | 复合 PK | 已建表 |
 | `releases` | id, project_id, version, commit_sha, notes | `rel_xxx` | 已建表（T1.5 Sourcemap 写入） |
 | `issues` | id, project_id, fingerprint, sub_type, title, level, status, first_seen, last_seen, event_count, impacted_sessions, assigned_user_id | `iss_xxx` | **仅建表不写入**（ADR-0016 分组走 error_events_raw.message_head；T1.4.2 指纹落地后切换） |
+| `ai_conversations` | id, user_id, project_id, issue_id, title, created_at, updated_at | `conv_xxx` | 已建表（AI 对话会话） |
+| `ai_messages` | id, conversation_id, role, content, created_at | `msg_xxx` | 已建表（AI 对话消息） |
 | `perf_events_raw` | id, event_id, project_id, public_key, session_id, ts_ms, type, metric, value, rating, navigation(jsonb), ... | `bigserial` | 生产写入中（ADR-0013） |
 | `error_events_raw` | id, event_id, project_id, public_key, session_id, ts_ms, sub_type, message, message_head, stack, frames(jsonb), breadcrumbs(jsonb) | `bigserial` | 生产写入中（ADR-0016） |
 | `events_raw` | id, event_id, project_id, type, payload(jsonb), ingested_at（周分区） | 复合 PK | **父表 + 4 周分区已建，Gateway 暂不写入**（T1.4.1 完整 Processor 启用） |

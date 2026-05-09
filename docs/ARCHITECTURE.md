@@ -90,11 +90,11 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 |---|---|---|---|
 | `GatewayModule` | SDK 入口：DSN 鉴权、Schema 校验、限流、入队 | HTTP `/ingest/*` | BullMQ queues、Redis |
 | `ProcessorModule` | 消费事件、计算指纹、聚合 Issue/指标 | BullMQ Workers | DB、Sourcemap、BullMQ |
-| `SourcemapModule` | Sourcemap 上传/查询/堆栈还原 | HTTP `/sourcemap/*` + Service | Storage、Redis cache |
+| `SourcemapModule` | Sourcemap 上传/查询/堆栈还原 + Dashboard 代理上传（`/dashboard/v1/settings/sourcemaps/*`） | HTTP `/sourcemap/v1/*` + Service | Storage、Redis cache |
 | `AlertModule` | 告警规则评估、触发 | BullMQ `alert-evaluator` | DB、Notification |
 | `NotificationModule` | 通知渠道分发（邮件/钉钉/企微/Slack/Webhook/**短信**） | BullMQ `notifications` | 外部 HTTP / SMS Provider |
 | `RealtimeModule` | 平台实时大盘（ADR-0030 TM.2.C · 已实现 3 topics：error/api/perf）：Gateway 入库后 fire-and-forget XADD + PUBLISH，SSE `/api/v1/stream/realtime` 订阅池 + Redis Streams MAXLEN 回放 + 15s 心跳 + Last-Event-ID 断线续传 + 每 projectId 连接上限 429 | HTTP `/api/v1/stream/realtime` · `/open/v1/events/stream`（规划） | Redis Pub/Sub + Streams |
-| `DashboardModule` | 面向 Web 的只读聚合 API（首版 ADR-0015 性能大盘直查 `perf_events_raw` + p75；首版 ADR-0016/0019 异常大盘直查 `error_events_raw` 按 9 类目 `category` 聚合 + `(sub_type, message_head)` 字面排行；T1.1.7 后并入 JWT + ProjectGuard） | HTTP `/dashboard/v1/*` → Phase 6 迁移至 `/api/v1/*` | DB、PerformanceService、ErrorsService |
+| `DashboardModule` | 面向 Web 的只读聚合 API（首版 ADR-0015 性能大盘直查 `perf_events_raw` + p75；首版 ADR-0016/0019 异常大盘直查 `error_events_raw` 按 9 类目 `category` 聚合 + `(sub_type, message_head)` 字面排行；T1.1.7 后并入 JWT + ProjectGuard）+ DimensionsController（维度值枚举 `/dashboard/v1/dimensions/values`）+ SettingsSourcemapsController（代理上传 `/dashboard/v1/settings/sourcemaps/*`） | HTTP `/dashboard/v1/*` → Phase 6 迁移至 `/api/v1/*` | DB、PerformanceService、ErrorsService、SourcemapModule |
 | `ErrorsModule` | 异常事件切片存储与聚合（ADR-0016 + ADR-0019）：`error_events_raw` 幂等落库（新增 Ajax/API code 列）+ 9 类目 `categoryCards` / `stackBuckets` / `ranking` / `dimensions` 聚合方法，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `PerformanceModule` | 性能事件切片存储与聚合（ADR-0013）：`perf_events_raw` 落库 + p75 / 趋势 / 瀑布 / 慢页面 Top N 聚合 | 进程内 Service | DB |
 | `ApiModule` | API 事件切片存储与聚合（ADR-0020 Tier 1；ADR-0025 后由 `api-monitor/` 更名为 `modules/api/`）：`api_events_raw` 幂等落库 + summary / trend / topSlow / topRequests / topPages / topErrorStatus / dimensions 聚合，供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
@@ -104,7 +104,8 @@ g-heal-claw 采用 **模块化单体 NestJS 后端 + Next.js 前端 + 独立 Lan
 | `LogsModule` | 分级日志切片存储与聚合（ADR-0023 TM.1.C）：`custom_logs_raw` 幂等落库 + LogsService（summary / 3 级别固定占位 levelBuckets / 三折线 trend / top messages 按 (level, messageHead) 分组），供 GatewayService 与 DashboardModule 调用 | 进程内 Service | DB |
 | `VisitsModule` | 页面访问事件切片存储与聚合（ADR-0020 Tier 2.A + ADR-0028 TM.2.E）：`page_view_raw` 幂等落库 + summary（PV/UV/SPA 占比/刷新占比）/ trend（按小时 PV·UV）/ topPages / topReferrers + **aggregateRetention**（cohort × day_offset 单次 CTE；identity=session\|user；默认 7d cohort × 7d 观察期；供 DashboardRetentionService 装配层消费）；地域 / 停留时长 / 会话聚合 / UTM 推迟 | 进程内 Service | DB |
 | `OpenApiModule` | 面向外部系统的 API Token 开放接口 | HTTP `/open/v1/*` | DB |
-| `HealModule` | 触发自愈流程，产出/回写 heal_job | HTTP + BullMQ `heal-jobs` | DB → ai-agent |
+| `HealModule` | 触发自愈流程，产出/回写 heal_job | HTTP `/api/v1/projects/:pid/issues/:iid/heal` + `/api/v1/projects/:pid/heal/*` + BullMQ `heal-jobs` | DB → ai-agent |
+| `AiChatModule` | AI 对话会话管理 + 消息持久化 | HTTP `/api/v1/ai/conversations/*`（JWT） | DB |
 | `ProjectModule` | 项目/成员/环境/Release/Key 管理 | 被 Dashboard/Open 调用 | DB |
 | `AuthModule` | 用户认证、JWT 签发、RBAC 守卫 | Guard + Service | DB、Redis |
 | `SharedModule` | DB 连接、Redis、BullMQ 注册、对象存储、IP 库、日志 | 全局注入 | — |
@@ -424,7 +425,7 @@ apps/web/app/
 
 #### 8.1.1 Schema 基线（ADR-0017）
 
-**主表（8 张，前缀 nanoid 主键）**：
+**主表（10 张，前缀 nanoid 主键）**：
 - `users` — 认证主体（usr_xxx）
 - `projects` — 多租户根（proj_xxx），`slug` UNIQUE 作为 URL 友好键
 - `project_keys` — DSN 鉴权键（pk_xxx），`public_key` partial index（`WHERE is_active=true`）
@@ -432,6 +433,8 @@ apps/web/app/
 - `environments` — 项目环境，复合主键 (project_id, name)
 - `releases` — 发布版本（rel_xxx），(project_id, version) UNIQUE
 - `issues` — 异常聚合（iss_xxx），(project_id, fingerprint) UNIQUE；**本期仅建表不写入**（ADR-0016 分组仍走 `error_events_raw.message_head`，T1.4.2 指纹落地后切换）
+- `ai_conversations` — AI 对话会话（conv_xxx），AiChatModule 管理，记录对话元信息（标题、关联 Issue 等）
+- `ai_messages` — AI 对话消息（msg_xxx），隶属 `ai_conversations`，存储用户/助手消息内容与角色
 
 **事件流表（9 张，bigserial 或复合主键）**：
 - `perf_events_raw` — 性能切片（ADR-0013），PerformanceProcessor 直写，支撑性能大盘 p75 / 趋势 / 瀑布
