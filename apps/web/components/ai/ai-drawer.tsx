@@ -43,6 +43,7 @@ export function AiDrawer({ projectId, open, onOpenChange }: AiDrawerProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [activeIssueId, setActiveIssueId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const toggleSidebar = useCallback((open: boolean) => {
     if (open) {
@@ -285,7 +286,17 @@ export function AiDrawer({ projectId, open, onOpenChange }: AiDrawerProps) {
                 )}
                 style={{ bottom: "8.75rem" }}
               >
-            <div className="flex-1 overflow-y-auto px-2 py-2">
+            {/* 搜索框 */}
+            <div className="shrink-0 px-2 pt-2 pb-1">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="搜索会话..."
+                className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto px-2 pb-2">
               {loadingConvs ? (
                 <div className="text-muted-foreground flex items-center justify-center py-8 text-xs">加载中...</div>
               ) : conversations.length === 0 ? (
@@ -295,7 +306,7 @@ export function AiDrawer({ projectId, open, onOpenChange }: AiDrawerProps) {
                 </div>
               ) : (
                 <div className="flex flex-col gap-0.5">
-                  {conversations.map((conv) => (
+                  {conversations.filter((c) => !searchQuery || c.title.toLowerCase().includes(searchQuery.toLowerCase())).map((conv) => (
                     <div
                       key={conv.id}
                       className={cn(
@@ -409,12 +420,18 @@ export function AiDrawer({ projectId, open, onOpenChange }: AiDrawerProps) {
                 </div>
                 <textarea
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={(e) => {
+                    setInputValue(e.target.value);
+                    // 自适应高度（最小 3 行，最大 6 行）
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 144)}px`;
+                  }}
                   onKeyDown={handleKeyDown}
                   placeholder="描述你的问题，AI 将为你分析并提供解决方案..."
                   disabled={streaming}
-                  rows={3}
-                  className="border-input bg-background placeholder:text-muted-foreground flex-1 resize-none rounded-xl border px-4 py-3 text-sm shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:shadow-md"
+                  rows={2}
+                  className="border-input bg-background placeholder:text-muted-foreground flex-1 resize-none rounded-xl border px-4 py-2.5 text-sm shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:shadow-md"
+                  style={{ minHeight: "2.5rem", maxHeight: "9rem" }}
                   aria-label="消息输入框"
                 />
                 <Button

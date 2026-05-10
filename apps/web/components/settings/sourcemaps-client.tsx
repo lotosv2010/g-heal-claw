@@ -55,6 +55,7 @@ export function SourcemapsClient({ projectId, initialReleases }: SourcemapsClien
   // 上传 Artifact
   const [uploadTarget, setUploadTarget] = React.useState<string | null>(null);
   const [uploading, setUploading] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const refresh = () => router.refresh();
@@ -80,11 +81,13 @@ export function SourcemapsClient({ projectId, initialReleases }: SourcemapsClien
     const file = e.target.files?.[0];
     if (!file || !uploadTarget) return;
     setUploading(true);
+    setUploadProgress(0);
     try {
       const filename = file.name;
-      await uploadArtifact(projectId, uploadTarget, filename, file);
+      await uploadArtifact(projectId, uploadTarget, filename, file, (percent) => {
+        setUploadProgress(percent);
+      });
       toast.success(`「${filename}」上传成功`);
-      // 刷新 artifact 列表
       const result = await listArtifacts(projectId, uploadTarget);
       setArtifacts(result.data);
       refresh();
@@ -92,6 +95,7 @@ export function SourcemapsClient({ projectId, initialReleases }: SourcemapsClien
       toast.error((err as Error).message);
     } finally {
       setUploading(false);
+      setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -210,8 +214,18 @@ export function SourcemapsClient({ projectId, initialReleases }: SourcemapsClien
                       }}
                     >
                       <Upload className="mr-1 size-3" />
-                      {uploading ? "上传中..." : "上传 .map 文件"}
+                      {uploading ? `上传中 ${uploadProgress}%` : "上传 .map 文件"}
                     </Button>
+                    {uploading && (
+                      <div className="ml-2 flex-1 max-w-32">
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-primary transition-all duration-200"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                   {loadingArtifacts ? (
                     <p className="text-muted-foreground text-xs">加载中...</p>

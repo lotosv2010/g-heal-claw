@@ -122,10 +122,16 @@ function MarkdownContent({ content }: { content: string }) {
 
     const renderer = new marked.Renderer();
     renderer.code = ({ text, lang }) => {
-      const language = lang && hljs.getLanguage(lang) ? lang : "plaintext";
-      const highlighted = language !== "plaintext"
-        ? hljs.highlight(text, { language }).value
-        : escapeHtml(text);
+      let language = lang && hljs.getLanguage(lang) ? lang : "";
+      let highlighted: string;
+      if (language) {
+        highlighted = hljs.highlight(text, { language }).value;
+      } else {
+        // 无语言标记时自动检测
+        const result = hljs.highlightAuto(text);
+        highlighted = result.value;
+        language = result.language ?? "";
+      }
       return `<div class="code-block-wrapper"><div class="code-block-header"><span class="code-lang">${lang || ""}</span><button class="copy-btn" data-code="${escapeAttr(text)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></div><pre><code class="hljs">${highlighted}</code></pre></div>`;
     };
 
@@ -156,7 +162,7 @@ function MarkdownContent({ content }: { content: string }) {
   return (
     <div
       ref={containerRef}
-      className="ai-markdown prose prose-sm dark:prose-invert max-w-none prose-headings:text-[15px] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-code:text-xs prose-code:text-sky-500 dark:prose-code:text-sky-400 prose-code:font-medium prose-code:before:content-none prose-code:after:content-none prose-table:my-3 prose-table:w-full prose-table:border-collapse prose-table:text-xs prose-th:border prose-th:border-border prose-th:bg-muted/50 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-medium prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2 prose-hr:my-4 prose-blockquote:my-3 prose-blockquote:border-l-primary/40"
+      className="ai-markdown prose prose-sm dark:prose-invert max-w-none prose-headings:text-[15px] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-code:text-xs prose-code:text-sky-500 dark:prose-code:text-sky-400 prose-code:font-medium prose-code:before:content-none prose-code:after:content-none prose-table:my-3 prose-table:w-full prose-table:border-collapse prose-table:text-xs prose-table:border prose-table:border-border prose-table:rounded-lg prose-table:overflow-hidden prose-th:border prose-th:border-border/60 dark:prose-th:border-zinc-600 prose-th:bg-muted/50 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-medium prose-td:border prose-td:border-border/60 dark:prose-td:border-zinc-600 prose-td:px-3 prose-td:py-2 prose-hr:my-4 prose-blockquote:my-3 prose-blockquote:border-l-primary/40"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

@@ -102,12 +102,13 @@ export async function createRelease(
   return res.data;
 }
 
-/** 上传 Artifact（multipart） */
+/** 上传 Artifact（multipart，支持进度回调） */
 export async function uploadArtifact(
   projectId: string,
   releaseId: string,
   filename: string,
   file: File,
+  onProgress?: (percent: number) => void,
 ): Promise<Artifact> {
   const formData = new FormData();
   formData.append("filename", filename);
@@ -116,6 +117,30 @@ export async function uploadArtifact(
   const base = getApiBaseUrl();
   const url = `${base}/dashboard/v1/settings/sourcemaps/releases/${releaseId}/artifacts?projectId=${projectId}`;
   const token = getAccessToken();
+
+  // 使用 XMLHttpRequest 获取上传进度
+  if (onProgress) {
+    return new Promise<Artifact>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url);
+      if (token) xhr.setRequestHeader("authorization", `Bearer ${token}`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const json = JSON.parse(xhr.responseText);
+          resolve((json as { data: Artifact }).data);
+        } else {
+          reject(new Error(`上传失败: ${xhr.status}`));
+        }
+      };
+      xhr.onerror = () => reject(new Error("网络错误"));
+      xhr.send(formData);
+    });
+  }
+
   const headers: Record<string, string> = {};
   if (token) headers["authorization"] = `Bearer ${token}`;
 
