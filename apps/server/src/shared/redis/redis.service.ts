@@ -29,23 +29,27 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     const client = new Redis(this.env.REDIS_URL, {
-      retryStrategy: (times: number): number => Math.min(times * 200, 10_000),
+      retryStrategy: (times: number): number | null => {
+        if (times > 3) return null;
+        return Math.min(times * 500, 3000);
+      },
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
-      lazyConnect: false,
+      lazyConnect: true,
+      connectTimeout: 3000,
     });
     this._client = client;
-    client.on("error", (err: Error) => {
-      // 连接层错误降级为日志，业务侧 SETNX 返回 null 时保持"放行"语义
-      this.logger.warn(`Redis 错误：${err.message}`);
-    });
+    client.on("error", () => {});
     try {
+      await client.connect();
       await client.ping();
       this.logger.log(`Redis 已就绪：${maskUrl(this.env.REDIS_URL)}`);
     } catch (err) {
-      this.logger.error(
-        `Redis 启动探活失败但不阻止 server 启动（降级模式）：${(err as Error).message}`,
+      this.logger.warn(
+        `Redis 不可达，降级模式（限流/幂等/实时推送不可用）：${(err as Error).message}`,
       );
+      this._client = null;
+      client.disconnect();
     }
   }
 
