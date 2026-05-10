@@ -25,6 +25,7 @@ import {
   type Message,
 } from "@/lib/api/ai-chat";
 import { AiMessage } from "./ai-message";
+import { HealTriggerButton } from "./heal-trigger-button";
 
 interface AiDrawerProps {
   readonly projectId: string;
@@ -41,6 +42,7 @@ export function AiDrawer({ projectId, open, onOpenChange }: AiDrawerProps) {
   const [loadingConvs, setLoadingConvs] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [activeIssueId, setActiveIssueId] = useState<string | null>(null);
 
   const toggleSidebar = useCallback((open: boolean) => {
     if (open) {
@@ -103,13 +105,14 @@ export function AiDrawer({ projectId, open, onOpenChange }: AiDrawerProps) {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const { conversationId, message, title } = (e as CustomEvent).detail as {
-        conversationId: string; message: string; title: string;
+      const { conversationId, message, title, issueId } = (e as CustomEvent).detail as {
+        conversationId: string; message: string; title: string; issueId?: string;
       };
       const newConv: Conversation = { id: conversationId, title, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
       setConversations((prev) => [newConv, ...prev]);
       skipLoadRef.current = true;
       setActiveId(conversationId);
+      setActiveIssueId(issueId ?? null);
       sendDirectMessage(conversationId, message);
     };
     window.addEventListener("ai-start-conversation", handler);
@@ -364,6 +367,12 @@ export function AiDrawer({ projectId, open, onOpenChange }: AiDrawerProps) {
                           <span className="inline-block size-2 animate-bounce rounded-full bg-primary/60 [animation-delay:300ms]" />
                         </span>
                       </div>
+                    </div>
+                  )}
+                  {/* 有 issueId 且 AI 已回复时显示修复按钮 */}
+                  {activeIssueId && !streaming && messages.some((m) => m.role === "assistant") && (
+                    <div className="flex justify-start py-1">
+                      <HealTriggerButton projectId={projectId} issueId={activeIssueId} />
                     </div>
                   )}
                   <div ref={messagesEndRef} />

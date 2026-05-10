@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getIssueDetail } from "@/lib/api/issues";
 import { IssueStatusActions } from "./issue-status-actions";
 import { IssueDiagnoseButton } from "./issue-diagnose-button";
+import { IssueHealButton } from "./issue-heal-button";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function IssueDetailPage({
         actions={
           <div className="flex items-center gap-3">
             <IssueDiagnoseButton issueId={issueId} title={issue.title || ""} stack={issue.recentEvents[0]?.stack ?? undefined} />
+            <IssueHealButton issueId={issueId} />
             <IssueStatusActions issueId={issueId} currentStatus={issue.status} />
             <Badge variant={statusVariant as "destructive" | "default"} className="capitalize">
               {issue.status}

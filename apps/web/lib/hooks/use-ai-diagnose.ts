@@ -15,17 +15,16 @@ export function useAiDiagnose() {
   const { setOpen } = useAiDrawer();
 
   const diagnose = useCallback(
-    async (message: string, title?: string) => {
+    async (message: string, title?: string, issueId?: string) => {
       const convTitle = title ?? message.slice(0, 30);
       const conv = await createConversation(projectId, convTitle);
       updateConversationTitle(conv.id, convTitle);
 
-      // 先打开抽屉，延迟后再派发事件确保组件已挂载
       setOpen(true);
       setTimeout(() => {
         window.dispatchEvent(
           new CustomEvent("ai-start-conversation", {
-            detail: { conversationId: conv.id, message, title: convTitle },
+            detail: { conversationId: conv.id, message, title: convTitle, issueId },
           }),
         );
       }, 150);

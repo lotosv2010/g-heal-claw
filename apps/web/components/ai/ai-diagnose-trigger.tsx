@@ -7,6 +7,7 @@ import { useAiDiagnose } from "@/lib/hooks/use-ai-diagnose";
 interface AiDiagnoseTriggerProps {
   readonly message: string;
   readonly title?: string;
+  readonly issueId?: string;
   readonly label?: string;
   readonly size?: "sm" | "default" | "icon";
   readonly variant?: "outline" | "ghost" | "default";
@@ -20,6 +21,7 @@ interface AiDiagnoseTriggerProps {
 export function AiDiagnoseTrigger({
   message,
   title,
+  issueId,
   label = "AI 诊断",
   size = "sm",
   variant = "outline",
@@ -27,7 +29,7 @@ export function AiDiagnoseTrigger({
   const { diagnose } = useAiDiagnose();
 
   return (
-    <Button variant={variant} size={size} onClick={() => diagnose(message, title)}>
+    <Button variant={variant} size={size} onClick={() => diagnose(message, title, issueId)}>
       <Bot className="mr-1 size-3.5" />
       {label}
     </Button>
