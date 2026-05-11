@@ -1064,6 +1064,30 @@ export const AI_CHAT_DDL: readonly string[] = [
   `CREATE INDEX IF NOT EXISTS idx_ai_msg_conv ON ai_messages(conversation_id, created_at)`,
 ];
 
+/** AI 自愈任务表 */
+export const HEAL_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS heal_jobs (
+    id              VARCHAR(32) PRIMARY KEY,
+    project_id      VARCHAR(32) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    issue_id        VARCHAR(32) NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
+    triggered_by    VARCHAR(32) NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+    status          VARCHAR(16) NOT NULL DEFAULT 'queued',
+    repo_url        TEXT NOT NULL,
+    branch          VARCHAR(128) NOT NULL DEFAULT 'main',
+    diagnosis       TEXT,
+    patch           TEXT,
+    pr_url          TEXT,
+    error_message   TEXT,
+    trace           JSONB,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at    TIMESTAMPTZ
+  )`,
+  `CREATE INDEX IF NOT EXISTS heal_jobs_project_idx ON heal_jobs(project_id)`,
+  `CREATE INDEX IF NOT EXISTS heal_jobs_issue_idx ON heal_jobs(issue_id)`,
+  `CREATE INDEX IF NOT EXISTS heal_jobs_status_idx ON heal_jobs(status)`,
+];
+
 /** 合并 DDL：DatabaseService.onModuleInit 按顺序执行 */
 export const ALL_DDL: readonly string[] = [
   ...MAIN_DDL,
@@ -1081,4 +1105,5 @@ export const ALL_DDL: readonly string[] = [
   ...DIMENSION_COLUMNS_DDL,
   ...UNCOLLECTED_FIELDS_DDL,
   ...AI_CHAT_DDL,
+  ...HEAL_DDL,
 ];
