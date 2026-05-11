@@ -2,6 +2,8 @@ import Link from "next/link";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { listIssues, type IssueListItem } from "@/lib/api/issues";
+import { resolveWindowHours } from "@/lib/time-range";
+import { getActiveEnvironment } from "@/lib/api/context";
 import { IssueActions } from "./issue-actions";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +16,10 @@ export default async function IssuesPage({
   const params = await searchParams;
   const status = (params?.status as string) || undefined;
   const page = Number(params?.page) || 1;
+  const sinceHours = await resolveWindowHours(searchParams);
+  const environment = await getActiveEnvironment();
 
-  const { data: issues, pagination } = await listIssues({ status, page });
+  const { data: issues, pagination } = await listIssues({ status, page, sinceHours, environment });
 
   return (
     <div>
@@ -69,13 +73,13 @@ export default async function IssuesPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/50 border-b">
-                <th className="px-4 py-3 text-left font-medium">Issue</th>
-                <th className="px-4 py-3 text-left font-medium">类型</th>
-                <th className="px-4 py-3 text-left font-medium">状态</th>
-                <th className="px-4 py-3 text-right font-medium">事件数</th>
-                <th className="px-4 py-3 text-right font-medium">影响会话</th>
-                <th className="px-4 py-3 text-left font-medium">最近出现</th>
-                <th className="px-4 py-3 text-right font-medium">操作</th>
+                <th className="px-4 py-3 text-left font-medium min-w-[240px]">Issue</th>
+                <th className="px-4 py-3 text-left font-medium w-[80px]">类型</th>
+                <th className="px-4 py-3 text-left font-medium w-[80px]">状态</th>
+                <th className="px-4 py-3 text-right font-medium w-[100px]">事件数</th>
+                <th className="px-4 py-3 text-right font-medium w-[100px]">影响会话</th>
+                <th className="px-4 py-3 text-left font-medium w-[120px]">最近出现</th>
+                <th className="px-4 py-3 text-left font-medium w-[120px]">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -157,7 +161,7 @@ function IssueRow({ issue }: { issue: IssueListItem }) {
       <td className="px-4 py-3 text-muted-foreground text-xs">
         {formatRelative(issue.lastSeen)}
       </td>
-      <td className="px-4 py-3 text-right">
+      <td className="px-4 py-3 text-left align-middle">
         <IssueActions issue={issue} />
       </td>
     </tr>

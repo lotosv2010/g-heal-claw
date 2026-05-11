@@ -6,6 +6,7 @@ export const IssuesListQuerySchema = z.object({
   status: z.enum(["open", "resolved", "ignored"]).optional(),
   subType: z.string().optional(),
   environment: z.string().optional(),
+  sinceHours: z.coerce.number().int().min(1).max(720).optional(),
   sort: z.enum(["last_seen", "first_seen", "event_count"]).default("last_seen"),
   order: z.enum(["asc", "desc"]).default("desc"),
   page: z.coerce.number().int().min(1).default(1),

@@ -25,11 +25,12 @@ export class DashboardIssuesService {
     const db = this.database.db;
     if (!db) return { items: [], total: 0 };
 
-    const { projectId, status, subType, sort, order, page, limit } = query;
+    const { projectId, status, subType, environment, sinceHours, sort, order, page, limit } = query;
 
     const conditions = [sql`project_id = ${projectId}`];
     if (status) conditions.push(sql`status = ${status}`);
     if (subType) conditions.push(sql`sub_type = ${subType}`);
+    if (sinceHours) conditions.push(sql`last_seen >= now() - interval '1 hour' * ${sinceHours}`);
 
     const where = sql.join(conditions, sql` AND `);
 

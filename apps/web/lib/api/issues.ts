@@ -40,6 +40,8 @@ export interface IssuesListResult {
 export interface IssuesListParams {
   readonly status?: string;
   readonly subType?: string;
+  readonly environment?: string;
+  readonly sinceHours?: number;
   readonly sort?: string;
   readonly order?: string;
   readonly page?: number;
@@ -56,6 +58,8 @@ export async function listIssues(
 
   if (params.status) qs.set("status", params.status);
   if (params.subType) qs.set("subType", params.subType);
+  if (params.environment) qs.set("environment", params.environment);
+  if (params.sinceHours) qs.set("sinceHours", String(params.sinceHours));
   if (params.sort) qs.set("sort", params.sort);
   if (params.order) qs.set("order", params.order);
   if (params.page) qs.set("page", String(params.page));
