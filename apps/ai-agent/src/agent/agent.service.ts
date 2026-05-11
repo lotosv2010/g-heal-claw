@@ -13,7 +13,7 @@ import type { HealJobPayload } from "@g-heal-claw/shared";
 const AGENT_NAME = "g-heal-agent";
 
 /** 工具调用回调（实时通知外层写 trace） */
-export type OnToolCallFn = (toolName: string, result: string) => Promise<void>;
+export type OnToolCallFn = (toolName: string, phase: "call" | "result", content: string) => Promise<void>;
 
 /** createHealAgent 的参数 */
 export interface CreateHealAgentParams {
@@ -64,25 +64,63 @@ export async function runHealAgent(params: CreateHealAgentParams): Promise<Agent
     : params;
   const agent = createHealAgent(wrappedParams);
 
+  const basePath = params.payload.basePath || "";
+  const scopeHint = basePath
+    ? `代码范围限定在 "${basePath}" 目录下，所有 readFile/grepRepo/writePatch 的路径都以此为前缀。`
+    : "";
+
   const input = [
-    `请诊断并修复以下异常 Issue。`,
+    `请诊断并修复以下异常 Issue，严格按以下步骤执行：`,
     ``,
     `Issue ID: ${params.payload.issueId}`,
     `仓库: ${params.payload.repoUrl}`,
     `分支: ${params.payload.branch}`,
+    scopeHint ? `源码目录: ${basePath}` : "",
     ``,
-    `步骤：readIssue("${params.payload.issueId}") → 分析堆栈 → readFile → writePatch → createPr`,
-    `如果任何步骤失败超过 3 次，停止并回复当前结论。`,
-  ].join("\n");
+    `第一步：调用 readIssue("${params.payload.issueId}") 获取上下文`,
+    `第二步：根据堆栈中的错误消息，调用 grepRepo 搜索源码定位出错文件${basePath ? `（directory 参数使用 "${basePath}"）` : ""}`,
+    `第三步：调用 readFile 阅读相关源码`,
+    `第四步：调用 writePatch 生成修复补丁`,
+    `第五步：调用 createPr 创建 Pull Request`,
+    ``,
+    scopeHint,
+    `你必须完成所有 5 步。不要在第一步之后就停止。`,
+    `如果堆栈是压缩后的文件名，用错误消息文本通过 grepRepo 搜索源文件。`,
+    `如果任何步骤连续失败 3 次，才可以停止并回复当前结论。`,
+  ].filter(Boolean).join("\n");
 
-  const result = await agent.invoke(
+  // 使用 stream 模式逐步输出，每个节点完成后触发回调
+  const messages: BaseMessage[] = [];
+  let output = "";
+
+  const stream = await agent.stream(
     { messages: [new HumanMessage(input)] },
     { recursionLimit: params.maxIterations ?? 50 },
   );
 
-  const messages: BaseMessage[] = result.messages ?? [];
+  for await (const chunk of stream) {
+    // LangGraph stream 每次返回一个节点的输出
+    const nodeMessages: BaseMessage[] = Object.values(chunk).flatMap(
+      (v: unknown) => {
+        const node = v as { messages?: BaseMessage[] };
+        return node?.messages ?? [];
+      },
+    );
+
+    for (const msg of nodeMessages) {
+      messages.push(msg);
+      // AI 思考文本实时回调
+      if (AIMessage.isInstance(msg) && params.onToolCall) {
+        const text = extractText(msg.content);
+        if (text) {
+          await params.onToolCall("__thinking__", "result", text.slice(0, 500)).catch(() => {});
+        }
+      }
+    }
+  }
+
   const lastAiMessage = [...messages].reverse().find(AIMessage.isInstance);
-  const output = lastAiMessage ? extractText(lastAiMessage.content) : "";
+  output = lastAiMessage ? extractText(lastAiMessage.content) : "";
 
   return { output, messages };
 }
@@ -115,9 +153,22 @@ function wrapToolsWithCallback(
     const wrapped = Object.create(t);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     wrapped.invoke = async (input: any, config?: any) => {
+      // 记录调用参数
+      const inputStr = typeof input === "string" ? input : JSON.stringify(input);
+      await onToolCall(t.name, "call", inputStr.slice(0, 500)).catch(() => {});
+
       const result = await originalInvoke(input, config);
-      const resultStr = typeof result === "string" ? result : String(result);
-      await onToolCall(t.name, resultStr.slice(0, 2000)).catch(() => {});
+
+      // 记录调用结果
+      let resultStr: string;
+      if (typeof result === "string") {
+        resultStr = result;
+      } else if (result && typeof result === "object" && "content" in result) {
+        resultStr = String((result as { content: unknown }).content);
+      } else {
+        resultStr = JSON.stringify(result) ?? "";
+      }
+      await onToolCall(t.name, "result", resultStr.slice(0, 2000)).catch(() => {});
       return result;
     };
     return wrapped as StructuredToolInterface;

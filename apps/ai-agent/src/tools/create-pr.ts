@@ -18,6 +18,16 @@ export function createCreatePrTool(payload: HealJobPayload, env: AiAgentEnv) {
       try {
         const git = simpleGit(repoDir);
 
+        // 设置带 token 的 remote URL 以支持 push
+        const token = env.GITHUB_TOKEN;
+        if (token) {
+          const authUrl = payload.repoUrl.replace(
+            "https://github.com/",
+            `https://x-access-token:${token}@github.com/`,
+          );
+          await git.remote(["set-url", "origin", authUrl]);
+        }
+
         // 创建修复分支
         await git.checkoutLocalBranch(branchName);
         await git.add(".");

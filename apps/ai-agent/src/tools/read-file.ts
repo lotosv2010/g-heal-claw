@@ -15,15 +15,20 @@ export function createReadFileTool(payload: HealJobPayload, env: AiAgentEnv) {
   return tool(
     async ({ filePath }) => {
       const repoDir = getRepoDir(payload.healJobId);
-      const absPath = resolve(join(repoDir, filePath));
+      // basePath 强制限定：所有路径都必须在 basePath 下
+      const normalizedPath = filePath.replace(/^\.\//, "");
+      const resolvedPath = payload.basePath
+        ? (normalizedPath.startsWith(payload.basePath) ? normalizedPath : join(payload.basePath, normalizedPath))
+        : normalizedPath;
+      const absPath = resolve(join(repoDir, resolvedPath));
 
       // 安全校验：不允许逃逸出仓库目录
       if (!absPath.startsWith(resolve(repoDir))) {
         return "ERROR: Path traversal detected — access denied";
       }
 
-      // 路径白名单校验
-      if (!isPathAllowed(filePath, payload.repoConfig)) {
+      // 路径白名单校验（仅在显式配置 repoConfig 时生效）
+      if (payload.repoConfig && !isPathAllowed(filePath, payload.repoConfig)) {
         return `ERROR: Path "${filePath}" is not in allowed paths or is forbidden`;
       }
 

@@ -15,6 +15,7 @@ interface Props {
 export function AiConfigForm({ projectId }: Props) {
   const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("main");
+  const [basePath, setBasePath] = useState("");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export function AiConfigForm({ projectId }: Props) {
     if (config) {
       setRepoUrl(config.repoUrl);
       setBranch(config.branch);
+      setBasePath(config.basePath ?? "");
       setSaved(true);
     }
   }, [projectId]);
@@ -31,7 +33,7 @@ export function AiConfigForm({ projectId }: Props) {
       toast.error("请输入仓库地址");
       return;
     }
-    const config: AiConfig = { repoUrl: repoUrl.trim(), branch: branch.trim() || "main" };
+    const config: AiConfig = { repoUrl: repoUrl.trim(), branch: branch.trim() || "main", basePath: basePath.trim() };
     saveAiConfig(projectId, config);
     setSaved(true);
     toast.success("AI 修复配置已保存");
@@ -66,6 +68,18 @@ export function AiConfigForm({ projectId }: Props) {
             value={branch}
             onChange={(e) => { setBranch(e.target.value); setSaved(false); }}
           />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="basePath">源码子目录（可选）</Label>
+          <Input
+            id="basePath"
+            placeholder="例如 examples/vue-demo 或 src"
+            value={basePath}
+            onChange={(e) => { setBasePath(e.target.value); setSaved(false); }}
+          />
+          <p className="text-muted-foreground text-[11px]">
+            留空则搜索整个仓库。Monorepo 中可指定子包路径，AI 仅在该目录下搜索和修改文件。
+          </p>
         </div>
         <Button onClick={handleSave} disabled={saved && !!repoUrl}>
           {saved ? "✓ 已保存" : "保存配置"}

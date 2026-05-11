@@ -9,7 +9,8 @@ export interface HealTraceEntry {
 export interface HealJob {
   readonly id: string;
   readonly issueId: string;
-  readonly status: "queued" | "cloning" | "diagnosing" | "patching" | "verifying" | "pr_created" | "failed";
+  readonly status: "queued" | "cloning" | "diagnosing" | "awaiting_approval" | "patching" | "verifying" | "pr_created" | "failed";
+  readonly requireApproval?: boolean;
   readonly repoUrl: string;
   readonly branch: string;
   readonly prUrl?: string;
@@ -35,10 +36,11 @@ export async function triggerHeal(
   issueId: string,
   repoUrl: string,
   branch: string,
+  options?: { basePath?: string; requireApproval?: boolean },
 ): Promise<HealJob> {
   const res = await httpPost<{ data: HealJob }>(
     `/api/v1/projects/${projectId}/issues/${issueId}/heal`,
-    { repoUrl, branch },
+    { repoUrl, branch, basePath: options?.basePath ?? "", requireApproval: options?.requireApproval ?? false },
   );
   return res.data;
 }
@@ -56,6 +58,10 @@ export async function getHealJob(projectId: string, jobId: string): Promise<Heal
   return res.data;
 }
 
+export async function approveHealJob(projectId: string, jobId: string): Promise<void> {
+  await httpPost(`/api/v1/projects/${projectId}/heal/${jobId}/approve`, {});
+}
+
 export async function retryHealJob(projectId: string, job: HealJob): Promise<HealJob> {
   return triggerHeal(projectId, job.issueId, job.repoUrl, job.branch);
 }
@@ -64,6 +70,7 @@ export async function retryHealJob(projectId: string, job: HealJob): Promise<Hea
 export interface AiConfig {
   repoUrl: string;
   branch: string;
+  basePath: string;
 }
 
 const AI_CONFIG_KEY = "ghc-ai-config";

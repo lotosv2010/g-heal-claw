@@ -14,7 +14,7 @@ import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard.js";
 import { ProjectGuard } from "../auth/project.guard.js";
 import { HealService } from "./heal.service.js";
-import { TriggerHealSchema, HealJobQuerySchema } from "./dto/heal.dto.js";
+import { TriggerHealSchema, HealJobQuerySchema, type TriggerHealDto } from "./dto/heal.dto.js";
 
 @ApiTags("Heal")
 @ApiBearerAuth()
@@ -28,7 +28,7 @@ export class HealController {
   async triggerHeal(
     @Param("projectId") projectId: string,
     @Param("issueId") issueId: string,
-    @Body(new ZodValidationPipe(TriggerHealSchema)) dto: { repoUrl: string; branch: string },
+    @Body(new ZodValidationPipe(TriggerHealSchema)) dto: TriggerHealDto,
     @Request() req: { user: { userId: string } },
   ) {
     const job = await this.healService.createJob(projectId, issueId, req.user.userId, dto);
@@ -54,8 +54,18 @@ export class HealController {
     return { data: job };
   }
 
+  @Post("heal/:healJobId/approve")
+  @ApiOperation({ summary: "确认执行修复（awaiting_approval → patching）" })
+  async approveJob(
+    @Param("projectId") projectId: string,
+    @Param("healJobId") healJobId: string,
+  ) {
+    const job = await this.healService.approveJob(projectId, healJobId);
+    return { data: job };
+  }
+
   @Post("heal/:healJobId/cancel")
-  @ApiOperation({ summary: "取消 Heal 任务（仅 queued 可取消）" })
+  @ApiOperation({ summary: "取消 Heal 任务" })
   async cancelJob(
     @Param("projectId") projectId: string,
     @Param("healJobId") healJobId: string,

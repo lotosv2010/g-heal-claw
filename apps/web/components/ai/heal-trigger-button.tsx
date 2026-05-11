@@ -30,7 +30,7 @@ export function HealTriggerButton({ projectId, issueId }: HealTriggerButtonProps
     }
     setLoading(true);
     try {
-      await triggerHeal(projectId, issueId, config.repoUrl, config.branch || "main");
+      await triggerHeal(projectId, issueId, config.repoUrl, config.branch || "main", { basePath: config.basePath });
       toast.success("自动修复已触发，请在 设置 → AI 修复配置 查看进度");
       setTriggered(true);
     } catch (err) {

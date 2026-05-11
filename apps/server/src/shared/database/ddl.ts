@@ -977,6 +977,7 @@ export const HEAL_DDL: readonly string[] = [
     status          VARCHAR(16) NOT NULL DEFAULT 'queued',
     repo_url        TEXT NOT NULL,
     branch          VARCHAR(128) NOT NULL DEFAULT 'main',
+    require_approval BOOLEAN NOT NULL DEFAULT false,
     diagnosis       TEXT,
     patch           TEXT,
     pr_url          TEXT,
@@ -986,6 +987,7 @@ export const HEAL_DDL: readonly string[] = [
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at    TIMESTAMPTZ
   )`,
+  `ALTER TABLE heal_jobs ADD COLUMN IF NOT EXISTS require_approval BOOLEAN NOT NULL DEFAULT false`,
   `CREATE INDEX IF NOT EXISTS heal_jobs_project_idx ON heal_jobs(project_id)`,
   `CREATE INDEX IF NOT EXISTS heal_jobs_issue_idx ON heal_jobs(issue_id)`,
   `CREATE INDEX IF NOT EXISTS heal_jobs_status_idx ON heal_jobs(status)`,

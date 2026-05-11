@@ -12,8 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ExternalLink, XCircle, RotateCw, Trash2, Eye, GitBranch, Search, FileCode, Wrench, CheckCircle2, AlertCircle, Loader2, Download } from "lucide-react";
-import { listHealJobs, cancelHealJob, deleteHealJob, retryHealJob, getHealJob, type HealJob, type HealTraceEntry } from "@/lib/api/heal";
+import { ExternalLink, XCircle, RotateCw, Trash2, Eye, GitBranch, Search, FileCode, Wrench, CheckCircle2, AlertCircle, Loader2, Download, CircleCheck, Clock } from "lucide-react";
+import { listHealJobs, cancelHealJob, deleteHealJob, retryHealJob, approveHealJob, getHealJob, type HealJob, type HealTraceEntry } from "@/lib/api/heal";
 
 interface Props {
   readonly projectId: string;
@@ -23,6 +23,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   queued: { label: "排队中", variant: "secondary" },
   cloning: { label: "克隆仓库", variant: "default" },
   diagnosing: { label: "诊断中", variant: "default" },
+  awaiting_approval: { label: "待确认", variant: "outline" },
   patching: { label: "生成补丁", variant: "default" },
   verifying: { label: "验证中", variant: "default" },
   pr_created: { label: "PR 已创建", variant: "outline" },
@@ -73,6 +74,11 @@ export function HealJobsTable({ projectId }: Props) {
 
   const handleDelete = async (jobId: string) => {
     await deleteHealJob(projectId, jobId);
+    load();
+  };
+
+  const handleApprove = async (jobId: string) => {
+    await approveHealJob(projectId, jobId);
     load();
   };
 
@@ -163,7 +169,12 @@ export function HealJobsTable({ projectId }: Props) {
                       <Button variant="ghost" size="sm" onClick={() => handleViewDetail(job.id)}>
                         <Eye className="mr-1 size-3" /> 详情
                       </Button>
-                      {job.status === "queued" && (
+                      {job.status === "awaiting_approval" && (
+                        <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700" onClick={() => handleApprove(job.id)}>
+                          <CircleCheck className="mr-1 size-3" /> 确认修复
+                        </Button>
+                      )}
+                      {RUNNING_STATUSES.has(job.status) && (
                         <Button variant="ghost" size="sm" onClick={() => handleCancel(job.id)}>
                           <XCircle className="mr-1 size-3" /> 取消
                         </Button>
@@ -212,6 +223,7 @@ const PIPELINE_STEPS = [
   { key: "queued", label: "排队", icon: Loader2 },
   { key: "cloning", label: "克隆仓库", icon: Download },
   { key: "diagnosing", label: "诊断", icon: Search },
+  { key: "awaiting_approval", label: "待确认", icon: Clock },
   { key: "patching", label: "生成补丁", icon: FileCode },
   { key: "verifying", label: "验证", icon: Wrench },
   { key: "pr_created", label: "PR 已创建", icon: GitBranch },
@@ -221,9 +233,10 @@ const STATUS_ORDER: Record<string, number> = {
   queued: 0,
   cloning: 1,
   diagnosing: 2,
-  patching: 3,
-  verifying: 4,
-  pr_created: 5,
+  awaiting_approval: 3,
+  patching: 4,
+  verifying: 5,
+  pr_created: 6,
   failed: -1,
 };
 

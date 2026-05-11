@@ -1,4 +1,4 @@
-import { index, jsonb, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { projects } from "./projects.js";
 import { issues } from "./issues.js";
 import { users } from "./users.js";
@@ -24,6 +24,7 @@ export const healJobs = pgTable(
     status: varchar("status", { length: 16 }).notNull().default("queued"),
     repoUrl: text("repo_url").notNull(),
     branch: varchar("branch", { length: 128 }).notNull().default("main"),
+    requireApproval: boolean("require_approval").notNull().default(false),
     diagnosis: text("diagnosis"),
     patch: text("patch"),
     prUrl: text("pr_url"),

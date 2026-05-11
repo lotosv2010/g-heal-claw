@@ -4,6 +4,7 @@ export const HealJobStatus = {
   Queued: "queued",
   Cloning: "cloning",
   Diagnosing: "diagnosing",
+  AwaitingApproval: "awaiting_approval",
   Patching: "patching",
   Verifying: "verifying",
   PrCreated: "pr_created",
@@ -19,6 +20,8 @@ export const HealJobPayloadSchema = z.object({
   projectId: z.string(),
   repoUrl: z.string().url(),
   branch: z.string().default("main"),
+  basePath: z.string().default(""),
+  requireApproval: z.boolean().default(false),
   issueTitle: z.string(),
   issueMessage: z.string(),
   stackTrace: z.string().optional(),
@@ -38,7 +41,7 @@ export type HealJobPayload = z.infer<typeof HealJobPayloadSchema>;
 
 export const HealResultPayloadSchema = z.object({
   healJobId: z.string(),
-  status: z.enum(["pr_created", "failed"]),
+  status: z.enum(["awaiting_approval", "pr_created", "failed"]),
   prUrl: z.string().url().optional(),
   diagnosis: z.string().optional(),
   patch: z.string().optional(),

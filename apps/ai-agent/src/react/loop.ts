@@ -57,20 +57,43 @@ export async function runReactLoop(
     // 2. 诊断阶段
     await addTrace("action", "启动 AI Agent 诊断分析", HealJobStatus.Diagnosing);
 
+    // requireApproval 模式下移除 writePatch/createPr，Agent 只做诊断
+    const agentTools = payload.requireApproval
+      ? tools.filter((t) => t.name !== "writePatch" && t.name !== "createPr")
+      : tools;
+
     const result: AgentResult = await runHealAgent({
       model,
-      tools,
+      tools: agentTools,
       payload,
       maxIterations: env.AI_MAX_STEPS,
-      onToolCall: async (toolName, resultStr) => {
-        await addTrace("observation", `[${toolName}] ${resultStr.slice(0, 500)}`);
+      onToolCall: async (toolName, phase, content) => {
+        if (toolName === "__thinking__") {
+          await addTrace("thought", content.slice(0, 500));
+        } else if (phase === "call") {
+          await addTrace("action", `调用 ${toolName}(${content.slice(0, 200)})`);
+        } else {
+          await addTrace("observation", `[${toolName}] ${content.slice(0, 500)}`);
+        }
       },
     });
 
     await addTrace("observation", `Agent 执行完毕，共 ${result.messages.length} 步`);
 
-    // 3. 检查结果
+    // 3. 需要人工确认时暂停
+    if (payload.requireApproval) {
+      await addTrace("action", "诊断完成，等待用户确认是否创建 PR", HealJobStatus.AwaitingApproval);
+      return {
+        healJobId: payload.healJobId,
+        status: "awaiting_approval",
+        diagnosis: result.output,
+        trace,
+      };
+    }
+
+    // 4. 自动模式：检查是否成功创建 PR
     const prUrl = extractPrUrl(result.output, result.messages);
+    addTrace("observation", `提取到 PR URL: ${prUrl}`);
 
     if (prUrl) {
       await addTrace("action", `修复成功，PR 已创建: ${prUrl}`, HealJobStatus.PrCreated);

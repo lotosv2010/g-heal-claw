@@ -589,6 +589,56 @@ gzip -c packages/sdk/dist/sdk.esm.js | wc -c
 
 ---
 
+## Git 仓库与 Token 配置
+
+AI 自动修复功能需要将代码推送到远程仓库并创建 PR，需要配置对应平台的访问凭证。
+
+### GitHub（当前支持）
+
+1. 前往 GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens**
+2. 创建 Token，权限选择：
+   - **Contents**: Read and write（推送分支）
+   - **Pull requests**: Read and write（创建 PR）
+3. 将 Token 配置到 `.env.local`：
+
+```bash
+# GitHub 配置
+GITHUB_APP_ID=<optional，使用 PAT 时不需要>
+GITHUB_APP_PRIVATE_KEY_PATH=<optional>
+GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxxxxxxxxx
+```
+
+4. 在 Web UI「设置 → AI 修复配置」页面填写仓库地址（如 `https://github.com/your-org/your-repo`）
+
+### Git 推送认证
+
+如果本地 `git push` 提示认证失败，配置 credential：
+
+```bash
+# 方式一：使用 PAT 作为密码（推荐）
+git remote set-url origin https://<username>:<PAT>@github.com/<org>/<repo>.git
+
+# 方式二：使用 credential helper 缓存
+git config --global credential.helper store
+# 首次 push 时输入用户名和 PAT 即可
+
+# 方式三：SSH（需提前添加 SSH Key 到 GitHub）
+git remote set-url origin git@github.com:<org>/<repo>.git
+```
+
+### 未来支持计划
+
+| 平台 | 状态 | 说明 |
+|---|---|---|
+| GitHub | ✅ 已支持 | PAT 或 GitHub App |
+| GitLab | 🔜 规划中 | 通过 `GITLAB_PERSONAL_ACCESS_TOKEN` + `GITLAB_HOST` |
+| Gitee | 🔜 规划中 | 国内仓库托管 |
+| 自建 Git | 🔜 规划中 | 通过 SSH Key |
+
+> 扩展新平台时，只需在 `apps/ai-agent/src/tools/create-pr.ts` 中新增对应的 provider 实现。
+
+---
+
 ## 下一步
 
 - **深入架构** — `docs/ARCHITECTURE.md`

@@ -17,12 +17,13 @@ export function createReadIssueTool(payload: HealJobPayload, env: AiAgentEnv) {
         `;
         if (!issue) return `Issue ${issueId} not found`;
 
-        // 获取最近 5 个事件的堆栈和消息
+        // 获取最近 5 个事件的堆栈和消息（用 LIKE 模糊匹配防止截断不一致）
+        const titlePrefix = String(issue.title).slice(0, 80);
         const events = await sql`
           SELECT message, stack, breadcrumbs, device_type, url, created_at
           FROM error_events_raw
           WHERE project_id = ${payload.projectId}
-            AND message_head = ${String(issue.title).slice(0, 128)}
+            AND message_head LIKE ${titlePrefix + "%"}
           ORDER BY created_at DESC
           LIMIT 5
         `;

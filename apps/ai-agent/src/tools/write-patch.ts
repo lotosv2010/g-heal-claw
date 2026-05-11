@@ -15,13 +15,18 @@ export function createWritePatchTool(payload: HealJobPayload, env: AiAgentEnv) {
   return tool(
     async ({ filePath, newContent }) => {
       const repoDir = getRepoDir(payload.healJobId);
-      const absPath = resolve(join(repoDir, filePath));
+      // basePath 强制限定
+      const normalizedPath = filePath.replace(/^\.\//, "");
+      const resolvedPath = payload.basePath
+        ? (normalizedPath.startsWith(payload.basePath) ? normalizedPath : join(payload.basePath, normalizedPath))
+        : normalizedPath;
+      const absPath = resolve(join(repoDir, resolvedPath));
 
       if (!absPath.startsWith(resolve(repoDir))) {
         return "ERROR: Path traversal detected";
       }
 
-      if (!isPathAllowed(filePath, payload.repoConfig)) {
+      if (payload.repoConfig && !isPathAllowed(filePath, payload.repoConfig)) {
         return `ERROR: Path "${filePath}" is forbidden by repo config`;
       }
 

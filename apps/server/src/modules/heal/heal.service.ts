@@ -40,6 +40,7 @@ export class HealService {
         status: HealJobStatus.Queued,
         repoUrl: dto.repoUrl,
         branch: dto.branch,
+        requireApproval: dto.requireApproval ?? false,
       })
       .returning();
 
@@ -50,7 +51,9 @@ export class HealService {
       projectId,
       repoUrl: dto.repoUrl,
       branch: dto.branch,
-      issueTitle: "",  // HealController 在调用前填充
+      basePath: dto.basePath ?? "",
+      requireApproval: dto.requireApproval ?? false,
+      issueTitle: "",
       issueMessage: "",
     };
 
@@ -103,20 +106,63 @@ export class HealService {
     return job;
   }
 
-  async cancelJob(projectId: string, healJobId: string) {
+  async approveJob(projectId: string, healJobId: string) {
     const job = await this.getJob(projectId, healJobId);
 
-    if (job.status !== HealJobStatus.Queued) {
-      throw new BadRequestException(`Cannot cancel job in status "${job.status}" — only "queued" jobs can be cancelled`);
+    if (job.status !== HealJobStatus.AwaitingApproval) {
+      throw new BadRequestException(`Cannot approve job in status "${job.status}" — must be "awaiting_approval"`);
     }
 
     const [updated] = await this.database.db!
       .update(healJobs)
-      .set({ status: HealJobStatus.Failed, errorMessage: "Cancelled by user", updatedAt: new Date() })
+      .set({ status: HealJobStatus.Patching, requireApproval: false, updatedAt: new Date() })
       .where(eq(healJobs.id, healJobId))
       .returning();
 
-    // 尝试移除队列中的 job
+    // 重新投递到队列执行修复阶段
+    const payload: HealJobPayload = {
+      healJobId,
+      issueId: job.issueId,
+      projectId: job.projectId,
+      repoUrl: job.repoUrl,
+      branch: job.branch,
+      basePath: "",
+      requireApproval: false,
+      issueTitle: "",
+      issueMessage: "",
+    };
+
+    await this.diagnosisQueue.add("patch", payload, {
+      jobId: `${healJobId}-patch`,
+      removeOnComplete: true,
+      removeOnFail: { count: 100 },
+    });
+
+    this.logger.log(`Approved heal job=${healJobId}, dispatching patch phase`);
+    return updated;
+  }
+
+  async cancelJob(projectId: string, healJobId: string) {
+    const job = await this.getJob(projectId, healJobId);
+
+    const cancellable: ReadonlySet<string> = new Set([
+      HealJobStatus.Queued,
+      HealJobStatus.Cloning,
+      HealJobStatus.Diagnosing,
+      HealJobStatus.Patching,
+      HealJobStatus.Verifying,
+    ]);
+    if (!cancellable.has(job.status)) {
+      throw new BadRequestException(`Cannot cancel job in status "${job.status}" — only running jobs can be cancelled`);
+    }
+
+    const [updated] = await this.database.db!
+      .update(healJobs)
+      .set({ status: HealJobStatus.Failed, errorMessage: "用户手动取消", updatedAt: new Date(), completedAt: new Date() })
+      .where(eq(healJobs.id, healJobId))
+      .returning();
+
+    // 尝试移除队列中的 job（queued 时有效）
     try {
       const queueJob = await this.diagnosisQueue.getJob(healJobId);
       if (queueJob) await queueJob.remove();
