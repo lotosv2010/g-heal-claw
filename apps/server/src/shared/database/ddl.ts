@@ -5,7 +5,7 @@
  * - CI / production：走 drizzle-kit migrate（apps/server/drizzle/*.sql），本文件与之手工对齐
  *
  * FK 顺序：users → projects → (project_keys / project_members / environments / releases / issues)
- * 事件流表（events_raw / perf / error）独立于主表，不加 FK。
+ * 事件流表（perf / error / api / track / resource / page_view / custom）独立于主表，不加 FK。
  */
 
 // ============================================================
@@ -710,89 +710,6 @@ export const VISITS_DDL: readonly string[] = [
   CREATE_IDX_PV_PROJECT_LOADTYPE_TS,
 ];
 
-// ============================================================
-// 事件流：events_raw 分区父表
-// ============================================================
-// Drizzle ORM 不支持 PARTITION BY RANGE 原生 DSL → 全部手写 SQL。
-// 分区键 (ingested_at) 必须进 PK，故 PK = (id, ingested_at)。
-
-export const CREATE_EVENTS_RAW = `
-CREATE TABLE IF NOT EXISTS events_raw (
-  id              bigserial,
-  event_id        uuid NOT NULL,
-  project_id      varchar(32) NOT NULL,
-  type            varchar(32) NOT NULL,
-  payload         jsonb NOT NULL,
-  ingested_at     timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (id, ingested_at)
-) PARTITION BY RANGE (ingested_at);
-`.trim();
-
-// 初始 4 张周分区（覆盖 2026-04-20 ~ 2026-05-18）
-export const CREATE_EVENTS_RAW_2026W17 = `
-CREATE TABLE IF NOT EXISTS events_raw_2026w17
-  PARTITION OF events_raw
-  FOR VALUES FROM ('2026-04-20') TO ('2026-04-27');
-`.trim();
-
-export const CREATE_EVENTS_RAW_2026W18 = `
-CREATE TABLE IF NOT EXISTS events_raw_2026w18
-  PARTITION OF events_raw
-  FOR VALUES FROM ('2026-04-27') TO ('2026-05-04');
-`.trim();
-
-export const CREATE_EVENTS_RAW_2026W19 = `
-CREATE TABLE IF NOT EXISTS events_raw_2026w19
-  PARTITION OF events_raw
-  FOR VALUES FROM ('2026-05-04') TO ('2026-05-11');
-`.trim();
-
-export const CREATE_EVENTS_RAW_2026W20 = `
-CREATE TABLE IF NOT EXISTS events_raw_2026w20
-  PARTITION OF events_raw
-  FOR VALUES FROM ('2026-05-11') TO ('2026-05-18');
-`.trim();
-
-// 新增 5 张周分区，窗口前滚至 2026-06-22
-export const CREATE_EVENTS_RAW_2026W21 = `
-CREATE TABLE IF NOT EXISTS events_raw_2026w21
-  PARTITION OF events_raw
-  FOR VALUES FROM ('2026-05-18') TO ('2026-05-25');
-`.trim();
-
-export const CREATE_EVENTS_RAW_2026W22 = `
-CREATE TABLE IF NOT EXISTS events_raw_2026w22
-  PARTITION OF events_raw
-  FOR VALUES FROM ('2026-05-25') TO ('2026-06-01');
-`.trim();
-
-export const CREATE_EVENTS_RAW_2026W23 = `
-CREATE TABLE IF NOT EXISTS events_raw_2026w23
-  PARTITION OF events_raw
-  FOR VALUES FROM ('2026-06-01') TO ('2026-06-08');
-`.trim();
-
-export const CREATE_EVENTS_RAW_2026W24 = `
-CREATE TABLE IF NOT EXISTS events_raw_2026w24
-  PARTITION OF events_raw
-  FOR VALUES FROM ('2026-06-08') TO ('2026-06-15');
-`.trim();
-
-export const CREATE_EVENTS_RAW_2026W25 = `
-CREATE TABLE IF NOT EXISTS events_raw_2026w25
-  PARTITION OF events_raw
-  FOR VALUES FROM ('2026-06-15') TO ('2026-06-22');
-`.trim();
-
-// 父表索引（自动下推所有子分区）
-export const CREATE_IDX_EVENTS_RAW_PROJECT_TYPE_INGESTED = `
-CREATE INDEX IF NOT EXISTS idx_events_raw_project_type_ingested
-  ON events_raw (project_id, type, ingested_at DESC);
-`.trim();
-
-export const CREATE_IDX_EVENTS_RAW_EVENT_ID = `
-CREATE INDEX IF NOT EXISTS idx_events_raw_event_id ON events_raw (event_id);
-`.trim();
 
 // ============================================================
 // 死信队列：events_dlq
@@ -874,20 +791,6 @@ export const ERROR_DDL: readonly string[] = [
 ];
 
 /** events_raw 父表 + 9 张周分区 + 2 个索引（扩展至 2026-06-22）*/
-export const EVENTS_RAW_DDL: readonly string[] = [
-  CREATE_EVENTS_RAW,
-  CREATE_EVENTS_RAW_2026W17,
-  CREATE_EVENTS_RAW_2026W18,
-  CREATE_EVENTS_RAW_2026W19,
-  CREATE_EVENTS_RAW_2026W20,
-  CREATE_EVENTS_RAW_2026W21,
-  CREATE_EVENTS_RAW_2026W22,
-  CREATE_EVENTS_RAW_2026W23,
-  CREATE_EVENTS_RAW_2026W24,
-  CREATE_EVENTS_RAW_2026W25,
-  CREATE_IDX_EVENTS_RAW_PROJECT_TYPE_INGESTED,
-  CREATE_IDX_EVENTS_RAW_EVENT_ID,
-];
 
 // -------- 告警引擎 --------
 
@@ -1098,7 +1001,6 @@ export const ALL_DDL: readonly string[] = [
   ...RESOURCE_DDL,
   ...CUSTOM_DDL,
   ...VISITS_DDL,
-  ...EVENTS_RAW_DDL,
   ...DLQ_DDL,
   ...ALERT_DDL,
   ...METRIC_MINUTE_DDL,

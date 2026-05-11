@@ -5,14 +5,13 @@
 //
 // 表清单：
 //   主表：users / projects / project_keys / project_members / environments / releases / issues
-//   事件流：events_raw（父表，周分区）/ perf_events_raw / error_events_raw
+//   事件流：perf_events_raw / error_events_raw / api_events_raw / track_events_raw / resource_events_raw / page_view_raw / custom_*
 
 export * from "./schema/users.js";
 export * from "./schema/projects.js";
 export * from "./schema/releases.js";
 export * from "./schema/release-artifacts.js";
 export * from "./schema/issues.js";
-export * from "./schema/events-raw.js";
 export * from "./schema/perf-events-raw.js";
 export * from "./schema/error-events-raw.js";
 export * from "./schema/api-events-raw.js";
