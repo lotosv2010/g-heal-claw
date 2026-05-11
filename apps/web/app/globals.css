@@ -222,6 +222,89 @@
   }
 }
 
+/* ── 企业级全局增强 ── */
+
+/* 统一过渡体系：所有交互元素平滑过渡 */
+@layer base {
+  button, a, input, select, textarea,
+  [role="button"], [role="tab"], [role="menuitem"] {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 表格行 hover 增强 */
+  table tbody tr {
+    transition: background-color 0.15s ease;
+  }
+
+  /* 卡片 hover 微浮起效果 */
+  [data-slot="card"] {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  [data-slot="card"]:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+  }
+
+  /* Badge 微妙动画 */
+  [data-slot="badge"] {
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  /* 滚动条美化（Webkit） */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  /* 选中文本颜色 */
+  ::selection {
+    background: rgba(0, 113, 227, 0.15);
+    color: inherit;
+  }
+  .dark ::selection {
+    background: rgba(10, 132, 255, 0.25);
+  }
+
+  /* 输入框聚焦时的阴影增强 */
+  input:focus-visible, textarea:focus-visible, select:focus-visible {
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.1);
+  }
+  .dark input:focus-visible, .dark textarea:focus-visible, .dark select:focus-visible {
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+  }
+}
+
+/* 侧边栏菜单展开动画 */
+nav [data-sidebar-group] {
+  overflow: hidden;
+  transition: max-height 0.2s ease-out, opacity 0.15s ease;
+}
+
+/* 页面内容区域入场动画 */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+main > * {
+  animation: fade-in-up 0.3s ease-out both;
+}
+
 /* AI 对话代码块样式 */
 .ai-markdown .code-block-wrapper {
   position: relative;
