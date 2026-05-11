@@ -176,26 +176,66 @@ function escapeAttr(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** 从内容中分离 thinking 标记 */
+// 使用 Zero-Width Space 作为标记前缀，对 PostgreSQL 安全
+const THINK_MARKER = "\u200Bthink:";
+const CONTENT_MARKER = "\u200Bcontent:";
+const MARKER_REGEX = /\u200B(think|content):/g;
+
+/** 从内容中分离 thinking 和 content 标记 */
 function parseThinking(content: string): { thinking: string; answer: string } {
-  // 格式：\x00think:xxx 混在正文中
-  const thinkParts: string[] = [];
-  const answerParts: string[] = [];
+  // Step 1: 按标记拆分为 thinking 和 content 段
+  let thinkRaw = "";
+  let contentRaw = "";
 
-  const segments = content.split("\x00think:");
-  // 第一段一定是正文（可能为空）
-  if (segments[0]) answerParts.push(segments[0]);
-
-  for (let i = 1; i < segments.length; i++) {
-    const seg = segments[i]!;
-    // 每段开头到下一个非 think 内容之间都是 thinking
-    // 由于 think 和 content 交替出现，整段都是 thinking
-    thinkParts.push(seg);
+  if (content.search(/\u200B(think|content):/) !== -1) {
+    // 有标记时按标记分类
+    const parts = content.split(MARKER_REGEX);
+    // split 结果: [前缀文本, 匹配组1, 后续文本, 匹配组2, ...]
+    // 由于用了 capturing group，结果交替为 [text, type, text, type, ...]
+    let currentType: "content" | "think" | null = null;
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]!;
+      if (part === "think" || part === "content") {
+        currentType = part;
+      } else if (currentType === "think") {
+        thinkRaw += part;
+        currentType = null;
+      } else if (currentType === "content") {
+        contentRaw += part;
+        currentType = null;
+      } else {
+        // 无标记的开头文本
+        contentRaw += part;
+      }
+    }
+  } else {
+    contentRaw = content;
   }
 
-  // 如果只有 think 没有 answer，说明还在思考中
-  return {
-    thinking: thinkParts.join(""),
-    answer: answerParts.join(""),
-  };
+  // Step 2: 处理 <think>...</think> 标签（Minimax 格式或旧数据）
+  if (contentRaw.includes("<think>")) {
+    const { thinking, answer } = extractThinkTags(contentRaw);
+    return { thinking: (thinkRaw + thinking).trim(), answer: answer.trim() };
+  }
+
+  return { thinking: thinkRaw, answer: contentRaw };
+}
+
+/** 提取 <think>...</think> 标签中的内容 */
+function extractThinkTags(text: string): { thinking: string; answer: string } {
+  const openIdx = text.indexOf("<think>");
+  if (openIdx === -1) return { thinking: "", answer: text };
+
+  const closeIdx = text.indexOf("</think>");
+  if (closeIdx === -1) {
+    // 未闭合（流式中途）：<think> 后的内容都是 thinking
+    const before = text.slice(0, openIdx);
+    const after = text.slice(openIdx + 7);
+    return { thinking: after, answer: before };
+  }
+
+  const before = text.slice(0, openIdx);
+  const thinking = text.slice(openIdx + 7, closeIdx);
+  const after = text.slice(closeIdx + 8);
+  return { thinking, answer: before + after };
 }

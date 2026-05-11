@@ -229,11 +229,13 @@ function createSseReader(
                   const parsed = JSON.parse(data) as { content?: string; thinking?: string; error?: string };
                   if (parsed.error) {
                     streamController.enqueue(`[错误] ${parsed.error}`);
-                  } else if (parsed.thinking) {
-                    // 思考内容用特殊标记，前端可识别并折叠
-                    streamController.enqueue(`\x00think:${parsed.thinking}`);
-                  } else if (parsed.content) {
-                    streamController.enqueue(parsed.content);
+                  } else {
+                    if (parsed.thinking) {
+                      streamController.enqueue(`\u200Bthink:${parsed.thinking}`);
+                    }
+                    if (parsed.content) {
+                      streamController.enqueue(`\u200Bcontent:${parsed.content}`);
+                    }
                   }
                 } catch {
                   if (data.trim()) {
@@ -253,9 +255,12 @@ function createSseReader(
               const data = line.slice(6);
               if (data !== "[DONE]") {
                 try {
-                  const parsed = JSON.parse(data) as { content?: string };
+                  const parsed = JSON.parse(data) as { content?: string; thinking?: string };
+                  if (parsed.thinking) {
+                    streamController.enqueue(`\u200Bthink:${parsed.thinking}`);
+                  }
                   if (parsed.content) {
-                    streamController.enqueue(parsed.content);
+                    streamController.enqueue(`\u200Bcontent:${parsed.content}`);
                   }
                 } catch {
                   if (data.trim()) streamController.enqueue(data);

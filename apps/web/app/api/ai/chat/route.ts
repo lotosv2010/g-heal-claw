@@ -107,29 +107,84 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     const readable = new ReadableStream({
       async start(controller) {
+        // 跟踪 <think> 标签状态（Minimax 等模型将思考内容嵌入 content）
+        let inThinkTag = false;
+        let pendingTail = ""; // 跨 chunk 的标签碎片缓冲
+
+        function emit(payload: Record<string, string>): void {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(payload)}\n\n`),
+          );
+        }
+
+        function processContent(rawText: string): void {
+          let remaining = pendingTail + rawText;
+          pendingTail = "";
+
+          while (remaining.length > 0) {
+            if (inThinkTag) {
+              const closeIdx = remaining.indexOf("</think>");
+              if (closeIdx === -1) {
+                // 可能 </think> 被截断在末尾
+                if (remaining.length < 8 && "</think>".startsWith(remaining.slice(remaining.lastIndexOf("<")))) {
+                  pendingTail = remaining;
+                  remaining = "";
+                } else {
+                  emit({ thinking: remaining });
+                  remaining = "";
+                }
+              } else {
+                const thinkPart = remaining.slice(0, closeIdx);
+                if (thinkPart) emit({ thinking: thinkPart });
+                inThinkTag = false;
+                remaining = remaining.slice(closeIdx + 8);
+              }
+            } else {
+              const openIdx = remaining.indexOf("<think>");
+              if (openIdx === -1) {
+                // 可能 <think> 被截断在末尾
+                const lastLt = remaining.lastIndexOf("<");
+                if (lastLt !== -1 && "<think>".startsWith(remaining.slice(lastLt))) {
+                  const safe = remaining.slice(0, lastLt);
+                  if (safe) emit({ content: safe });
+                  pendingTail = remaining.slice(lastLt);
+                  remaining = "";
+                } else {
+                  emit({ content: remaining });
+                  remaining = "";
+                }
+              } else {
+                const before = remaining.slice(0, openIdx);
+                if (before) emit({ content: before });
+                inThinkTag = true;
+                remaining = remaining.slice(openIdx + 7);
+              }
+            }
+          }
+        }
+
         try {
           for await (const chunk of stream) {
             const delta = chunk.choices[0]?.delta;
-            // 思考内容（DeepSeek reasoning_content 等）
+            // 思考内容（DeepSeek reasoning_content 字段）
             const reasoning = (delta as Record<string, unknown>)?.reasoning_content as string | undefined;
             if (reasoning) {
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ thinking: reasoning })}\n\n`),
-              );
+              emit({ thinking: reasoning });
             }
             const content = delta?.content;
             if (content) {
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ content })}\n\n`),
-              );
+              processContent(content);
             }
+          }
+          // 刷出跨 chunk 缓冲中的残留
+          if (pendingTail) {
+            emit(inThinkTag ? { thinking: pendingTail } : { content: pendingTail });
+            pendingTail = "";
           }
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (err) {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: (err as Error).message })}\n\n`),
-          );
+          emit({ error: (err as Error).message });
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         }
