@@ -42,7 +42,7 @@ curl "http://localhost:3001/sourcemap/v1/releases/$RELEASE_ID/artifacts" \
 
 ## 使用 CLI 上传（计划中）
 
-> CLI 工具 `@g-heal-claw/cli` 正在开发中（T1.5.5），将提供一键递归上传：
+> CLI 工具 `@g-heal-claw/cli` 正在开发中，将提供一键递归上传：
 
 ```bash
 pnpm add -D @g-heal-claw/cli
@@ -119,4 +119,3 @@ find ./dist -name '*.map' -delete
 ## 相关
 
 - [后端 API 参考](/reference/sourcemap) — 4 个端点完整说明
-- ADR-0031 — Sourcemap 服务架构决策

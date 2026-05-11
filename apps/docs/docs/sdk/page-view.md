@@ -5,7 +5,7 @@
 - **硬刷新 / 首次进入**：`loadType` = `navigate` / `reload` / `back_forward` / `prerender`（读自 Performance Navigation API）
 - **SPA 路由切换**：monkey-patch `history.pushState` / `history.replaceState` + 监听 `popstate`
 
-上报事件 `type = 'page_view'`，落库到 `page_view_raw` 表（ADR-0020 Tier 2.A）。
+上报事件 `type = 'page_view'`，落库到 `page_view_raw` 表。
 
 ## 最小接入
 
@@ -64,4 +64,3 @@ pageViewPlugin({
 
 - 后台用法：[监控 · 页面访问](/guide/visits)
 - 指标口径：[访问分析指标](/reference/visits-metrics)
-- 架构决策：ADR-0020 Tier 2.A

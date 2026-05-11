@@ -13,7 +13,7 @@
 | 实验对比 | 在两个 URL 中切换 `steps` 对同一窗口做不同漏斗对照 |
 | 可分享定位 | URL 驱动，任何人打开链接即可还原完全相同的漏斗视图 |
 
-核心约束（ADR-0027）：
+核心约束：
 
 - **严格顺序**：下一步必须在上一步**之后**出现
 - **用户级去重**：`COALESCE(user_id, session_id)` 作为用户键
@@ -81,4 +81,3 @@ A：`stepWindowMinutes` 决定相邻两步最长间隔，若窗口太紧（如 1
 
 - 触发场景：[examples/nextjs-demo/app/(demo)/tracking/funnel](https://github.com/lotosv2010/g-heal-claw/tree/main/examples/nextjs-demo/app/(demo)/tracking/funnel)
 - 事件打点：[埋点分析](/guide/tracking) / [自定义上报](/guide/custom)
-- 契约与实现：[ADR-0027 转化漏斗切片](https://github.com/lotosv2010/g-heal-claw/blob/main/docs/decisions/0027-tracking-funnel-slice.md)

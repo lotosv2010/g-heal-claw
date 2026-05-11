@@ -1,6 +1,6 @@
 # Heal API
 
-AI 自愈诊断接口，基于 ADR-0036 实现。通过 API 触发 Issue 自动诊断并生成修复 PR。
+AI 自愈诊断接口。通过 API 触发 Issue 自动诊断并生成修复 PR。
 
 ## 端点概览
 

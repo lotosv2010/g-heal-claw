@@ -2,7 +2,7 @@
 
 路径：监控中心 → **页面访问** `/monitor/visits`
 
-> 2026-04-30 首版（ADR-0020 Tier 2.A）先落地 PV / UV / SPA 占比 / 刷新占比 / TopPages / TopReferrers；地域 / 停留时长 / 新旧用户 / UTM 渠道归因作为增量迭代推迟。
+> 2026-04-30 首版先落地 PV / UV / SPA 占比 / 刷新占比 / TopPages / TopReferrers；地域 / 停留时长 / 新旧用户 / UTM 渠道归因作为增量迭代推迟。
 
 ## 页面构成
 
@@ -64,4 +64,3 @@ SDK pageViewPlugin
 
 - SDK 接入：[SDK · PageView](/sdk/page-view)
 - 指标口径：[访问分析指标](/reference/visits-metrics)
-- 架构决策：ADR-0020 Tier 2.A

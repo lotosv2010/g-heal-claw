@@ -183,7 +183,7 @@ SDK 默认上报 ≥ 50ms 的任务；可通过 `performancePlugin({ longTaskThr
 
 ### 三级分类
 
-g-heal-claw 在标准 Long Task 基础上按 duration 细分三级（ADR-0018）：
+g-heal-claw 在标准 Long Task 基础上按 duration 细分三级：
 
 | 级别 | 阈值 | 含义 |
 |---|---|---|

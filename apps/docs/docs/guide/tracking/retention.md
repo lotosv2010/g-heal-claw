@@ -13,7 +13,7 @@
 | 可分享定位 | URL 驱动，把链接粘到 IM/飞书即可还原当前视图 |
 | 容灾降级 | API 异常时渲染 `source=error` 徽标 + 空矩阵，不 5xx 整页 |
 
-核心约束（ADR-0028）：
+核心约束：
 
 - **Cohort 粒度**：UTC 日，同一用户当天多次访问只计一次
 - **身份维度**：`identity=session`（默认）或 `identity=user`（`COALESCE(user_id, session_id)`）
@@ -81,7 +81,7 @@ demo 页硬刷新只覆盖 day 0；想看 cohort 衰减曲线可用 `examples/ne
 ## 常见问题
 
 **Q：identity=user 会不会报错？**
-A：当前 `page_view_raw` schema 暂无 `user_id` 列（ADR-0020 Tier 2.A 初版未纳入）。切到 `user` 会让 SQL 报列不存在 → Controller 返回 `source=error`；默认 `identity=session` 可稳定工作。若业务已在 SDK 层调用 `setUser({ id })`，后续补列迁移后即可切换。
+A：当前 `page_view_raw` schema 暂无 `user_id` 列（初版未纳入）。切到 `user` 会让 SQL 报列不存在 → Controller 返回 `source=error`；默认 `identity=session` 可稳定工作。若业务已在 SDK 层调用 `setUser({ id })`，后续补列迁移后即可切换。
 
 **Q：为什么 day 0 ≠ cohortSize？**
 A：day 0 是百分比（retained/cohortSize）恒为 1；cohortSize 是绝对数。两者同源但量纲不同。
@@ -96,4 +96,3 @@ A：`untilMs - sinceMs < (cohortDays + returnDays) * 1d` → 聚合层抛错 →
 
 - 触发场景：[examples/nextjs-demo/app/(demo)/tracking/retention](https://github.com/lotosv2010/g-heal-claw/tree/main/examples/nextjs-demo/app/(demo)/tracking/retention)
 - 同源视角：[访问统计](/guide/visits) / [转化漏斗](/guide/tracking/funnel)
-- 契约与实现：[ADR-0028 用户留存切片](https://github.com/lotosv2010/g-heal-claw/blob/main/docs/decisions/0028-tracking-retention-slice.md)

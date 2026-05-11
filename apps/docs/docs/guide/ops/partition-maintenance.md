@@ -13,8 +13,8 @@
 
 | 分区名 | 时间范围（UTC） |
 |---|---|
-| `events_raw_2026w17` ~ `events_raw_2026w20` | 2026-04-20 ~ 2026-05-18（初始 4 张，ADR-0017） |
-| `events_raw_2026w21` ~ `events_raw_2026w25` | 2026-05-18 ~ 2026-06-22（ADR-0026 扩 5 张） |
+| `events_raw_2026w17` ~ `events_raw_2026w20` | 2026-04-20 ~ 2026-05-18（初始 4 张） |
+| `events_raw_2026w21` ~ `events_raw_2026w25` | 2026-05-18 ~ 2026-06-22（扩 5 张） |
 
 重启 server 即会自动把未来 8 周补齐（若缺失）。
 
@@ -46,7 +46,3 @@ CREATE TABLE IF NOT EXISTS events_raw_2026w26
 - 老分区归档到 MinIO + `DETACH PARTITION`（见 M5 压测与优化里程碑）
 - `error_events_raw` / `perf_events_raw` 等独立 raw 表暂不分区，容量到阈值时同样切换 PARTITION BY RANGE
 
-## 相关 ADR
-
-- [ADR-0017](https://github.com/lotosv2010/g-heal-claw/blob/main/docs/decisions/0017-drizzle-schema-baseline.md)：Drizzle Schema 基线 + `events_raw` 初始 4 张分区
-- [ADR-0026](https://github.com/lotosv2010/g-heal-claw/blob/main/docs/decisions/0026-error-processor-bullmq-takeover.md)：分区维护 cron 落地

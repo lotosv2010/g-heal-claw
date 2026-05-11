@@ -2,7 +2,7 @@
 
 路径：Dashboard → **数据总览** `/dashboard/overview`
 
-> 状态：已交付（ADR-0029 · TM.3.A）
+> 状态：已交付
 
 ## 能力简介
 
@@ -56,18 +56,15 @@
 | 变量 | 作用 |
 |---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | apps/server 基地址 |
-| `NEXT_PUBLIC_DEFAULT_PROJECT_ID` | 默认项目 ID（T1.1.7 之前固定使用） |
+| `NEXT_PUBLIC_DEFAULT_PROJECT_ID` | 默认项目 ID（认证系统上线前固定使用） |
 
 ## 常见问题
 
 - **为什么 health.score 是 null？** —— 5 域均 `source=empty`，通常是新项目刚接入未产生流量。运行 `pnpm dev:demo` 的"数据总览触发器"一键生成样本。
 - **某个域 `source=error` 会拉低分数吗？** —— 不会。`error` 与 `empty` 都会退出评分，权重按比例分给其他活跃域，避免瞬时故障变成永久扣分。
-- **权重能改吗？** —— 目前硬编码在 `apps/server/src/dashboard/dashboard/overview.service.ts#BASE_WEIGHTS` / `DEDUCT_RULES`，以常量集中管理。后续项目级 settings 可配置会作为独立切片（ADR-0029「后续」）。
+- **权重能改吗？** —— 目前硬编码在 `apps/server/src/dashboard/dashboard/overview.service.ts#BASE_WEIGHTS` / `DEDUCT_RULES`，以常量集中管理。后续项目级 settings 可配置会作为独立切片。
 
 ## Demo 场景
 
 `/dashboard/overview`（examples/nextjs-demo/app/(demo)/dashboard/overview/page.tsx）：一键触发 errors + api + resources + LCP 样本，驱动后台总览页面从 empty 切换到 live。
 
-## 决策记录
-
-- [ADR-0029](../../../../../docs/decisions/0029-dashboard-overview-slice.md)：5 域 MVP + 健康度加权公式 + Promise.allSettled 装配

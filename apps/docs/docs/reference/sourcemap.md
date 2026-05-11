@@ -113,4 +113,3 @@ X-Api-Key: sk_xxxxxxxxxxxxxxxx
 ## 相关
 
 - [SDK Sourcemap 上传指南](/sdk/sourcemap) — CLI + CI 集成
-- [ADR-0031](https://github.com/user/repo/blob/main/docs/decisions/0031-sourcemap-service.md) — 架构决策

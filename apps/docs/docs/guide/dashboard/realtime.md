@@ -2,7 +2,7 @@
 
 路径：Dashboard → **实时监控** `/dashboard/realtime`
 
-> 状态：已交付（ADR-0030 · TM.2.C）
+> 状态：已交付
 
 ## 能力简介
 
@@ -67,7 +67,3 @@ data: {"topic":"api","ts":1730000000123,"method":"POST","pathTemplate":"/order",
 
 `examples/nextjs-demo/app/(demo)/dashboard/realtime/page.tsx`：`pnpm dev:demo` 打开 `http://localhost:3100/dashboard/realtime`，点击"一键全部"后回 `http://localhost:3000/dashboard/realtime` 观察大盘滚动。
 
-## 决策记录
-
-- [ADR-0030](../../../../../docs/decisions/0030-dashboard-realtime-slice.md)：Redis Pub/Sub + SSE + 3 topics · 平台观察者视角（非用户应用 WS 观测）
-- [ADR-0007](../../../../../docs/decisions/README.md)：实时推送走 Redis Pub/Sub + SSE（被本切片复用）

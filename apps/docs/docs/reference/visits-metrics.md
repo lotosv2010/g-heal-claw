@@ -2,7 +2,7 @@
 
 本页定义 `/monitor/visits` 所有卡片、趋势图与分布表的字段。
 
-> **当前实现范围（ADR-0020 Tier 2.A · 2026-04-30）**：PV / UV / SPA 切换占比 / 刷新占比 / 访问趋势 / TopPages / TopReferrers。
+> **当前实现范围（2026-04-30）**：PV / UV / SPA 切换占比 / 刷新占比 / 访问趋势 / TopPages / TopReferrers。
 > 下文涉及 `page_duration` / `session` / `geo` / `utm` 的章节属于**推迟项**，后续增量迭代纳入。
 
 ## 事件模型
