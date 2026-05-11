@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const HealJobStatus = {
   Queued: "queued",
+  Cloning: "cloning",
   Diagnosing: "diagnosing",
   Patching: "patching",
   Verifying: "verifying",

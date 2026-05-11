@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { AiAgentEnv, HealJobPayload } from "@g-heal-claw/shared";
 import { isPathAllowed } from "../config/repo-config.js";
+import { getRepoDir } from "../git/clone.js";
 
 const MAX_LINES = 500;
 
@@ -47,6 +48,3 @@ export function createReadFileTool(payload: HealJobPayload, env: AiAgentEnv) {
   );
 }
 
-function getRepoDir(healJobId: string): string {
-  return join(process.env.TMPDIR ?? "/tmp", "ghc-heal", healJobId);
-}

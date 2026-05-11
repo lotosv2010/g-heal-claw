@@ -4,6 +4,7 @@ import { writeFile, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { AiAgentEnv, HealJobPayload } from "@g-heal-claw/shared";
 import { isPathAllowed } from "../config/repo-config.js";
+import { getRepoDir } from "../git/clone.js";
 
 /**
  * writePatch — 将修改写入文件并记录 diff
@@ -65,6 +66,3 @@ function countChangedLines(oldContent: string, newContent: string): number {
   return changed;
 }
 
-function getRepoDir(healJobId: string): string {
-  return join(process.env.TMPDIR ?? "/tmp", "ghc-heal", healJobId);
-}

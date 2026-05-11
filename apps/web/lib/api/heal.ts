@@ -1,11 +1,22 @@
 import { httpGet, httpPost, httpDelete } from "./http";
 
+export interface HealTraceEntry {
+  readonly role: "thought" | "action" | "observation";
+  readonly content: string;
+  readonly timestamp: number;
+}
+
 export interface HealJob {
   readonly id: string;
   readonly issueId: string;
-  readonly status: "queued" | "diagnosing" | "patching" | "verifying" | "pr_created" | "failed";
+  readonly status: "queued" | "cloning" | "diagnosing" | "patching" | "verifying" | "pr_created" | "failed";
+  readonly repoUrl: string;
+  readonly branch: string;
   readonly prUrl?: string;
   readonly diagnosis?: string;
+  readonly patch?: string;
+  readonly errorMessage?: string;
+  readonly trace?: readonly HealTraceEntry[];
   readonly createdAt: string;
   readonly completedAt?: string;
 }
@@ -33,7 +44,20 @@ export async function triggerHeal(
 }
 
 export async function cancelHealJob(projectId: string, jobId: string): Promise<void> {
+  await httpPost(`/api/v1/projects/${projectId}/heal/${jobId}/cancel`, {});
+}
+
+export async function deleteHealJob(projectId: string, jobId: string): Promise<void> {
   await httpDelete(`/api/v1/projects/${projectId}/heal/${jobId}`);
+}
+
+export async function getHealJob(projectId: string, jobId: string): Promise<HealJob> {
+  const res = await httpGet<{ data: HealJob }>(`/api/v1/projects/${projectId}/heal/${jobId}`);
+  return res.data;
+}
+
+export async function retryHealJob(projectId: string, job: HealJob): Promise<HealJob> {
+  return triggerHeal(projectId, job.issueId, job.repoUrl, job.branch);
 }
 
 /** 项目级 AI 配置（前端 localStorage 存储） */

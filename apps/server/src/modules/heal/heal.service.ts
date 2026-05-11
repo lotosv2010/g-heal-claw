@@ -127,6 +127,27 @@ export class HealService {
     return updated;
   }
 
+  async deleteJob(projectId: string, healJobId: string): Promise<void> {
+    const job = await this.getJob(projectId, healJobId);
+
+    // 运行中的任务不允许删除
+    if (job.status === HealJobStatus.Diagnosing || job.status === HealJobStatus.Patching) {
+      throw new BadRequestException(`Cannot delete job in status "${job.status}" — cancel it first`);
+    }
+
+    // 如果还在队列中，先移除
+    if (job.status === HealJobStatus.Queued) {
+      try {
+        const queueJob = await this.diagnosisQueue.getJob(healJobId);
+        if (queueJob) await queueJob.remove();
+      } catch {}
+    }
+
+    await this.database.db!
+      .delete(healJobs)
+      .where(eq(healJobs.id, healJobId));
+  }
+
   async updateJobStatus(
     healJobId: string,
     status: string,

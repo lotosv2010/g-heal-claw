@@ -2,9 +2,9 @@ import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import { simpleGit } from "simple-git";
 import { Octokit } from "@octokit/rest";
-import { join } from "node:path";
 import type { AiAgentEnv, HealJobPayload } from "@g-heal-claw/shared";
 import { renderPrBody } from "../git/pr-template.js";
+import { getRepoDir } from "../git/clone.js";
 
 /**
  * createPr — 提交 patch 分支并创建 GitHub PR
@@ -72,9 +72,7 @@ export function createCreatePrTool(payload: HealJobPayload, env: AiAgentEnv) {
 }
 
 function createOctokit(env: AiAgentEnv): Octokit {
-  // MVP: 使用 GitHub App private key 获取 installation token
-  // 简化实现：如果有 GITHUB_APP_ID + PRIVATE_KEY 用 App auth，否则 fallback 到 PAT
-  const token = env.GITHUB_APP_PRIVATE_KEY_PATH || "";
+  const token = env.GITHUB_TOKEN || env.GITHUB_APP_PRIVATE_KEY_PATH || "";
   return new Octokit({ auth: token });
 }
 
@@ -89,6 +87,3 @@ function parseGitHubUrl(repoUrl: string): { owner: string; repo: string } {
   throw new Error(`Cannot parse GitHub owner/repo from URL: ${repoUrl}`);
 }
 
-function getRepoDir(healJobId: string): string {
-  return join(process.env.TMPDIR ?? "/tmp", "ghc-heal", healJobId);
-}

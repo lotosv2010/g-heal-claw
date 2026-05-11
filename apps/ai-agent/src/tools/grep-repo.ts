@@ -2,8 +2,8 @@ import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { join } from "node:path";
 import type { AiAgentEnv, HealJobPayload } from "@g-heal-claw/shared";
+import { getRepoDir } from "../git/clone.js";
 
 const execFileAsync = promisify(execFile);
 const MAX_RESULTS = 50;
@@ -46,6 +46,3 @@ export function createGrepRepoTool(payload: HealJobPayload, _env: AiAgentEnv) {
   );
 }
 
-function getRepoDir(healJobId: string): string {
-  return join(process.env.TMPDIR ?? "/tmp", "ghc-heal", healJobId);
-}

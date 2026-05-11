@@ -29,9 +29,9 @@ export class HealController {
     @Param("projectId") projectId: string,
     @Param("issueId") issueId: string,
     @Body(new ZodValidationPipe(TriggerHealSchema)) dto: { repoUrl: string; branch: string },
-    @Request() req: { user: { sub: string } },
+    @Request() req: { user: { userId: string } },
   ) {
-    const job = await this.healService.createJob(projectId, issueId, req.user.sub, dto);
+    const job = await this.healService.createJob(projectId, issueId, req.user.userId, dto);
     return { data: job };
   }
 
@@ -54,7 +54,7 @@ export class HealController {
     return { data: job };
   }
 
-  @Delete("heal/:healJobId")
+  @Post("heal/:healJobId/cancel")
   @ApiOperation({ summary: "取消 Heal 任务（仅 queued 可取消）" })
   async cancelJob(
     @Param("projectId") projectId: string,
@@ -62,5 +62,15 @@ export class HealController {
   ) {
     const job = await this.healService.cancelJob(projectId, healJobId);
     return { data: job };
+  }
+
+  @Delete("heal/:healJobId")
+  @ApiOperation({ summary: "删除 Heal 任务记录" })
+  async deleteJob(
+    @Param("projectId") projectId: string,
+    @Param("healJobId") healJobId: string,
+  ) {
+    await this.healService.deleteJob(projectId, healJobId);
+    return { data: { success: true } };
   }
 }

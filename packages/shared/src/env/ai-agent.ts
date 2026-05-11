@@ -37,10 +37,11 @@ export const AiAgentEnvSchema = BaseEnvSchema.extend({
   OLLAMA_MODEL: z.string().default("qwen2.5:7b"),
 
   // -------- 护栏 --------
-  AI_MAX_STEPS: z.coerce.number().int().positive().default(20),
+  AI_MAX_STEPS: z.coerce.number().int().positive().default(50),
   AI_MAX_PATCH_LOC: z.coerce.number().int().positive().default(100),
 
   // -------- Git 平台集成（自愈 PR）--------
+  GITHUB_TOKEN: z.string().optional().or(z.literal("")),
   GITHUB_APP_ID: z.string().optional().or(z.literal("")),
   GITHUB_APP_PRIVATE_KEY_PATH: z.string().optional().or(z.literal("")),
   GITHUB_WEBHOOK_SECRET: z.string().optional().or(z.literal("")),

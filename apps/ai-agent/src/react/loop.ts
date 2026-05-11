@@ -1,9 +1,12 @@
 import { ToolMessage } from "@langchain/core/messages";
 import type { BaseMessage } from "@langchain/core/messages";
+import postgres from "postgres";
 import type { AiAgentEnv, HealJobPayload, HealResultPayload } from "@g-heal-claw/shared";
+import { HealJobStatus } from "@g-heal-claw/shared";
 import { createModel } from "../model/provider.js";
 import { createTools } from "../tools/index.js";
 import { runHealAgent, type AgentResult } from "../agent/index.js";
+import { cloneRepo, cleanupRepo } from "../git/clone.js";
 
 interface TraceEntry {
   role: "thought" | "action" | "observation";
@@ -14,7 +17,7 @@ interface TraceEntry {
 /**
  * ReAct 循环执行器
  *
- * 组装 Model + Tools → DeepAgent，执行诊断，收集 trace。
+ * clone 仓库 → 组装 Model + Tools → DeepAgent 执行诊断 → 清理
  */
 export async function runReactLoop(
   payload: HealJobPayload,
@@ -24,7 +27,37 @@ export async function runReactLoop(
   const tools = createTools(payload, env);
   const trace: TraceEntry[] = [];
 
+  const log = (msg: string) => console.log(`[ai-agent][${payload.healJobId}] ${msg}`);
+
+  // 实时更新数据库状态和 trace，前端轮询即可获取最新进度
+  const syncDb = async (status?: string) => {
+    const sql = postgres(env.DATABASE_URL, { max: 1 });
+    try {
+      if (status) {
+        await sql`UPDATE heal_jobs SET status = ${status}, trace = ${JSON.stringify(trace)}::jsonb, updated_at = now() WHERE id = ${payload.healJobId}`;
+      } else {
+        await sql`UPDATE heal_jobs SET trace = ${JSON.stringify(trace)}::jsonb, updated_at = now() WHERE id = ${payload.healJobId}`;
+      }
+    } finally {
+      await sql.end();
+    }
+  };
+
+  const addTrace = async (role: TraceEntry["role"], content: string, status?: string) => {
+    trace.push({ role, content, timestamp: Date.now() });
+    log(content);
+    await syncDb(status);
+  };
+
   try {
+    // 1. 克隆仓库
+    await addTrace("action", `开始克隆仓库 ${payload.repoUrl}@${payload.branch}`, HealJobStatus.Cloning);
+    await cloneRepo(payload, env.GITHUB_TOKEN);
+    await addTrace("observation", "仓库克隆完成");
+
+    // 2. 诊断阶段
+    await addTrace("action", "启动 AI Agent 诊断分析", HealJobStatus.Diagnosing);
+
     const result: AgentResult = await runHealAgent({
       model,
       tools,
@@ -32,21 +65,21 @@ export async function runReactLoop(
       maxIterations: env.AI_MAX_STEPS,
     });
 
-    // 从 messages 中提取 tool call trace
+    // 从 messages 中提取 tool call trace 并实时写入
     for (const msg of result.messages) {
       if (ToolMessage.isInstance(msg)) {
-        trace.push({
-          role: "observation",
-          content: String(msg.content).slice(0, 2000),
-          timestamp: Date.now(),
-        });
+        const content = String(msg.content).slice(0, 2000);
+        trace.push({ role: "observation", content, timestamp: Date.now() });
+        log(`工具 [${msg.name}]: ${content.slice(0, 100)}`);
       }
     }
+    await addTrace("observation", `Agent 执行完毕，共 ${result.messages.length} 步`);
 
-    // 检查是否成功创建了 PR
+    // 3. 检查结果
     const prUrl = extractPrUrl(result.output, result.messages);
 
     if (prUrl) {
+      await addTrace("action", `修复成功，PR 已创建: ${prUrl}`, HealJobStatus.PrCreated);
       return {
         healJobId: payload.healJobId,
         status: "pr_created",
@@ -56,6 +89,7 @@ export async function runReactLoop(
       };
     }
 
+    await addTrace("observation", "Agent 完成但未能创建 PR", HealJobStatus.Failed);
     return {
       healJobId: payload.healJobId,
       status: "failed",
@@ -65,13 +99,16 @@ export async function runReactLoop(
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    trace.push({ role: "observation", content: `ERROR: ${message}`, timestamp: Date.now() });
+    await addTrace("observation", `执行失败: ${message}`, HealJobStatus.Failed).catch(() => {});
     return {
       healJobId: payload.healJobId,
       status: "failed",
       errorMessage: message,
       trace,
     };
+  } finally {
+    log("清理临时目录");
+    await cleanupRepo(payload.healJobId).catch(() => {});
   }
 }
 

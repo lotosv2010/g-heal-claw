@@ -19,10 +19,10 @@ export function createReadIssueTool(payload: HealJobPayload, env: AiAgentEnv) {
 
         // 获取最近 5 个事件的堆栈和消息
         const events = await sql`
-          SELECT message, stack_trace, breadcrumbs, device, page, created_at
+          SELECT message, stack, breadcrumbs, device_type, url, created_at
           FROM error_events_raw
           WHERE project_id = ${payload.projectId}
-            AND message_head = ${String(issue.title).slice(0, 100)}
+            AND message_head = ${String(issue.title).slice(0, 128)}
           ORDER BY created_at DESC
           LIMIT 5
         `;

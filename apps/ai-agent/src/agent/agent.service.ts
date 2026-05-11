@@ -59,15 +59,17 @@ export async function runHealAgent(params: CreateHealAgentParams): Promise<Agent
   const input = [
     `请诊断并修复以下异常 Issue。`,
     ``,
+    `Issue ID: ${params.payload.issueId}`,
     `仓库: ${params.payload.repoUrl}`,
     `分支: ${params.payload.branch}`,
     ``,
-    `首先使用 readIssue 获取完整上下文，然后逐步定位根因并生成修复 PR。`,
+    `步骤：readIssue("${params.payload.issueId}") → 分析堆栈 → readFile → writePatch → createPr`,
+    `如果任何步骤失败超过 3 次，停止并回复当前结论。`,
   ].join("\n");
 
   const result = await agent.invoke(
     { messages: [new HumanMessage(input)] },
-    { recursionLimit: params.maxIterations ?? 20 },
+    { recursionLimit: params.maxIterations ?? 50 },
   );
 
   const messages: BaseMessage[] = result.messages ?? [];
