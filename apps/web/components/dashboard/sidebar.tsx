@@ -79,11 +79,14 @@ export function Sidebar() {
 
   return (
     <aside className="bg-sidebar border-sidebar-border fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r md:flex">
-      <div className="border-sidebar-border flex h-14 shrink-0 items-center gap-2.5 border-b px-5">
-        <BrandLogo className="size-7" />
-        <span className="text-foreground text-[15px] font-semibold tracking-tight">
-          智愈监控
-        </span>
+      <div className="border-sidebar-border flex h-14 shrink-0 items-center gap-3 border-b px-5">
+        <BrandLogo className="size-7 text-white" />
+        <div className="flex flex-col">
+          <span className="text-foreground text-[14px] font-semibold leading-tight tracking-tight">
+            智愈监控
+          </span>
+          <span className="text-muted-foreground text-[10px] leading-tight">Enterprise</span>
+        </div>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">

@@ -1,5 +1,4 @@
-import { ToolMessage } from "@langchain/core/messages";
-import type { BaseMessage } from "@langchain/core/messages";
+import { ToolMessage, type BaseMessage } from "@langchain/core/messages";
 import postgres from "postgres";
 import type { AiAgentEnv, HealJobPayload, HealResultPayload } from "@g-heal-claw/shared";
 import { HealJobStatus } from "@g-heal-claw/shared";
@@ -63,16 +62,11 @@ export async function runReactLoop(
       tools,
       payload,
       maxIterations: env.AI_MAX_STEPS,
+      onToolCall: async (toolName, resultStr) => {
+        await addTrace("observation", `[${toolName}] ${resultStr.slice(0, 500)}`);
+      },
     });
 
-    // 从 messages 中提取 tool call trace 并实时写入
-    for (const msg of result.messages) {
-      if (ToolMessage.isInstance(msg)) {
-        const content = String(msg.content).slice(0, 2000);
-        trace.push({ role: "observation", content, timestamp: Date.now() });
-        log(`工具 [${msg.name}]: ${content.slice(0, 100)}`);
-      }
-    }
     await addTrace("observation", `Agent 执行完毕，共 ${result.messages.length} 步`);
 
     // 3. 检查结果

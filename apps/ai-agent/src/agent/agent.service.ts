@@ -12,12 +12,16 @@ import type { HealJobPayload } from "@g-heal-claw/shared";
 /** Agent 名称常量 */
 const AGENT_NAME = "g-heal-agent";
 
+/** 工具调用回调（实时通知外层写 trace） */
+export type OnToolCallFn = (toolName: string, result: string) => Promise<void>;
+
 /** createHealAgent 的参数 */
 export interface CreateHealAgentParams {
   readonly model: BaseLanguageModel;
   readonly tools: StructuredToolInterface[];
   readonly payload: HealJobPayload;
   readonly maxIterations?: number;
+  readonly onToolCall?: OnToolCallFn;
 }
 
 /** Agent 执行结果 */
@@ -54,7 +58,11 @@ export function createHealAgent(
  * 执行 Agent 诊断（入口函数）
  */
 export async function runHealAgent(params: CreateHealAgentParams): Promise<AgentResult> {
-  const agent = createHealAgent(params);
+  // 如果有回调，包装 tools 使每次调用后触发
+  const wrappedParams = params.onToolCall
+    ? { ...params, tools: wrapToolsWithCallback(params.tools, params.onToolCall) }
+    : params;
+  const agent = createHealAgent(wrappedParams);
 
   const input = [
     `请诊断并修复以下异常 Issue。`,
@@ -92,4 +100,26 @@ function extractText(content: BaseMessage["content"]): string {
   }
 
   return String(content);
+}
+
+/**
+ * 包装 tools：每次调用后触发 onToolCall 回调
+ */
+
+function wrapToolsWithCallback(
+  tools: readonly StructuredToolInterface[],
+  onToolCall: OnToolCallFn,
+): StructuredToolInterface[] {
+  return tools.map((t) => {
+    const originalInvoke = t.invoke.bind(t);
+    const wrapped = Object.create(t);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    wrapped.invoke = async (input: any, config?: any) => {
+      const result = await originalInvoke(input, config);
+      const resultStr = typeof result === "string" ? result : String(result);
+      await onToolCall(t.name, resultStr.slice(0, 2000)).catch(() => {});
+      return result;
+    };
+    return wrapped as StructuredToolInterface;
+  });
 }

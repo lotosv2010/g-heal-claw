@@ -2,6 +2,7 @@ node_modules/
 dist/
 *.tsbuildinfo
 .turbo/
+**/tmp/ghc-heal/
 
 .env
 .env.local
