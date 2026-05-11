@@ -141,13 +141,42 @@ heal:
     - "*.lock"
 ```
 
+## Git 仓库 Token 配置
+
+AI 自动修复需要推送代码并创建 PR，需配置平台访问凭证。
+
+### GitHub（当前支持）
+
+1. 前往 GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens**
+2. 创建 Token，权限：
+   - **Contents**: Read and write（推送分支）
+   - **Pull requests**: Read and write（创建 PR）
+3. 配置到 `.env.local`：
+
+```bash
+GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxxxxxxxxx
+```
+
+4. 在 Web UI「设置 → AI 修复配置」填写仓库地址
+
+### 支持平台
+
+| 平台 | 状态 | 环境变量 |
+|---|---|---|
+| GitHub | ✅ 已支持 | `GITHUB_PERSONAL_ACCESS_TOKEN` |
+| GitLab | 🔜 规划中 | `GITLAB_PERSONAL_ACCESS_TOKEN` + `GITLAB_HOST` |
+| Gitee | 🔜 规划中 | — |
+
+> 扩展新平台只需在 `apps/ai-agent/src/tools/create-pr.ts` 新增 provider 实现。
+
 ## 安全说明
 
 - 所有修复均为 AI 自动生成，PR 需人工 Review 后合并
 - LLM API Key 仅在服务端使用，不暴露给浏览器
 - Agent 运行在独立进程，通过 BullMQ 队列与 Server 通信
-- 仓库操作通过 GitHub App 权限控制，遵循最小权限原则
+- 仓库操作通过 GitHub App / PAT 权限控制，遵循最小权限原则
 - AI 对话内容存储在项目数据库中，按用户隔离
+- Git Token 仅在 ai-agent 进程中使用，不经过前端
 
 ## API 接口
 
