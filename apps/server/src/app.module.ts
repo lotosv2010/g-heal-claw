@@ -15,7 +15,6 @@ import { ResourcesModule } from "./modules/resources/resources.module.js";
 import { CustomModule } from "./modules/custom/custom.module.js";
 import { LogsModule } from "./modules/logs/logs.module.js";
 import { VisitsModule } from "./modules/visits/visits.module.js";
-import { PartitionsModule } from "./modules/partitions/partitions.module.js";
 import { RealtimeModule } from "./modules/realtime/realtime.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { AlertModule } from "./modules/alert/alert.module.js";
@@ -48,7 +47,6 @@ export class AppModule {
         CustomModule,
         LogsModule,
         VisitsModule,
-        PartitionsModule,
         RealtimeModule,
         DashboardModule,
       ],
