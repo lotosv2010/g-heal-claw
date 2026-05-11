@@ -1,6 +1,6 @@
 # 任务跟踪
 
-> 最后更新: 2026-05-07（Phase 5 M5.1~M5.4 AI 自愈 Agent MVP 完成：deepagents ReAct + 6 Provider + BullMQ 双向队列 + HealModule CRUD + heal_jobs 表 + 5 核心 Tools + 仓库配置 + PR 模板 + 端到端联调全绿 538 tests；ADR-0036 采纳 + docs 双向追溯）
+> 最后更新: 2026-05-11（Phase 6 体验优化：AI 对话多模型 thinking 统一解析、自动修复全流程优化含 git clone + 终端日志 + 重试删除 + 实时进度、projectId 统一用 id、应用管理页重设计、DSN slug→id 切换、vue-demo 线上事故模拟项目）
 
 ## 状态说明
 

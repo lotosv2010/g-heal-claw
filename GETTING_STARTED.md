@@ -135,8 +135,9 @@ curl http://localhost:3001/healthz   # server liveness
 
 1. 浏览器打开 `http://localhost:3000`，注册首个管理员账号。
 2. 登录后创建项目 `demo-web`，选择环境 `development`。
-3. 项目创建成功后，Dashboard 会展示该项目的 **DSN**（形如 `http://<publicKey>@localhost:3000/<projectId>`）和 **secretKey**（用于 CLI 上传 Sourcemap）。
-4. 复制 DSN 备用，下一节 SDK 需要。
+3. 项目创建成功后，在「设置 → API Keys」页面可查看 **publicKey** 和 **secretKey**。
+4. DSN 格式：`http://<publicKey>@localhost:3001/<projectId>`。其中 `projectId` 是项目的内部 ID（如 `proj_xxx`），可在「设置 → 应用管理」的项目卡片上一键复制。
+5. 复制 DSN 备用，下一节 SDK 需要。
 
 ---
 

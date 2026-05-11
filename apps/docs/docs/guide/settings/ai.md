@@ -59,13 +59,15 @@ NestJS /api/v1/ai/conversations → PostgreSQL（会话 + 消息持久化）
 1. Sourcemap 上传 → 错误发生时自动还原堆栈到源码位置
 2. 用户在 Issue 详情或 AI 对话中点击「触发自动修复」
 3. HealModule 创建任务 → BullMQ 投递到 ai-agent
-4. AI Agent ReAct 循环：
-   - readIssue → 读取还原后的堆栈
-   - readFile → 读仓库源码文件
-   - grepRepo → 搜索相关代码
-   - writePatch → 生成 unified diff
-   - createPr → push 分支 + 创建 GitHub PR
-5. PR 创建完成，开发者审核合并
+4. AI Agent 执行：
+   a. 克隆仓库（shallow clone 到临时目录）
+   b. readIssue → 读取还原后的堆栈和面包屑
+   c. readFile → 读仓库源码文件
+   d. grepRepo → 搜索相关代码
+   e. writePatch → 生成 unified diff
+   f. createPr → push 分支 + 创建 GitHub PR
+5. PR 创建完成，开发者在 GitHub 审核合并
+6. 任务完成后自动清理克隆目录
 ```
 
 ### 任务状态
@@ -75,11 +77,31 @@ NestJS /api/v1/ai/conversations → PostgreSQL（会话 + 消息持久化）
 | 状态 | 说明 |
 |---|---|
 | 排队中 | 等待 AI Agent 处理 |
+| 克隆仓库 | 正在拉取目标仓库代码 |
 | 诊断中 | Agent 正在分析异常 |
 | 生成补丁 | Agent 正在编写修复代码 |
 | 验证中 | 正在验证修复有效性 |
 | PR 已创建 | 修复 PR 已提交到 GitHub |
-| 失败 | 修复失败（可查看原因） |
+| 失败 | 修复失败（可查看原因并重试） |
+
+### 任务操作
+
+| 操作 | 条件 | 说明 |
+|---|---|---|
+| 详情 | 所有状态 | 查看终端风格的执行日志和流程进度 |
+| 取消 | 排队中 | 从队列中移除 |
+| 重试 | 失败 | 以相同参数重新触发修复 |
+| 删除 | 失败/已完成 | 删除任务记录 |
+
+### 实时进度
+
+点击「详情」按钮，面板会显示：
+
+1. **流程管线** — 排队 → 克隆 → 诊断 → 补丁 → 验证 → PR（绿色已完成、蓝色执行中、红色失败）
+2. **终端日志** — 类似 CI/CD 系统的实时输出，每个阶段的操作和结果按时间线展示
+3. **诊断结论** — Agent 最终输出的根因分析和修复说明
+
+任务运行中时界面会自动轮询刷新（8 秒间隔）。
 
 ## 环境变量
 
@@ -88,8 +110,9 @@ NestJS /api/v1/ai/conversations → PostgreSQL（会话 + 消息持久化）
 | 变量 | 说明 | 默认值 |
 |---|---|---|
 | `LLM_PROVIDER` | 模型提供商标识 | `deepseek` |
-| `AI_MAX_STEPS` | Agent 最大推理步数 | `20` |
-| `AI_MAX_PATCH_LOC` | 单次修复最大变更行数 | `50` |
+| `AI_MAX_STEPS` | Agent 最大推理步数（LangGraph recursionLimit） | `50` |
+| `AI_MAX_PATCH_LOC` | 单次修复最大变更行数 | `100` |
+| `GITHUB_TOKEN` | GitHub PAT（用于 clone 和创建 PR） | — |
 
 ### 支持的 LLM Provider
 

@@ -51,7 +51,8 @@ g-heal-claw/
 │   ├── web/                 #   Next.js 管理面板（App Router + SSR，4 分组菜单）（✅ 已完成）
 │   └── ai-agent/            #   deepagents AI Agent（诊断 + 修复 PR）（✅ 已完成 ADR-0036）
 ├── examples/
-│   └── nextjs-demo/         #   SDK 演练沙盘（性能 / 错误 / API / 资源 / 埋点 场景）
+│   ├── nextjs-demo/         #   SDK 演练沙盘（性能 / 错误 / API / 资源 / 埋点 场景）
+│   └── vue-demo/            #   Vue 3 线上事故模拟（AI 自动修复演示）
 ├── docs/
 │   ├── PRD.md
 │   ├── SPEC.md
