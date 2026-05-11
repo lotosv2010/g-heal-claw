@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Next.js middleware：认证保护
+ * Next.js proxy：认证保护
  *
  * 策略：
  *  - cookie `ghc-auth=1` 存在 → 放行（token 有效性由前端 httpClient 401 拦截器处理）
@@ -11,7 +11,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const AUTH_COOKIE_NAME = "ghc-auth";
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // 放行：认证页面本身、静态资源、Next.js 内部路径
@@ -42,13 +42,6 @@ export function middleware(req: NextRequest) {
 // 匹配所有路由（除了 matcher 配置中排除的静态资源）
 export const config = {
   matcher: [
-    /*
-     * 匹配所有路径，除了：
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
