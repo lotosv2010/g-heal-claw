@@ -14,6 +14,7 @@ import { httpPost, httpDelete } from "./http";
 
 export interface Token {
   readonly id: string;
+  readonly publicKey: string;
   readonly label: string | null;
   /** 脱敏后的 secretKey（仅首尾可见） */
   readonly secretKeyMasked: string;
@@ -24,6 +25,7 @@ export interface Token {
 /** 创建后一次性返回完整 secretKey */
 export interface TokenCreated {
   readonly id: string;
+  readonly publicKey: string;
   readonly label: string | null;
   readonly secretKey: string;
   readonly createdAt: string;

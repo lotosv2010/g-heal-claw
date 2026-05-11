@@ -46,7 +46,7 @@ async function bootstrap(): Promise<void> {
 
   // CORS：允许 web 前台（3000）与 examples/nextjs-demo（3100）
   app.enableCors({
-    origin: [env.PUBLIC_WEB_BASE_URL, "http://localhost:3000", "http://localhost:3100"],
+    origin: [env.PUBLIC_WEB_BASE_URL, "http://localhost:3000", "http://localhost:3100", "http://localhost:4173", "http://localhost:5200"],
     credentials: true,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   });

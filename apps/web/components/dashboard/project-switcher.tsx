@@ -50,13 +50,12 @@ export function ProjectSwitcher() {
         const items = res.data ?? [];
         setProjects(items);
 
-        // 用 slug 作为标识（事件表 project_id 存的是 DSN 路径段 = slug）
-        const storedSlug = getStoredProjectId();
-        const match = items.find((p) => p.slug === storedSlug);
+        const storedId = getStoredProjectId();
+        const match = items.find((p) => p.id === storedId);
         const selected = match ?? items[0];
         if (selected) {
-          setCurrentId(selected.slug);
-          storeProjectId(selected.slug);
+          setCurrentId(selected.id);
+          storeProjectId(selected.id);
         }
         setLoaded(true);
       })
@@ -66,11 +65,11 @@ export function ProjectSwitcher() {
     return () => { cancelled = true; };
   }, []);
 
-  const current = projects.find((p) => p.slug === currentId);
+  const current = projects.find((p) => p.id === currentId);
 
   const handleSelect = (project: ProjectItem) => {
-    setCurrentId(project.slug);
-    storeProjectId(project.slug);
+    setCurrentId(project.id);
+    storeProjectId(project.id);
     router.refresh();
   };
 

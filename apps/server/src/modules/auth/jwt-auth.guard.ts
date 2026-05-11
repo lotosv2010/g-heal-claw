@@ -40,14 +40,16 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const header = req.headers.authorization;
-    if (!header || !header.startsWith("Bearer ")) {
+    // SSE 场景 EventSource 不支持自定义 headers，允许从 query 参数获取 token
+    const queryToken = (req.query as Record<string, string>)?.token;
+    const token = header?.startsWith("Bearer ") ? header.slice(7) : queryToken;
+
+    if (!token) {
       throw new UnauthorizedException({
         error: "MISSING_TOKEN",
-        message: "需要 Authorization: Bearer <token>",
+        message: "需要 Authorization: Bearer <token> 或 ?token=<token>",
       });
     }
-
-    const token = header.slice(7);
     let payload: JwtPayload;
     try {
       payload = this.auth.verifyAccessToken(token);

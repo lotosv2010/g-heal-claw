@@ -38,6 +38,7 @@
   "scripts": {
     "dev": "turbo dev",
     "dev:demo": "turbo dev --filter=nextjs-demo...",
+    "dev:vue-demo": "turbo dev --filter=@g-heal-claw/vue-demo...",
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",

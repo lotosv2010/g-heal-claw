@@ -45,6 +45,7 @@ export type ConnectionState = "connecting" | "open" | "error" | "closed";
 export interface RealtimeStreamOptions {
   readonly projectId: string;
   readonly topics: readonly RealtimeTopic[];
+  readonly token?: string;
   readonly onEvent: (event: RealtimeEvent) => void;
   readonly onState: (state: ConnectionState) => void;
 }
@@ -60,11 +61,12 @@ const MAX_RETRIES = 5;
 const BACKOFF_STEP_MS = 1_000;
 const BACKOFF_CAP_MS = 30_000;
 
-export function buildRealtimeUrl(projectId: string, topics: readonly RealtimeTopic[]): string {
+export function buildRealtimeUrl(projectId: string, topics: readonly RealtimeTopic[], token?: string): string {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
   const params = new URLSearchParams({ projectId });
   if (topics.length > 0) params.set("topics", topics.join(","));
+  if (token) params.set("token", token);
   return `${baseUrl}/api/v1/stream/realtime?${params.toString()}`;
 }
 
@@ -88,7 +90,7 @@ export function createRealtimeStream(
   const connect = (): void => {
     if (closed) return;
     setState("connecting");
-    const url = buildRealtimeUrl(opts.projectId, opts.topics);
+    const url = buildRealtimeUrl(opts.projectId, opts.topics, opts.token);
     const es = new EventSource(url, { withCredentials: false });
     source = es;
 

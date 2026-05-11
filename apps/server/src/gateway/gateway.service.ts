@@ -86,6 +86,14 @@ export class GatewayService {
     enqueued: number;
   }> {
     const total = payload.events.length;
+
+    // 用鉴权后的真实 projectId 覆写事件（防止客户端篡改）
+    if (auth?.projectId) {
+      for (const event of payload.events) {
+        (event as { projectId: string }).projectId = auth.projectId;
+      }
+    }
+
     // GeoIP 解析一次复用（全局注入所有 Service）
     const geo = this.geoip.lookup(clientIp);
     // 按 eventId Redis SETNX 去重；Redis 不可用时放行（raw UNIQUE 兜底）

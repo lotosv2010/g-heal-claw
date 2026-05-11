@@ -10,6 +10,7 @@ import {
   type RealtimeEvent,
   type RealtimeTopic,
 } from "@/lib/api/realtime";
+import { getAccessToken } from "@/lib/auth";
 import { LiveFeed } from "./live-feed";
 import { StreamHeader } from "./stream-header";
 
@@ -51,6 +52,7 @@ export default function RealtimePage() {
     const handle = createRealtimeStream({
       projectId,
       topics: topicList,
+      token: getAccessToken() ?? undefined,
       onState: setState,
       onEvent: (ev) => {
         // 统计 QPS 时戳（不受 pause 影响）

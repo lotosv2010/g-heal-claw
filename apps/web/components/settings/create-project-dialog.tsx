@@ -20,7 +20,14 @@ import {
 } from "@/components/ui/select";
 import { createProject, type CreateProjectInput } from "@/lib/api/projects";
 
-const PLATFORMS = ["web", "h5", "miniapp", "nodejs", "other"] as const;
+const PLATFORMS = [
+  { value: "web", label: "Web" },
+  { value: "h5", label: "H5" },
+  { value: "miniapp", label: "小程序" },
+  { value: "native", label: "原生 APP" },
+  { value: "nodejs", label: "Node.js" },
+  { value: "other", label: "其他" },
+] as const;
 
 interface CreateProjectDialogProps {
   readonly open: boolean;
@@ -100,7 +107,7 @@ export function CreateProjectDialog({
               </SelectTrigger>
               <SelectContent>
                 {PLATFORMS.map((p) => (
-                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

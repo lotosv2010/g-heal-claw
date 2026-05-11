@@ -6,12 +6,14 @@ import {
   Query,
   Req,
   Res,
+  UseGuards,
   UsePipes,
 } from "@nestjs/common";
-import { ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard.js";
 import { RealtimeService } from "./realtime.service.js";
 import {
   REALTIME_TOPICS,
@@ -54,6 +56,8 @@ function parseTopics(raw: string | undefined): readonly RealtimeTopic[] {
  * - `reply.raw.on('close')` 清理订阅 + 心跳 interval，防止泄漏
  */
 @ApiTags("realtime")
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller("api/v1/stream")
 export class RealtimeController {
   public constructor(private readonly realtime: RealtimeService) {}

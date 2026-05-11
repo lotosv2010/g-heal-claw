@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { AuthModule } from "../auth/auth.module.js";
 import { RealtimeController } from "./realtime.controller.js";
 import { RealtimeService } from "./realtime.service.js";
 
@@ -9,9 +10,10 @@ import { RealtimeService } from "./realtime.service.js";
  *
  * - 仅导出 RealtimeService（供 Gateway publish 与后续 Controller 订阅）
  * - Redis 连接复用 RedisService（全局模块），另建一条独立 subscriber 连接
- * - RealtimeController 提供 SSE 端点
+ * - RealtimeController 提供 SSE 端点（需 JWT 认证）
  */
 @Module({
+  imports: [AuthModule],
   controllers: [RealtimeController],
   providers: [RealtimeService],
   exports: [RealtimeService],

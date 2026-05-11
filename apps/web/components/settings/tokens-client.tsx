@@ -96,6 +96,7 @@ export function TokensClient({ projectId, initialTokens }: TokensClientProps) {
           <TableHeader>
             <TableRow>
               <TableHead>标签</TableHead>
+              <TableHead>Public Key (DSN)</TableHead>
               <TableHead>Secret Key</TableHead>
               <TableHead>创建时间</TableHead>
               <TableHead className="w-20">操作</TableHead>
@@ -105,6 +106,7 @@ export function TokensClient({ projectId, initialTokens }: TokensClientProps) {
             {initialTokens.map((t) => (
               <TableRow key={t.id}>
                 <TableCell className="text-sm">{t.label ?? "-"}</TableCell>
+                <TableCell className="font-mono text-xs">{t.publicKey}</TableCell>
                 <TableCell className="font-mono text-xs">{t.secretKeyMasked}</TableCell>
                 <TableCell className="text-muted-foreground text-xs">
                   {new Date(t.createdAt).toLocaleDateString("zh-CN")}
@@ -152,7 +154,7 @@ export function TokensClient({ projectId, initialTokens }: TokensClientProps) {
         </DialogContent>
       </Dialog>
 
-      {/* 一次性展示 secretKey */}
+      {/* 一次性展示 secretKey + DSN */}
       <Dialog open={created !== null} onOpenChange={(v) => { if (!v) setCreated(null); }}>
         <DialogContent>
           <DialogHeader>
@@ -161,13 +163,30 @@ export function TokensClient({ projectId, initialTokens }: TokensClientProps) {
           <p className="text-muted-foreground text-sm">
             请立即复制以下密钥，关闭后将无法再次查看。
           </p>
-          <div className="flex items-center gap-2">
-            <code className="bg-muted flex-1 rounded px-3 py-2 font-mono text-xs break-all">
-              {created?.secretKey}
-            </code>
-            <Button variant="outline" size="icon" onClick={handleCopy}>
-              <Copy className="size-4" />
-            </Button>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium mb-1">SDK DSN（填入前端 .env）</p>
+              <code className="bg-muted block rounded px-3 py-2 font-mono text-xs break-all">
+                http://{created?.publicKey}@localhost:3001/{projectId}
+              </code>
+            </div>
+            <div>
+              <p className="text-xs font-medium mb-1">Public Key</p>
+              <code className="bg-muted block rounded px-3 py-2 font-mono text-xs break-all">
+                {created?.publicKey}
+              </code>
+            </div>
+            <div>
+              <p className="text-xs font-medium mb-1">Secret Key（仅展示一次）</p>
+              <div className="flex items-center gap-2">
+                <code className="bg-muted flex-1 rounded px-3 py-2 font-mono text-xs break-all">
+                  {created?.secretKey}
+                </code>
+                <Button variant="outline" size="icon" onClick={handleCopy}>
+                  <Copy className="size-4" />
+                </Button>
+              </div>
+            </div>
           </div>
           {copied && <p className="text-sm text-green-600">已复制</p>}
           <DialogFooter>
