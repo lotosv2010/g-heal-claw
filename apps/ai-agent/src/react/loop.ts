@@ -71,7 +71,13 @@ export async function runReactLoop(
         if (toolName === "__thinking__") {
           await addTrace("thought", content.slice(0, 500));
         } else if (phase === "call") {
-          await addTrace("action", `调用 ${toolName}(${content.slice(0, 200)})`);
+          // 按 tool 名切换状态，让前端能展示完整流程
+          const statusMap: Record<string, string | undefined> = {
+            writePatch: HealJobStatus.Patching,
+            createPr: HealJobStatus.Verifying,
+          };
+          const newStatus = statusMap[toolName];
+          await addTrace("action", `调用 ${toolName}(${content.slice(0, 200)})`, newStatus);
         } else {
           await addTrace("observation", `[${toolName}] ${content.slice(0, 500)}`);
         }

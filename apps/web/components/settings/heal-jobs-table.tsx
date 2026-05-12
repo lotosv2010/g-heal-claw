@@ -327,7 +327,8 @@ function TerminalLog({ job }: { job: HealJob }) {
       {/* 终端内容区 */}
       <div
         ref={containerRef}
-        className="bg-zinc-900 p-3 font-mono text-[12px] leading-5 max-h-[360px] overflow-y-auto"
+        className="bg-zinc-900 p-3 font-mono text-[12px] leading-5 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-zinc-900"
+        style={{ scrollbarWidth: "thin", scrollbarColor: "#52525b #18181b" }}
       >
         {(!job.trace || job.trace.length === 0) ? (
           <div className="text-zinc-500">
