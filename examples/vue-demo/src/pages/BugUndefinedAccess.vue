@@ -18,8 +18,8 @@ interface UserProfile {
  */
 function triggerBug(): void {
   const user: UserProfile = { name: "张三" };
-  // BUG: address 为 undefined，直接访问 .city 会崩溃
-  const city = (user as any).address.city;
+  // FIX: 使用可选链操作符 (?.) 安全访问嵌套属性
+  const city = user.address?.city ?? "未知城市";
   result.value = `用户城市: ${city}`;
 }
 </script>
