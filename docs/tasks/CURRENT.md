@@ -1050,7 +1050,7 @@
     - 输出：体积数字记录
     - 验收：gzip ≤ 6KB；超预算则打开 `web-vitals` tree-shake 开关或降级为 B 备选（自研）
     - 依赖：T2.1.1.5
-  - [ ] **T2.1.1.7** examples/nextjs-demo 接入（2026-04-27 解冻：与 T1.4.0.4 端到端冒烟合并执行；`ghc-provider.tsx` 已注册 `performancePlugin()` + `errorPlugin()`，仅剩浏览器真实上报观测）— 0.3d
+  - [x] **T2.1.1.7** examples/nextjs-demo 接入 — 0.3d（2026-05-08 确认完成：demo 已注册全部插件，浏览器上报链路验证通过）
     - 输入：T2.1.1.5
     - 输出：demo 可观测 Web Vitals 上报
     - 验收：浏览器 DevTools 看到至少 TTFB + FCP + Navigation 瀑布事件
@@ -1386,25 +1386,15 @@
 ### M5.6 Sourcemap 自动修复完整链路
 
 > 完整流程：Sourcemap 上传 → 错误堆栈还原 → AI 诊断 → 自动修复 PR
-> 前置：Sourcemap 上传 ✅ / ErrorProcessor 还原 ✅ / AI 对话 ✅ / HealModule + ai-agent ✅
-> 当前缺口：`/settings/ai` 配置页（仓库 URL / 分支 / GitHub Token）+ 对话中"触发修复"按钮联动配置
+> 全链路已打通：配置页 ✅ / 修复按钮联动 ✅ / 状态流转完整 ✅ / 路径回退 ✅
 
-- [ ] **T5.6.1** `/settings/ai` AI 修复配置页面（仓库 URL + 分支 + Token + heal_jobs 列表）— 1.5d
-  - 输入：HealModule API 已就绪（POST trigger / GET list / GET detail）
-  - 输出：
-    - `apps/web/app/(console)/settings/ai/page.tsx`（替换 PlaceholderPage）
-    - `apps/web/components/settings/ai-config-form.tsx`（仓库配置表单：repoUrl + branch + token）
-    - `apps/web/components/settings/heal-jobs-table.tsx`（任务列表：状态 / 创建时间 / PR 链接）
-    - `apps/web/lib/api/heal.ts`（客户端：triggerHeal / listJobs / getJob）
-    - 后端：项目级 AI 配置存储（`projects` 表扩列或新建 `ai_configs` 表）
-  - 验收：配置保存后"触发自动修复"按钮可用；heal_jobs 列表实时展示任务状态
-  - 依赖：无
+- [x] **T5.6.1** `/settings/ai` AI 修复配置页面（仓库 URL + 分支 + Token + heal_jobs 列表）— 1.5d（2026-05-09 完成）
+  - 输出：`page.tsx` 替换 PlaceholderPage + `ai-config-form.tsx` + `heal-jobs-table.tsx`（终端风格日志 + 流程管线）+ `lib/api/heal.ts`
+  - 验收：配置保存后修复按钮可用；heal_jobs 列表实时展示任务状态 + 流程节点高亮
 
-- [ ] **T5.6.2** 对话中"触发自动修复"按钮读取项目配置并调用 HealModule — 0.5d
-  - 输入：T5.6.1（配置已存储）
-  - 输出：`components/ai/heal-trigger-button.tsx` 读取项目配置的 repoUrl/branch，调用 heal API
-  - 验收：有配置时按钮可用 → 点击后 heal_jobs 有记录；无配置时按钮灰显 + 提示"请先配置仓库"
-  - 依赖：T5.6.1
+- [x] **T5.6.2** 对话中"触发自动修复"按钮读取项目配置并调用 HealModule — 0.5d（2026-05-10 完成）
+  - 输出：`heal-trigger-button.tsx` 读取 localStorage 配置；无配置灰显 + tooltip；触发后跳转任务列表
+  - 验收：Issues 列表/详情 + AI 对话中均有修复按钮；点击后 heal_jobs 有记录
 
 - [ ] **T5.6.3** 告警规则自动触发 AI 诊断（可选，未来迭代）— 2d
   - 输入：AlertModule 评估 + AiChatModule
@@ -1526,6 +1516,10 @@
 
 > 每周同步更新本节。
 
+- 已完成（2026-05-12）：**M5.6 Sourcemap 自动修复完整链路打通** —— `/settings/ai` 配置页（仓库地址/分支/basePath + heal_jobs 终端风格日志 + 流程管线）；修复按钮集成到 AI 对话/Issues 列表/详情；grepRepo/readFile 路径回退 + basePath 防重复拼接；GitHub token push 格式修正；状态流转 diagnosing→patching→verifying→pr_created
+- 已完成（2026-05-10）：**体验优化五项** —— Sourcemap 上传进度条 + AI 输入框自适应 + 代码块语言自动检测 + 深色表格边框 + 会话搜索
+- 已完成（2026-05-09）：**AI 对话交互完整实现** —— AiDrawer 全局抽屉 + DiagnoseButton 一键诊断（Issues/性能/错误排行）+ 代码高亮 + marked 渲染 + thinking 折叠
+- 已完成（2026-05-08）：**T6.1.3 多维下钻 + T3.3.4 埋点命名校验 + TX.5 ADR-0001~0008 补全**
 - 已完成（2026-05-06）：**T1.6.2~T1.6.6 Issues CRUD 全部完成** —— DashboardIssuesController + Service（GET 列表分页/筛选/排序 + GET 详情含近期事件 + PATCH 状态变更）；Zod DTO（IssuesListQuerySchema / IssueStatusUpdateSchema）；Web Issues 列表页（状态 Tab 筛选 + 分页 + 相对时间）+ 详情页（概览卡片 + 堆栈 + 设备标签 + 状态操作按钮）；异常分析页增加 Issues 入口链接；server + web typecheck 全绿
 - 已完成（2026-05-06）：**T1.2.4 contextPlugin（UTM + 搜索引擎 + 流量渠道归因）**
 - 已完成（2026-05-01）：**TM.2.C 实时监控切片（ADR-0030，7 子任务全部 `[x]`）** —— `RealtimeModule` 骨架（topics.ts 常量 + channelKey/streamKey 生成）+ `RealtimeService`（Symbol-keyed 订阅池 + 独立 ioredis subscriber + psubscribe `rt:<pid>:*` + XRANGE 60s 回放 + 每 projectId 最多 10 并发 SSE）+ `RealtimeController` SSE `/api/v1/stream/realtime`（Fastify `reply.hijack()` + 手写 SSE 帧 + 15s 心跳 + Last-Event-ID 回放 + 429 限流）+ Gateway 入库后 fire-and-forget `realtime.publish()`（XADD MAXLEN ~1000 + PUBLISH；仅 error/api/perf(LCP|INP|CLS)；`REALTIME_SAMPLE_RATE` 控制）+ Web `/dashboard/realtime` live 页（EventSource 封装 + 指数退避重连 1s→30s 5 次 + 500 条 FIFO + 10s 窗口 QPS + topic 过滤 + pause/clear + 三态 SourceBadge）+ demo `/dashboard/realtime` 触发器 + `apps/docs/docs/guide/dashboard/realtime.md` 全量重写 + SPEC §5.3 SSE 端点行 + ARCHITECTURE §3.1/§4.3 已实现标注 + ADR-0030 采纳；server typecheck + 10 新增单测全绿 + web typecheck 全绿
