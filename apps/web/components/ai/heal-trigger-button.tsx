@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
@@ -17,6 +18,7 @@ interface HealTriggerButtonProps {
 }
 
 export function HealTriggerButton({ projectId, issueId }: HealTriggerButtonProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [triggered, setTriggered] = useState(false);
 
@@ -31,8 +33,9 @@ export function HealTriggerButton({ projectId, issueId }: HealTriggerButtonProps
     setLoading(true);
     try {
       await triggerHeal(projectId, issueId, config.repoUrl, config.branch || "main", { basePath: config.basePath });
-      toast.success("自动修复已触发，请在 设置 → AI 修复配置 查看进度");
+      toast.success("自动修复已触发，正在跳转到任务列表...");
       setTriggered(true);
+      router.push("/settings/ai");
     } catch (err) {
       toast.error((err as Error).message || "触发失败");
     } finally {
