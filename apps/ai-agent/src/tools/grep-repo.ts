@@ -24,7 +24,14 @@ export function createGrepRepoTool(payload: HealJobPayload, _env: AiAgentEnv) {
 
       let searchDir: string;
       if (payload.basePath) {
-        searchDir = directory ? join(payload.basePath, directory) : payload.basePath;
+        if (!directory) {
+          searchDir = payload.basePath;
+        } else if (directory.startsWith(payload.basePath)) {
+          // AI 已传入完整路径，不重复拼接
+          searchDir = directory;
+        } else {
+          searchDir = join(payload.basePath, directory);
+        }
       } else {
         searchDir = directory || ".";
       }
