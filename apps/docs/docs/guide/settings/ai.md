@@ -154,7 +154,7 @@ AI 自动修复需要推送代码并创建 PR，需配置平台访问凭证。
 3. 配置到 `.env.local`：
 
 ```bash
-GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxxxxxxxxx
+GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 ```
 
 4. 在 Web UI「设置 → AI 修复配置」填写仓库地址
@@ -163,7 +163,7 @@ GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxxxxxxxxx
 
 | 平台 | 状态 | 环境变量 |
 |---|---|---|
-| GitHub | ✅ 已支持 | `GITHUB_PERSONAL_ACCESS_TOKEN` |
+| GitHub | ✅ 已支持 | `GITHUB_TOKEN` |
 | GitLab | 🔜 规划中 | `GITLAB_PERSONAL_ACCESS_TOKEN` + `GITLAB_HOST` |
 | Gitee | 🔜 规划中 | — |
 

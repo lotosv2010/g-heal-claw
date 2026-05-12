@@ -23,9 +23,12 @@ export function createCreatePrTool(payload: HealJobPayload, env: AiAgentEnv) {
         if (token) {
           const authUrl = payload.repoUrl.replace(
             "https://github.com/",
-            `https://x-access-token:${token}@github.com/`,
+            `https://${token}@github.com/`,
           );
           await git.remote(["set-url", "origin", authUrl]);
+          console.log("[createPr] remote URL set with token auth");
+        } else {
+          console.log("[createPr] WARNING: GITHUB_TOKEN not configured, push may fail");
         }
 
         // 创建修复分支

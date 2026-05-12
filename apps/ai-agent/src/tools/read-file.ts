@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { AiAgentEnv, HealJobPayload } from "@g-heal-claw/shared";
 import { isPathAllowed } from "../config/repo-config.js";
@@ -9,25 +10,29 @@ import { getRepoDir } from "../git/clone.js";
 const MAX_LINES = 500;
 
 /**
- * readFile — 从克隆仓库读取源码文件
+ * readFile — 从仓库读取源码文件
+ *
+ * 查找顺序：优先克隆目录，不存在则回退项目根目录
  */
 export function createReadFileTool(payload: HealJobPayload, env: AiAgentEnv) {
   return tool(
     async ({ filePath }) => {
-      const repoDir = getRepoDir(payload.healJobId);
-      // basePath 强制限定：所有路径都必须在 basePath 下
+      const cloneDir = getRepoDir(payload.healJobId);
+      const repoDir = existsSync(join(cloneDir, ".git")) ? cloneDir : process.cwd();
+      console.log(`[readFile] 读取根目录: ${repoDir}${repoDir === cloneDir ? "（克隆仓库）" : "（回退本地项目目录）"}`);
+
       const normalizedPath = filePath.replace(/^\.\//, "");
       const resolvedPath = payload.basePath
         ? (normalizedPath.startsWith(payload.basePath) ? normalizedPath : join(payload.basePath, normalizedPath))
         : normalizedPath;
       const absPath = resolve(join(repoDir, resolvedPath));
 
-      // 安全校验：不允许逃逸出仓库目录
+      console.log(`[readFile] 目标文件: ${absPath}`);
+
       if (!absPath.startsWith(resolve(repoDir))) {
         return "ERROR: Path traversal detected — access denied";
       }
 
-      // 路径白名单校验（仅在显式配置 repoConfig 时生效）
       if (payload.repoConfig && !isPathAllowed(filePath, payload.repoConfig)) {
         return `ERROR: Path "${filePath}" is not in allowed paths or is forbidden`;
       }
@@ -40,7 +45,7 @@ export function createReadFileTool(payload: HealJobPayload, env: AiAgentEnv) {
         }
         return content;
       } catch {
-        return `ERROR: File not found or unreadable: ${filePath}`;
+        return `ERROR: File not found or unreadable: ${resolvedPath}`;
       }
     },
     {
@@ -52,4 +57,3 @@ export function createReadFileTool(payload: HealJobPayload, env: AiAgentEnv) {
     },
   );
 }
-

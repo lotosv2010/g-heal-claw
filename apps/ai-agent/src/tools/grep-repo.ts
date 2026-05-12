@@ -2,6 +2,7 @@ import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { AiAgentEnv, HealJobPayload } from "@g-heal-claw/shared";
 import { getRepoDir } from "../git/clone.js";
@@ -10,22 +11,26 @@ const execFileAsync = promisify(execFile);
 const MAX_RESULTS = 50;
 
 /**
- * grepRepo — 在仓库内搜索模式（使用 grep -rn）
+ * grepRepo — 在仓库内搜索模式
+ *
+ * 查找顺序：优先克隆目录，不存在则回退项目根目录
  */
 export function createGrepRepoTool(payload: HealJobPayload, _env: AiAgentEnv) {
   return tool(
     async ({ pattern, glob, directory }) => {
-      const repoDir = getRepoDir(payload.healJobId);
-      // basePath 强制：有配置时只允许在其子目录内搜索
+      const cloneDir = getRepoDir(payload.healJobId);
+      const repoDir = existsSync(join(cloneDir, ".git")) ? cloneDir : process.cwd();
+      console.log(`[grepRepo] 搜索根目录: ${repoDir}${repoDir === cloneDir ? "（克隆仓库）" : "（回退本地项目目录）"}`);
+
       let searchDir: string;
       if (payload.basePath) {
         searchDir = directory ? join(payload.basePath, directory) : payload.basePath;
       } else {
         searchDir = directory || ".";
       }
+      console.log(`[grepRepo] 子目录: ${searchDir} | pattern: "${pattern}"`);
 
       try {
-        // execFile 不经过 shell，花括号 glob 不展开，需要拆成多个 --include
         const includes = glob
           ? [`--include=${glob}`]
           : ["--include=*.ts", "--include=*.tsx", "--include=*.vue", "--include=*.js", "--include=*.jsx", "--include=*.svelte"];
@@ -66,4 +71,3 @@ export function createGrepRepoTool(payload: HealJobPayload, _env: AiAgentEnv) {
     },
   );
 }
-

@@ -42,6 +42,7 @@ export function getRepoDir(healJobId: string): string {
 
 function injectToken(repoUrl: string, token?: string): string {
   if (!token) return repoUrl;
-  // https://github.com/owner/repo → https://x-access-token:TOKEN@github.com/owner/repo
-  return repoUrl.replace("https://github.com/", `https://x-access-token:${token}@github.com/`);
+  // 统一格式：https://<token>@github.com/owner/repo
+  // GitHub HTTPS 认证支持直接用 token 作为用户名（密码留空或任意）
+  return repoUrl.replace("https://github.com/", `https://${token}@github.com/`);
 }
