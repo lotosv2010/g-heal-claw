@@ -1,12 +1,28 @@
 ---
 name: feat
-description: 端到端需求交付流程：需求理解 → ADR 设计 → 任务拆解 → 用户 Review → 逐任务实现。输入需求描述即驱动全流程。
+description: |
+  端到端需求交付流程，覆盖全生命周期：需求分析 → ADR 方案设计 → 任务拆解 → 逐任务实现 → 测试用例设计 → Code Review。
+  当用户提到以下任意内容时触发：
+  - "新需求 / 新功能 / 实现需求 / 需求交付 / 做一个功能"
+  - "分析需求 / 拆分任务 / 写 PRD / 写 ARD / 设计接口"
+  - "帮我实现 / 开发 / 编码这个功能"
+  - "写测试用例 / 单元测试 / 集成测试"
+  - "Code Review / CR / 审查代码 / 帮我 review"
+  即使用户只提到单个阶段（如"只帮我写 PRD"），也加载此 Skill 以保持阶段间一致性和可追溯性。
 triggers:
   - 新需求
   - 新功能
   - 实现需求
   - 需求交付
   - 做一个功能
+  - 分析需求
+  - 拆分任务
+  - 写PRD
+  - 写ARD
+  - Code Review
+  - CR
+  - 代码审查
+  - 写测试用例
 invocable: true
 arguments:
   - name: requirement
@@ -24,296 +40,277 @@ extensions:
 
 # 端到端需求交付（feat）
 
-将一句话需求驱动成完整的"设计 → 拆解 → 实现"流程，强制每个阶段都有用户确认卡点，避免 AI 直接开写导致方向错误。
+将一句话需求驱动为完整的"分析 → 设计 → 拆解 → 实现 → 测试 → 审查"流程，每阶段有明确质量门和用户确认卡点。
 
 ## 用法
 
 ```
 /feat SDK 新增曝光埋点插件（ExposurePlugin），基于 IntersectionObserver
 /feat HealModule 支持 `/heal/issues/:id/retry` 接口，幂等重试 AI 诊断
-/feat 新增钉钉群自定义机器人通知渠道，复用现有 NotificationModule 协议
 ```
 
-## 流程概览
+## 流程全景
 
 ```
-Phase 1: 需求理解 ──→ Phase 2: 方案设计（ADR）──→ Phase 3: 任务拆解
-     │                       │                           │
-     ▼                       ▼                           ▼
-  读取 PRD/SPEC/         写入 docs/decisions/      更新 docs/tasks/CURRENT.md
-  ARCHITECTURE/          等待用户 Review            等待用户 Review
-  DESIGN/CURRENT         ↻ 修改直至确认              ↻ 修改直至确认
-  需求复述确认                                           │
-                                                         ▼
-                                             Phase 4: 逐任务实现
-                                                  遵循 .claude/rules/*
-                                                  每任务完成后更新 CURRENT.md
-                                                         │
-                                                         ▼
-                                                Phase 5: 交付确认
+P1:需求理解 → P2:ADR方案设计 → P3:任务拆解 → P4:逐任务实现 → P5:测试用例 → P6:Code Review → P7:交付确认
+  5W1H        备选方案+推荐       INVEST+可追溯ID    遵循rules/*      金字塔+六维      六维评分+四级严重度   变更清单+验证状态
+  In/Out      写入decisions/     写入CURRENT.md      每任务更新状态   AC覆盖矩阵      Critical归零方可合并   文档传导
 ```
+
+- **阶段可独立触发**：单阶段触发时先检查前置上下文是否存在
+- **反馈闭环**：P6 发现问题回溯至 P4/P5；P1 边界变更重走 P2→P3
+- **卡点规则**：每阶段切换前须用户确认（P1 无疑问时可一次确认到 P2）
+
+## 目录结构
+
+```
+.claude/skills/feat/
+├── SKILL.md                        ← Body（本文件）—— 流程框架 + 质量门 + 卡点规则 + 引用指针
+└── references/
+    ├── prd-template.md             ← P1/P3 产品需求文档完整模板
+    ├── ard-template.md             ← P1/P3 接口需求文档完整模板（含 PRD/ARD/ADR 决策树）
+    ├── review-rubric.md            ← P6 评分细则（六维量规 + 严重度速查 + 校准示例 + 反模式清单）
+    └── test-patterns.md            ← P5 测试模式库（NestJS/Zod/React/SDK 代码模板 + Mock 策略）
+```
+
+> **设计原则（Build Step 2）**：SKILL.md 只写框架型判断。完整模板和评分细则放入 `references/`，按需读取。
+
+---
 
 ## Phase 1：需求理解
 
-**目标**：确保对需求的理解与用户完全一致，避免方向偏差。
+**目标**：将模糊输入转化为结构化理解，识别歧义和风险。
 
-**步骤：**
+**方法**：5W1H + In/Out Scope + 假设登记册 + 追问三原则
 
-1. 按文档层级顺序读取上下文（**PRD → SPEC → ARCHITECTURE → DESIGN**）：
-   - `docs/PRD.md` — 确认需求是否在 PRD 范围内（如不在，需用户确认是新增需求）
-   - `docs/SPEC.md` — 现有契约（SDK API / HTTP 路由 / 数据模型 / 告警 DSL）
-   - `docs/ARCHITECTURE.md` — 模块边界、队列清单、数据流
-   - `docs/DESIGN.md` — 技术选型与设计模式
-   - `docs/tasks/CURRENT.md` — 当前活跃任务（避免冲突与重复）
-   - `docs/decisions/` — 相关 ADR（已有决策不推翻）
-   - `.claude/rules/architecture.md` / `coding.md` — 硬性规则
+### 执行步骤
 
-2. 识别受影响的模块、队列、数据表、对外契约。
+1. **读取上下文**（按序）：`docs/PRD.md` → `docs/SPEC.md` → `docs/ARCHITECTURE.md` → `docs/DESIGN.md` → `docs/tasks/CURRENT.md` → `docs/decisions/` → `.claude/rules/`
+2. **5W1H 拆解**：Who（角色）、What（边界）、Why（价值）、When（场景）、Where（模块/队列/表）、How（方向）
+3. **识别假设与风险**：标注优先级（高/中/低）
+4. **追问**：模糊点选最关键 3 条，不超过 3 条
 
-3. 输出需求理解确认：
+### 输出要点
 
-```markdown
-## 需求理解
+- 需求概述（一句话）+ PRD 章节归属（超出标注）
+- **In Scope / Out of Scope** 功能边界表格
+- 涉及应用/模块、队列、数据表、契约清单
+- 假设与风险登记册（编号 + 影响 + 优先级）
+- 关键约束（如 SDK 无 Node API、不绕过 GatewayModule）
+- 追问清单（≤3 条，有疑问时）
 
-**需求概述**：[一句话总结]
+> 完整 PRD/ARD 模板见 [`references/prd-template.md`](references/prd-template.md) 和 [`references/ard-template.md`](references/ard-template.md)。
 
-**所属 PRD 章节**：[如 §2.2 异常监控 / §2.7 埋点；若超出 PRD 范围明确标注]
+### 质量门
 
-**涉及应用 / 模块**：
-- [apps/xxx 或 模块名] — [影响说明]
+- [ ] In/Out Scope 明确，高优先级风险已标记，涉及模块/队列/表已识别
+- [ ] 有疑问时追问 ≤3 条；无疑问时直接进入 P2（仍输出理解摘要）
 
-**涉及队列 / 数据表 / 契约**：
-- [events-error / issues 表 / /ingest/v1/events 等]
-
-**关键约束**：
-- [SDK 不能引入 Node.js API]
-- [不得绕过 GatewayModule 直写数据库]
-
-**疑问（如有）**：
-- [问题 1]
-
-理解正确吗？确认后进入方案设计阶段（Phase 2）。
-```
-
-**卡点规则**：
-- 有疑问必须等用户回答后继续。
-- 无疑问且需求明确时可直接进入 Phase 2，但仍应输出理解摘要供用户秒读校验。
+---
 
 ## Phase 2：方案设计（ADR）
 
-**目标**：产出架构决策记录，作为实现的契约。
+**目标**：产出架构决策记录，作为实现契约。
 
-**步骤：**
+### 执行步骤
 
-1. **确定 ADR 编号**：读取 `docs/decisions/` 取最大编号 + 1（四位递增，如 `ADR-0009`）。若决策体量较小、不足以独立 ADR，可在 `docs/decisions/README.md` 索引表中新增一行即可，并在本阶段明确说明"本次决策不新建 ADR 文件"。
+1. 确定 ADR 编号（`docs/decisions/` 最大编号 + 1）。小体量决策可在 `docs/decisions/README.md` 索引表新增一行，不建独立文件
+2. 设计 1~3 个备选方案，每个含：技术路径、接口草稿、优缺点/成本/风险、对架构的影响
+3. 推荐一个方案（对齐 PRD + 符合架构红线 + 最小变更）
+4. 按 `docs/decisions/README.md` 模板写入 ADR + 更新索引
+5. 输出 ADR 摘要请求 Review：决策一句话、推荐方案、文件路径、关键影响（SPEC/ARCHITECTURE/模块边界）
 
-2. **设计 1~3 个备选方案**，每个方案包含：
-   - 技术路径与关键接口草稿
-   - 优点 / 缺点 / 成本 / 风险
-   - 对现有架构的影响（模块边界、队列、数据库、依赖方向）
+### 文档类型决策树
 
-3. **推荐一个方案**并说明理由（对齐 PRD 价值 + 符合架构红线 + 最小变更）。
-
-4. **写入 ADR 文件**（使用 `docs/decisions/README.md` 给出的模板）：
-
-```markdown
-# ADR-NNNN: 决策标题
-
-| 字段 | 值 |
-|---|---|
-| 状态 | 提议 / 采纳 |
-| 日期 | YYYY-MM-DD |
-| 决策人 | @name |
-
-## 背景
-## 决策
-## 备选方案
-## 影响
-## 后续
+```
+需要什么类型的文档？
+├─ 涉及 UI/用户交互 → PRD（references/prd-template.md）
+├─ 涉及新接口/数据模型/队列 → ARD（references/ard-template.md）
+├─ 涉及架构决策（新技术/模块重组/通信模式变更）→ ADR（docs/decisions/）
+└─ 轻量变更 → 直接更新 docs/SPEC.md，不建独立文档
 ```
 
-5. **同步更新索引**：在 `docs/decisions/README.md` 的索引表中追加新行。
+### 质量门
 
-6. **输出 ADR 摘要并请求 Review**：
+- [ ] ≥1 备选方案被评估，推荐方案符合架构红线，ADR 已写入 + 索引已更新
 
-```markdown
-## ADR-NNNN 已写入
+**卡点**：须等用户确认 ADR 后才进入 P3。
 
-**决策**：[一句话]
-**推荐方案**：[方案名]
-**文件**：docs/decisions/NNNN-slug.md
-
-**关键影响**：
-- [对 SPEC 的改动]
-- [对 ARCHITECTURE 的改动]
-- [对现有模块的影响]
-
-请 Review ADR，确认或提出修改意见。确认后进入任务拆解（Phase 3）。
-```
-
-**卡点规则**：必须等用户确认 ADR 后才进入 Phase 3；用户要求修改时更新 ADR 并重新请求确认。
+---
 
 ## Phase 3：任务拆解
 
-**目标**：将 ADR 中的方案拆成可独立交付、有明确验收标准的任务。
+**目标**：将 ADR 方案拆为可独立交付、有明确 AC 的任务，建立可追溯 ID 链。
 
-**拆解原则：**
+**方法**：INVEST + 垂直切片 + 依赖显式化 + 可追溯 ID
 
-- 每个任务 1~2 人日（对 AI 约 1~2 轮对话）可完成
-- 任务间有清晰依赖顺序
-- 每个任务有明确的输入 / 输出 / 验收标准
-- 底层模块先于上层（先 shared Schema → Processor → Controller → UI）
-- 测试随功能同步，不单独拆为"补测试"任务
-- SDK 变更必须附带体积预算验证（gzip ≤ 15KB）
+### 拆解原则
 
-**步骤：**
+- **INVEST**：Independent, Negotiable, Valuable, Estimable, Small（≤1d）, Testable
+- **垂直切片**：每个 Story 独立交付业务价值，避免纯技术 Task
+- **粒度**：≤1 人日（AI 约 1~2 轮对话），底层先于上层（shared Schema → Processor → Controller → UI）
+- **测试随功能同步**，SDK 变更须附带体积预算（gzip ≤ 15KB）
 
-1. 读取 `docs/tasks/CURRENT.md`，定位到合适的 Phase / Milestone，取下一个 `T<Phase>.<M>.<Seq>` 编号。
+### 可追溯 ID 体系
 
-2. 按现有任务格式拆解：
-
-```markdown
-- [ ] **TX.Y.Z** {任务标题} — {估时}d
-  - 输入：{前置依赖 / 已就绪的模块}
-  - 输出：{新增或修改的文件 / 模块}
-  - 验收：{可验证的标准}
-  - 依赖：{前置任务 ID，无则"无"}
+```
+REQ-001 → ADR-NNNN → TX.Y.Z（CURRENT.md 任务）→ TC-U01（测试用例）→ CR-C01（CR 问题）
 ```
 
-3. 将任务写入 `docs/tasks/CURRENT.md` 对应 Milestone 下，并在"当前焦点（Now）"节点更新下一步。
+### 执行步骤
 
-4. **输出任务清单并请求 Review**：
+1. 读取 `docs/tasks/CURRENT.md`，取下一个 `T<Phase>.<M>.<Seq>` 编号
+2. 拆解任务，格式：`[ ] TX.Y.Z {标题} — {估时}d` + 输入/输出/Given-When-Then 验收/依赖
+3. 写入 CURRENT.md 对应 Milestone，更新"当前焦点"
+4. 输出任务清单 + 关键依赖链 + 预估总工时，请求 Review
 
-```markdown
-## 任务拆解完成
+### 质量门
 
-共 N 个任务（TX.Y.Z ~ TX.Y.Z+N），已写入 docs/tasks/CURRENT.md。
+- [ ] 每个 Story 可独立交付，每个 Task 有 Given/When/Then AC，依赖关系显式标注，ID 无冲突
 
-[任务列表摘要]
+**卡点**：须等用户确认任务拆解后才进入 P4。
 
-**关键依赖链**：TX.Y.Z → TX.Y.Z+1 → ...
-**预估总工时**：N 人日
-
-请 Review 任务拆解，确认或调整后进入实现（Phase 4）。
-```
-
-**卡点规则**：必须等用户确认任务拆解后才进入 Phase 4。
+---
 
 ## Phase 4：逐任务实现
 
 **目标**：按依赖顺序逐个交付任务。
 
-**每个任务的执行流程：**
+### 每任务执行流程
 
-1. **切换状态为进行中**：将 `CURRENT.md` 中对应任务从 `[ ]` 改为 `[~]`，并在"当前焦点（Now）"节点更新。
+1. **切换状态** `[ ]` → `[~]`，更新 CURRENT.md
+2. **先读后写**：理解现有实现模式（Zod 命名风格、NestJS 模块组织）
+3. **编码 + 测试**：遵循 `.claude/rules/coding.md` + `architecture.md`；测试文件放 `<package>/tests/`，禁止散落 `src/`
+4. **本地验证**：`pnpm typecheck && pnpm lint && pnpm test`
+5. **自检**：对照 `.claude/rules/review.md` Checklist
+6. **Demo + 文档 + 传导**（用户可感知需求必做，详见 `.claude/rules/review.md §9）：
+   - Step 1 · `examples/nextjs-demo/` 对应分组新建场景
+   - Step 2 · `apps/docs/` 对应章节补 How-to 页面
+   - Step 3 · 按序传导 PRD/SPEC/ARCHITECTURE/DESIGN → ADR → CURRENT.md → GETTING_STARTED → README
+   - 双向可追溯：ADR「后续」→ demo 路径 + apps/docs 链接
+7. **收尾** `[~]` → `[x]` + 日期，更新"当前焦点"
+8. **报告完成**，继续下一个任务
 
-2. **先读后写**：
-   - 用 Read/Grep/Glob 工具理解待修改文件的现有实现
-   - 识别需遵循的模式（现有 Zod Schema 命名风格、NestJS 模块组织等）
+### 质量门
 
-3. **编写代码 + 同步测试**：
-   - 遵循 `.claude/rules/coding.md`（TypeScript、Zod、NestJS 约定）
-   - 遵循 `.claude/rules/architecture.md`（模块边界、包依赖规则）
-   - API 入参出参必须 Zod Schema
-   - 异步任务走 BullMQ，队列名在 `packages/shared` 定义
-   - 注释使用中文，解释"为什么"
+- [ ] typecheck/lint/test 全部通过，测试文件在 `tests/`，Demo 和 docs 已建立，文档已传导
 
-4. **本地验证**：
-   ```bash
-   pnpm typecheck
-   pnpm lint
-   pnpm test
-   ```
+**流转规则**：无依赖任务可合并执行；遇阻塞立即暂停询问；**禁止自动 git commit/push**。
 
-5. **自检**：逐条对照 `.claude/rules/review.md` 中的 Checklist。
+---
 
-6. **Demo 场景 + 使用文档 + 项目文档传导**（用户可感知的需求必做，纯内部重构可豁免，三步按序执行，详见 `.claude/rules/review.md §9`）：
+## Phase 5：测试用例设计
 
-   **Step 1 · Demo 测试场景（`examples/nextjs-demo/`）**
-   - 在对应分组目录（`performance` / `errors` / `api` / `resources` / `tracking` / `custom` 等）新建独立测试场景（页面 / 路由 / 按钮）
-   - 场景注释明示触发路径（DevTools 看什么、Dashboard 哪个页面验证）
-   - `pnpm dev:demo` 一键可触发
+**目标**：确保每条 AC 有对应测试用例，覆盖正常路径、边界、异常。
 
-   **Step 2 · 使用说明（`apps/docs/` Rspress 站点）**
-   - SDK 能力 → `apps/docs/docs/sdk/<plugin>.mdx`
-   - 后端 API → `apps/docs/docs/reference/api.mdx` 或 `reference/<module>.mdx`
-   - 后台页面 → `apps/docs/docs/guide/dashboard/<slug>.mdx`
-   - 快速接入类 → `apps/docs/docs/quickstart/*.mdx`
-   - 内容含：能力简介 + 最小代码/截图 + 配置项 + 常见问题
-   - 新增页面同步更新 Rspress 侧边栏（`rspress.config.ts` 或 `_meta.json`）
+**方法**：测试金字塔（E2E 10% / 集成 30% / 单元 60%）+ 六维用例设计
 
-   **Step 3 · 项目文档传导**（按相关性从上至下）
-   - `docs/PRD.md` / `docs/SPEC.md` / `docs/ARCHITECTURE.md` / `docs/DESIGN.md` —— 契约/架构/路由清单级变化
-   - `docs/decisions/NNNN-*.md` —— 新增 ADR，「后续」章节引用 demo 路径 + apps/docs 页面
-   - `docs/tasks/CURRENT.md` —— 任务 `[~]` → `[x]` + 日期 + 更新 "当前焦点"
-   - `GETTING_STARTED.md` —— 本地联调 / SDK 接入涉及时同步
-   - `README.md` —— 仅当对外描述改变时更新
-   - `CLAUDE.md` / `AGENTS.md` —— 仅当新增了 AI 工具必须遵守的规则时更新
+> 详细代码模式见 [`references/test-patterns.md`](references/test-patterns.md)。
 
-   **双向可追溯**：ADR「后续」章节同时指向 demo 路径 + apps/docs 页面；demo 场景文案反向引用 apps/docs 链接或 ADR 编号
+### 六维用例设计
 
-7. **收尾**：将 `CURRENT.md` 中对应任务从 `[~]` 改为 `[x]`，附完成日期；更新"当前焦点（Now）"下一步。
+| 维度 | 核心思路 |
+|------|----------|
+| **Happy Path** | 正常输入 → 期望输出 |
+| **边界值** | 空值 / 零值 / 最大最小值 |
+| **异常输入** | 非法类型 / 超长 / 恶意 payload |
+| **并发/竞态** | 幂等性 / 重复提交 |
+| **权限/安全** | 未授权 401 / 越权 403 |
+| **性能边界** | 大数据量 / 高频调用 / 超时 |
 
-8. **简要报告任务完成情况**，然后继续下一个任务。
+### 输出要点
 
-**流转规则：**
+1. **AC 覆盖矩阵**：每条 AC → 单元/集成/E2E 测试映射
+2. **单元测试**：覆盖任务 ID + 测试对象 + 维度 + Given-When-Then
+3. **集成测试**：模块间交互链路，使用 Dockerized PG（禁止 mock 数据库）
+4. **E2E 测试**：用户故事级别场景，对应 AC
 
-- 任务按依赖顺序执行；无依赖且作用域不冲突的任务可在同一轮对话中合并执行
-- 每个任务完成后立即更新 CURRENT.md 状态
-- 遇到阻塞（技术障碍、需求歧义、架构红线冲突）立即暂停并询问用户
-- **禁止自动 git commit / push**；由用户人工触发
-- 全部任务完成后进入 Phase 5
+### 质量门
 
-## Phase 5：交付确认
+- [ ] AC 覆盖 100%，Happy Path + 边界 + 异常三个维度已覆盖
+- [ ] 涉及队列/并发有竞态测试，涉及权限有安全测试，测试文件在 `tests/`
 
-全部任务完成后输出：
+---
 
-```markdown
-## 交付摘要
+## Phase 6：Code Review
 
-**需求**：[原始需求]
-**ADR**：docs/decisions/NNNN-slug.md
-**任务**：TX.Y.Z ~ TX.Y.Z+N（共 N 个，全部完成）
+**目标**：量化评分 + 分级问题 + 改进建议。Critical 归零方可合并。
 
-**变更清单**：
-- 新增：[文件列表]
-- 修改：[文件列表]
+**方法**：六维评分（/100）+ 四级严重度 + Before/After
 
-**契约影响**：
-- SPEC：[是否更新、更新了哪些章节]
-- ARCHITECTURE：[是否更新]
-- DESIGN：[是否更新]
+> 详细量规（分数段标准 + 检查要点）、校准示例、反模式清单见 [`references/review-rubric.md`](references/review-rubric.md)。
 
-**Step 1 · Demo 场景**：
-- 分组：[performance / errors / api / resources / tracking / custom ...]
-- 路径：[examples/nextjs-demo/app/... 新建的页面/组件]
-- 触发方式：[pnpm dev:demo 后点击/访问什么能看到效果]
+### 评分维度
 
-**Step 2 · apps/docs 使用说明**：
-- 落点：[apps/docs/docs/sdk/...mdx | reference/...mdx | guide/dashboard/...mdx | quickstart/...mdx]
-- 侧边栏：[rspress.config.ts / _meta.json 是否更新]
-- 摘要：[一句话说明用户该怎么用]
+| 维度 | 权重 | 核心关注点 |
+|------|------|-----------|
+| 正确性 | 25 | 逻辑缺陷、边界处理、异常传播、幂等性 |
+| 可读性 | 20 | 命名自解释、控制流扁平、函数 ≤30 行 |
+| 可维护性 | 20 | 单一职责、依赖方向、无重复代码 |
+| 安全性 | 15 | 输入校验、密钥管理、权限控制 |
+| 性能 | 10 | N+1 查询、并行化、SDK 体积预算 |
+| 测试覆盖 | 10 | AC 覆盖完整性、边界用例 |
 
-**Step 3 · 项目文档传导**：
-- docs/*.md（PRD/SPEC/ARCHITECTURE/DESIGN）：[章节 + 变更摘要]
-- ADR：[编号 + 文件 + 「后续」是否引用 demo 与 apps/docs]
-- CURRENT.md：[任务 ID 状态变化]
-- GETTING_STARTED / README / CLAUDE / AGENTS：[涉及则列出，否则写 "不涉及"]
+### 严重度决策树（关键判断）
 
-**验证状态**：
-- typecheck: PASS / FAIL
-- lint: PASS / FAIL
-- test: PASS / FAIL
-- SDK 体积预算（如涉及）：N KB gzip（预算 15KB）
-
-如需提交代码，请手动触发 `git commit`（本 skill 不自动提交）。
 ```
+发现问题
+├─ Bug / 安全漏洞 / 数据损坏 / 架构红线违反？→ 🔴 Critical（阻塞合并）
+├─ 影响可维护性/性能/扩展性？→ 🟠 Major（强烈建议）
+├─ 代码质量可后续改进？→ 🟡 Minor（建议）
+└─ 风格/习惯问题？→ 🔵 Nitpick（可选）
+```
+
+**速查**：`any`/空 catch/apps 间 import/硬编码密钥/SQL 注入/SDK 引 Node API → 🔴；队列名硬编码/N+1/手写类型代替 `z.infer<>`/测试文件在 `src/` → 🟠
+
+### 输出要点
+
+- 综合评分（六维表格 + 总分 + 评级）：≥90 ✅ / 75-89 🟡 / 60-74 🟠 / <60 🔴
+- 问题清单按严重度分组，每个附 `[CR-Cxx]` 编号 + 文件:行号 + Before/After
+- 亮点至少 1 条
+- 行动项分 Blocker / Non-blocker
+
+### 质量门
+
+- [ ] 六维均已打分（附评语），Critical = 0，总分 ≥ 75，每扣分项附 Before/After
+
+**卡点**：有 Critical 时须修复后重审。
+
+---
+
+## Phase 7：交付确认
+
+全部任务完成后输出交付摘要：
+
+- **可追溯链路**：REQ → ADR → Tasks → TCs → CRs（全部 Closed）
+- **变更清单**：新增/修改文件列表
+- **契约影响**：SPEC / ARCHITECTURE / DESIGN 更新状态表
+- **Demo + docs**：场景路径 + 触发方式 + 使用说明落点
+- **文档传导状态表**：PRD/SPEC/ARCHITECTURE/DESIGN/ADR/CURRENT/GETTING_STARTED/README/CLAUDE/AGENTS
+- **验证状态**：typecheck / lint / test / SDK 体积预算
+- **CR 结果**：总分 / Critical / Major / 评级
+
+---
+
+## 跨阶段可追溯性
+
+```
+REQ-001 → ADR-NNNN → TX.Y.Z（CURRENT.md）→ TC-U01（测试）→ CR-C01（CR问题）
+```
+
+- P3 输出时建立 REQ → ADR → Task 链路
+- P5 输出时建立 Task → TC 映射（AC 覆盖矩阵）
+- P6 输出时 CR 问题关联到具体 TC 或 Task
+- P7 交付摘要汇总完整链路
+
+---
 
 ## 约束
 
-- 遵循 `.claude/rules/` 所有硬性规则（架构红线、代码规范、审查 Checklist）
-- ADR 必须使用 `docs/decisions/README.md` 给出的模板
-- 任务 ID 必须遵循 `T<Phase>.<Milestone>.<Seq>` 规则，不与已有 ID 冲突
-- 不自动执行 `git commit` / `git push` / 分支操作（除非用户明确要求）
-- 每个阶段切换前必须有用户确认（Phase 1 无疑问时可合并到 Phase 2 一次确认）
-- 需求超出当前 PRD 范围时，先与用户确认是否扩展 PRD，再决定后续动作
+- 遵循 `.claude/rules/` 所有硬性规则
+- ADR 使用 `docs/decisions/README.md` 模板；任务 ID 遵循 `T<Phase>.<M>.<Seq>` 格式
+- 测试文件必须位于 `<package>/tests/`，禁止散落 `src/`
+- 不自动 `git commit` / `git push` / 分支操作
+- 需求超出 PRD 范围时先确认是否扩展 PRD
+- 单阶段触发时先检查前置上下文
+- 各阶段输出均携带可追溯 ID
